@@ -121,61 +121,60 @@
           outputHash = "sha256-eH583TjhvhMfEnB2EYE2XlCvRqf9QheXiTmuWvnxVK8=";
         };
 
-        # Build the frontend separately
-        frontend = pkgs.stdenvNoCC.mkDerivation {
-          pname = "spredux-frontend";
-          version = "0.1.0";
-
-          src = ./.;
-
-          nativeBuildInputs = [ pkgs.bun pkgs.nodejs_22 ];
-
-          buildPhase = ''
-            export HOME=$(mktemp -d)
-
-            # Use pre-fetched dependencies
-            cp -r ${bunDeps}/node_modules .
-            chmod -R u+w node_modules
-            patchShebangs node_modules
-
-            bun run build
-          '';
-
-          installPhase = ''
-            mkdir -p $out
-            cp -r build/* $out/
-          '';
-        };
-
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "spredux";
           version = "0.1.0";
 
-          src = ./src-tauri;
+          src = ./.;
 
           cargoLock = {
             lockFile = ./src-tauri/Cargo.lock;
           };
 
+          # Cargo.toml is in src-tauri, not root
+          cargoRoot = "src-tauri";
+
           nativeBuildInputs = with pkgs; [
             pkg-config
             gobject-introspection
             wrapGAppsHook3
+            cargo-tauri
+            bun
+            nodejs_22
           ];
 
           buildInputs = tauriDeps;
 
-          # Point to the pre-built frontend
-          preBuild = ''
-            mkdir -p ../build
-            cp -r ${frontend}/* ../build/
-          '';
-
           OPENSSL_DIR = "${pkgs.openssl.dev}";
           OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
           OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
+
+          # Override build to use cargo-tauri instead of plain cargo
+          buildPhase = ''
+            runHook preBuild
+
+            # Setup bun dependencies
+            cp -r ${bunDeps}/node_modules .
+            chmod -R u+w node_modules
+            patchShebangs node_modules
+
+            # cargo-tauri needs HOME for cache
+            export HOME=$(mktemp -d)
+
+            # Build with tauri CLI (embeds frontend properly)
+            cargo tauri build --bundles none
+
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/bin
+            cp src-tauri/target/release/spredux $out/bin/
+            runHook postInstall
+          '';
 
           postFixup = ''
             wrapProgram $out/bin/spredux \
