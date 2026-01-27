@@ -1,0 +1,17 @@
+---
+uid: sp-m7Bx6qrXcnmn4QwwK4zKv
+title: "Five labs LinkedIn reach out"
+status: done
+tags:
+  - task
+  - CD
+projects:
+  - [[Chase Domination]]
+dateCreated: 2026-01-08
+dateCompleted: 2026-01-09
+due: 2026-01-08
+
+totalTrackedTime: 0
+---
+
+

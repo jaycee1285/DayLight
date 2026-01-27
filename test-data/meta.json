@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "dataPath": "/home/john/repos/SPRedux/test-data",
+  "lastTasksUpdate": null,
+  "lastTimeLogsUpdate": null,
+  "googleCalendar": {
+    "enabled": false,
+    "clientId": null,
+    "clientSecret": null,
+    "calendarId": null,
+    "lastRefresh": null,
+    "refreshIntervalHours": 12,
+    "accessToken": null,
+    "refreshToken": null,
+    "tokenExpiresAt": null
+  },
+  "icsSources": {
+    "publicUrl": null,
+    "secretUrl": null,
+    "lastRefresh": null
+  },
+  "syncState": null
+}

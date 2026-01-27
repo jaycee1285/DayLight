@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+
+/* Skeleton theme - allow switching between flexoki and ayu */
+@import '../flexoki-skeleton.css';
+@import '../ayu-skeleton.css';
+
+/* Base styles */
+html {
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+	background-color: var(--body-background-color);
+	color: rgb(var(--body-text-color));
+	min-height: 100vh;
+	min-height: 100dvh; /* Dynamic viewport height - accounts for mobile browser chrome */
+	/* Side safe areas only - top/bottom handled by fixed elements */
+	padding-left: env(safe-area-inset-left, 0px);
+	padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* CSS custom properties for safe areas with Android fallbacks */
+:root {
+	--safe-area-top: env(safe-area-inset-top, 0px);
+	--safe-area-bottom: env(safe-area-inset-bottom, 0px);
+	/* Android 3-button nav bar is typically 48dp, gesture nav is ~24dp */
+	--android-nav-fallback: 48px;
+	--android-status-fallback: 24px;
+}

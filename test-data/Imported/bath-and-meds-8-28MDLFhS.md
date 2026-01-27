@@ -1,0 +1,17 @@
+---
+uid: sp-28MDLFhShezfRU3BFQMO4
+title: "Bath and meds 8"
+status: done
+tags:
+  - task
+  - orion
+projects:
+  - [[Orion]]
+dateCreated: 2025-07-18
+dateCompleted: 2025-07-19
+due: 2025-07-19
+
+totalTrackedTime: 0
+---
+
+
