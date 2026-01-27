@@ -97,19 +97,69 @@
           wrapGAppsHook3
         ];
 
-      in
-      {
-        packages.default = pkgs.stdenv.mkDerivation {
-          pname = "spredux";
+        # Fixed-output derivation to fetch bun dependencies with network access
+        bunDeps = pkgs.stdenvNoCC.mkDerivation {
+          pname = "spredux-bun-deps";
           version = "0.1.0";
 
           src = ./.;
 
+          nativeBuildInputs = [ pkgs.bun pkgs.cacert ];
+
+          buildPhase = ''
+            export HOME=$(mktemp -d)
+            bun install --frozen-lockfile
+          '';
+
+          installPhase = ''
+            mkdir -p $out
+            cp -r node_modules $out/
+          '';
+
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+          outputHash = "sha256-wx/HAumEswYKOCRIiwyKsVOafwkYfT0b5PYVgOmVJJ0=";
+        };
+
+        # Build the frontend separately
+        frontend = pkgs.stdenvNoCC.mkDerivation {
+          pname = "spredux-frontend";
+          version = "0.1.0";
+
+          src = ./.;
+
+          nativeBuildInputs = [ pkgs.bun pkgs.nodejs_22 ];
+
+          buildPhase = ''
+            export HOME=$(mktemp -d)
+
+            # Use pre-fetched dependencies
+            cp -r ${bunDeps}/node_modules .
+            chmod -R u+w node_modules
+            patchShebangs node_modules
+
+            bun run build
+          '';
+
+          installPhase = ''
+            mkdir -p $out
+            cp -r build/* $out/
+          '';
+        };
+
+      in
+      {
+        packages.default = pkgs.rustPlatform.buildRustPackage {
+          pname = "spredux";
+          version = "0.1.0";
+
+          src = ./src-tauri;
+
+          cargoLock = {
+            lockFile = ./src-tauri/Cargo.lock;
+          };
+
           nativeBuildInputs = with pkgs; [
-            bun
-            nodejs_22
-            rustToolchain
-            cargo-tauri
             pkg-config
             gobject-introspection
             wrapGAppsHook3
@@ -117,20 +167,15 @@
 
           buildInputs = tauriDeps;
 
+          # Point to the pre-built frontend
+          preBuild = ''
+            mkdir -p ../build
+            cp -r ${frontend}/* ../build/
+          '';
+
           OPENSSL_DIR = "${pkgs.openssl.dev}";
           OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
           OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
-
-          buildPhase = ''
-            export HOME=$(mktemp -d)
-            bun install --frozen-lockfile
-            bun run tauri build
-          '';
-
-          installPhase = ''
-            mkdir -p $out/bin
-            cp src-tauri/target/release/spredux $out/bin/
-          '';
 
           postFixup = ''
             wrapProgram $out/bin/spredux \

@@ -149,7 +149,8 @@ export function createViewTasks(
 					urgencyScore: calculateUrgencyScoreForInstance(frontmatter, instanceDate, today),
 					isActiveToday: instanceDate === today,
 					hasPastUncompleted: instanceDate < today,
-					totalTimeTracked: calculateTotalTimeTracked(frontmatter.timeEntries),
+					// For recurring instances, show time tracked for THIS specific instance date
+					totalTimeTracked: calculateTimeTrackedOnDate(frontmatter.timeEntries, instanceDate),
 					timeTrackedToday: calculateTimeTrackedOnDate(frontmatter.timeEntries, today),
 					instanceDate
 				});
