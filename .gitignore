@@ -9,6 +9,16 @@ dist/
 # Tauri
 src-tauri/target/
 
+# Tauri Android build outputs (keep config, ignore builds)
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/.gradle/
+src-tauri/gen/schemas/
+
+# APKs and Android artifacts
+*.apk
+*.aab
+*.idsig
+
 # Environment
 .env
 .env.*
@@ -23,9 +33,11 @@ src-tauri/target/
 # OS
 .DS_Store
 Thumbs.db
+.directory
 
 # Logs
 *.log
+progress.jsonl
 
 # Lock files (using bun)
 package-lock.json
@@ -34,3 +46,6 @@ pnpm-lock.yaml
 
 # Local OAuth notes
 OAUTH.md
+
+# Test data that shouldn't be committed
+test-data/
