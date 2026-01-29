@@ -184,3 +184,13 @@ bun run tauri:android
 - Updated `@sveltejs/vite-plugin-svelte` to ^5.1.1 (Svelte 5 compatibility)
 - Added `export const prerender = false` to dynamic routes (`/projects/[project]`, `/tags/[tag]`)
 - Configured all Android Rust targets in `flake.nix`
+
+---
+
+## Current State
+
+**Read the Obsidian project file before starting work:**
+
+`~/Sync/JMC/SideProjects/SPRedux/SPRedux.md`
+
+That file has the canonical task list, known issues, blockers, and PORTFOLIO-tagged features. Do not duplicate state here.
