@@ -147,6 +147,10 @@
 
           buildInputs = tauriDeps;
 
+          # Disable check phase - cargoCheckHook can't handle Tauri's structure
+          # (Cargo.toml is in src-tauri, and we use a custom build with cargo-tauri)
+          doCheck = false;
+
           OPENSSL_DIR = "${pkgs.openssl.dev}";
           OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
           OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
@@ -164,7 +168,7 @@
             export HOME=$(mktemp -d)
 
             # Build with tauri CLI (embeds frontend properly)
-            cargo tauri build --bundles none
+            cargo tauri build --no-bundle
 
             runHook postBuild
           '';
