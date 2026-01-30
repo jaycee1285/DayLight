@@ -73,12 +73,14 @@ export function minutesToAngle(minutes: number): number {
  * Format minutes as human-readable duration
  */
 export function formatDuration(minutes: number): string {
-	if (minutes < 60) {
-		return `${minutes}m`;
+	const rounded = Math.round(minutes);
+
+	if (rounded < 60) {
+		return `${rounded}m`;
 	}
 
-	const hours = Math.floor(minutes / 60);
-	const mins = minutes % 60;
+	const hours = Math.floor(rounded / 60);
+	const mins = rounded % 60;
 
 	if (mins === 0) {
 		return `${hours}h`;

@@ -94,12 +94,20 @@
 	let timeMinutes = $state(30);
 	let timeDate = $state<Date>(new Date());
 	let currentTheme = $state('flexoki-light');
+	let themePreference = $state('flexoki-light');
 
-	function applyTheme(theme: string) {
-		currentTheme = theme;
-		document.documentElement.setAttribute('data-theme', theme);
+	function resolveSystemTheme(): string {
+		const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+		return prefersDark ? 'flexoki-dark' : 'flexoki-light';
+	}
+
+	function applyTheme(preference: string) {
+		themePreference = preference;
+		const resolved = preference === 'system' ? resolveSystemTheme() : preference;
+		currentTheme = resolved;
+		document.documentElement.setAttribute('data-theme', resolved);
 		try {
-			localStorage.setItem('spredux-theme', theme);
+			localStorage.setItem('spredux-theme', preference);
 		} catch {
 			// Ignore theme persistence errors.
 		}
@@ -232,6 +240,17 @@
 	}
 
 	onMount(() => {
+		// Listen for OS theme changes so "system" preference stays current
+		const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+		function onSystemThemeChange() {
+			if (themePreference === 'system') {
+				const resolved = resolveSystemTheme();
+				currentTheme = resolved;
+				document.documentElement.setAttribute('data-theme', resolved);
+			}
+		}
+		darkMq.addEventListener('change', onSystemThemeChange);
+
 		(async () => {
 			setIsLoading(true);
 			try {
@@ -240,13 +259,15 @@
 					if (savedTheme) {
 						applyTheme(savedTheme);
 					} else {
-						const attrTheme = document.documentElement.getAttribute('data-theme');
-						if (attrTheme) {
-							currentTheme = attrTheme;
-						}
+						// No saved preference — detect system theme
+						applyTheme('system');
 					}
 				} catch {
-					// Ignore theme persistence errors.
+					// localStorage unavailable — detect system theme
+					const resolved = resolveSystemTheme();
+					currentTheme = resolved;
+					themePreference = 'system';
+					document.documentElement.setAttribute('data-theme', resolved);
 				}
 				const tauriGlobal = window as unknown as { __TAURI__?: { invoke?: unknown } };
 				const isTauri =
@@ -295,6 +316,7 @@
 		scheduleNextMidnight();
 
 		return () => {
+			darkMq.removeEventListener('change', onSystemThemeChange);
 			if (midnightTimer) {
 				clearTimeout(midnightTimer);
 			}

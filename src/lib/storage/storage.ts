@@ -161,6 +161,7 @@ function migrateTask(task: Partial<Task>): Task {
 		seriesId: task.seriesId ?? defaults.seriesId,
 		isSeriesTemplate: task.isSeriesTemplate ?? defaults.isSeriesTemplate,
 		recurrence: task.recurrence ?? defaults.recurrence,
+		parentId: task.parentId ?? defaults.parentId,
 		createdAt: task.createdAt ?? defaults.createdAt,
 		updatedAt: task.updatedAt ?? defaults.updatedAt
 	};

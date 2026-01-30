@@ -8,7 +8,7 @@
 	import type { Recurrence } from '$lib/domain/recurrence';
 
 	// Get project name from URL parameter
-	const projectName = $derived(decodeURIComponent($page.params.project));
+	const projectName = $derived(decodeURIComponent($page.params.project ?? ''));
 
 	// Build template map for recurrence lookup
 	const templateMap = $derived(() => {

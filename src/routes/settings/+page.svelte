@@ -35,6 +35,7 @@
 	let hasStoragePermission = $state(true); // Assume true on non-Android
 
 	const themeOptions = [
+		{ value: 'system', label: 'System (auto)' },
 		{ value: 'flexoki-light', label: 'Flexoki Light' },
 		{ value: 'flexoki-dark', label: 'Flexoki Dark' },
 		{ value: 'ayu-light', label: 'Ayu Light' },
@@ -86,9 +87,17 @@
 		isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
 		isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-		const currentTheme = document.documentElement.getAttribute('data-theme');
-		if (currentTheme) {
-			selectedTheme = currentTheme;
+		// Read the stored preference (may be 'system'), not the resolved DOM attribute
+		try {
+			const storedPref = localStorage.getItem('spredux-theme');
+			if (storedPref) {
+				selectedTheme = storedPref;
+			} else {
+				// No stored preference — default to system
+				selectedTheme = 'system';
+			}
+		} catch {
+			selectedTheme = 'system';
 		}
 
 		// Check storage permission on Android
@@ -120,10 +129,19 @@
 
 	function handleThemeChange(event: Event) {
 		const target = event.target as HTMLSelectElement;
-		selectedTheme = target.value;
-		document.documentElement.setAttribute('data-theme', target.value);
+		const preference = target.value;
+		selectedTheme = preference;
+
+		// Resolve "system" to an actual theme for the DOM
+		let resolved = preference;
+		if (preference === 'system') {
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			resolved = prefersDark ? 'flexoki-dark' : 'flexoki-light';
+		}
+		document.documentElement.setAttribute('data-theme', resolved);
+
 		try {
-			localStorage.setItem('spredux-theme', target.value);
+			localStorage.setItem('spredux-theme', preference);
 		} catch {
 			// Ignore theme persistence errors.
 		}
@@ -763,12 +781,17 @@
 	<section class="settings-section mb-6">
 		<h2 class="text-lg font-semibold mb-3">Theme</h2>
 		<div class="settings-card p-4 rounded-lg">
-			<p class="text-sm opacity-70 mb-3">Switch between Flexoki and Ayu themes.</p>
+			<p class="text-sm opacity-70 mb-3">Switch between Flexoki and Ayu themes, or follow your OS.</p>
 			<select class="settings-select" onchange={handleThemeChange} bind:value={selectedTheme}>
 				{#each themeOptions as option}
 					<option value={option.value}>{option.label}</option>
 				{/each}
 			</select>
+			{#if selectedTheme === 'system'}
+				<p class="text-xs opacity-60 mt-2">
+					Currently using {document.documentElement.getAttribute('data-theme')?.replaceAll('-', ' ') ?? 'system default'}
+				</p>
+			{/if}
 		</div>
 	</section>
 

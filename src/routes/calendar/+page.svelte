@@ -1,5 +1,9 @@
 <script lang="ts">
 	import ViewTaskRow from '$lib/components/ViewTaskRow.svelte';
+	import WeeklyTimeGrid from '$lib/components/WeeklyTimeGrid.svelte';
+	import PlannerSidebar from '$lib/components/PlannerSidebar.svelte';
+	import DailyScheduleView from '$lib/components/DailyScheduleView.svelte';
+	import { onMount } from 'svelte';
 	import {
 		markdownStore,
 		initializeMarkdownStore,
@@ -12,8 +16,8 @@
 		type ViewTask
 	} from '$lib/services/ViewService';
 
-	// View mode: 'week' or 'month'
-	type ViewMode = 'week' | 'month';
+	// View mode
+	type ViewMode = 'week' | 'month' | 'planner';
 	let viewMode = $state<ViewMode>('week');
 
 	// Get tasks for the selected date
@@ -102,7 +106,7 @@
 	// Navigate week or month
 	function navigatePeriod(offset: number) {
 		const current = new Date(markdownStore.selectedDate + 'T00:00:00');
-		if (viewMode === 'week') {
+		if (viewMode === 'week' || viewMode === 'planner') {
 			current.setDate(current.getDate() + offset * 7);
 		} else {
 			current.setMonth(current.getMonth() + offset);
@@ -129,9 +133,19 @@
 		setSelectedDate(getTodayDate());
 		initializeMarkdownStore();
 	});
+
+	let isDesktop = $state(true);
+
+	onMount(() => {
+		const mq = window.matchMedia('(min-width: 768px)');
+		isDesktop = mq.matches;
+		function onResize() { isDesktop = mq.matches; }
+		mq.addEventListener('change', onResize);
+		return () => mq.removeEventListener('change', onResize);
+	});
 </script>
 
-<main class="p-4">
+<main class="p-4" class:planner-mode={viewMode === 'planner'}>
 	<!-- Loading state -->
 	{#if markdownStore.isLoading}
 		<div class="flex items-center justify-center py-12">
@@ -146,7 +160,7 @@
 					type="button"
 					class="nav-button p-2 rounded-lg"
 					onclick={() => navigatePeriod(-1)}
-					aria-label={viewMode === 'week' ? 'Previous week' : 'Previous month'}
+					aria-label={viewMode === 'month' ? 'Previous month' : 'Previous week'}
 				>
 					←
 				</button>
@@ -159,7 +173,7 @@
 					type="button"
 					class="nav-button p-2 rounded-lg"
 					onclick={() => navigatePeriod(1)}
-					aria-label={viewMode === 'week' ? 'Next week' : 'Next month'}
+					aria-label={viewMode === 'month' ? 'Next month' : 'Next week'}
 				>
 					→
 				</button>
@@ -184,9 +198,18 @@
 					>
 						Month
 					</button>
+					<button
+						type="button"
+						class="toggle-btn px-4 py-2 text-sm"
+						class:active={viewMode === 'planner'}
+						onclick={() => (viewMode = 'planner')}
+					>
+						Planner
+					</button>
 				</div>
 			</div>
 
+			{#if viewMode !== 'planner'}
 			<!-- Week day headers -->
 			<div class="weekday-headers grid grid-cols-7 gap-1 mb-2">
 				{#each ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as dayLabel}
@@ -282,8 +305,23 @@
 					{/each}
 				</div>
 			{/if}
+			{/if}
 		</header>
 
+		{#if viewMode === 'planner'}
+			{#if isDesktop}
+				<div class="planner-layout">
+					<WeeklyTimeGrid {weekDays} viewTasks={markdownStore.viewTasks} />
+					<PlannerSidebar {weekDays} viewTasks={markdownStore.viewTasks} />
+				</div>
+			{:else}
+				<DailyScheduleView
+					selectedDate={markdownStore.selectedDate}
+					viewTasks={markdownStore.viewTasks}
+					{weekDays}
+				/>
+			{/if}
+		{:else}
 		<!-- Tasks section for selected date -->
 		<section>
 			<h2 class="section-header text-lg font-semibold mb-3 flex items-center gap-2">
@@ -305,6 +343,7 @@
 				</p>
 			{/if}
 		</section>
+		{/if}
 	{/if}
 </main>
 
@@ -497,5 +536,24 @@
 	:global([data-theme='flexoki-dark']) .item-count,
 	:global([data-theme='ayu-dark']) .item-count {
 		background-color: rgb(var(--color-surface-600));
+	}
+
+	/* Planner mode */
+	.planner-mode {
+		display: flex;
+		flex-direction: column;
+		max-height: 100dvh;
+		overflow: hidden;
+	}
+
+	.planner-mode :global(header) {
+		flex-shrink: 0;
+	}
+
+	.planner-layout {
+		display: flex;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
 	}
 </style>

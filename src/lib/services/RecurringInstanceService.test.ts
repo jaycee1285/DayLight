@@ -22,6 +22,7 @@ function createTestFrontmatter(overrides: Partial<TaskFrontmatter> = {}): TaskFr
 		scheduled: null,
 		due: null,
 		startTime: null,
+		plannedDuration: null,
 		tags: [],
 		contexts: [],
 		projects: [],

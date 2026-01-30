@@ -25,6 +25,7 @@ export interface TaskFrontmatter {
 	scheduled: string | null; // YYYY-MM-DD
 	due: string | null; // YYYY-MM-DD
 	startTime: string | null; // HH:MM
+	plannedDuration: number | null; // minutes
 
 	// Categorization
 	tags: string[];
@@ -134,6 +135,7 @@ function normalizeFrontmatter(raw: Record<string, unknown>): TaskFrontmatter {
 		scheduled: normalizeDate(raw.scheduled),
 		due: normalizeDate(raw.due),
 		startTime: normalizeString(raw.startTime),
+		plannedDuration: normalizePositiveNumber(raw.plannedDuration),
 		tags: normalizeStringArray(raw.tags),
 		contexts: normalizeStringArray(raw.contexts),
 		projects: normalizeProjects(raw.projects, raw.project),
@@ -167,6 +169,7 @@ function cleanFrontmatterForSerialization(fm: TaskFrontmatter): Record<string, u
 	if (fm.scheduled) result.scheduled = fm.scheduled;
 	if (fm.due) result.due = fm.due;
 	if (fm.startTime) result.startTime = fm.startTime;
+	if (fm.plannedDuration) result.plannedDuration = fm.plannedDuration;
 	if (fm.completedAt) result.completedAt = fm.completedAt;
 
 	// Only include non-empty arrays
@@ -261,6 +264,15 @@ function normalizeProjects(projects: unknown, legacyProject: unknown): string[] 
 	return [];
 }
 
+function normalizePositiveNumber(value: unknown): number | null {
+	if (typeof value === 'number' && value > 0) return value;
+	if (typeof value === 'string') {
+		const n = parseInt(value, 10);
+		if (!isNaN(n) && n > 0) return n;
+	}
+	return null;
+}
+
 function normalizeRecurrenceAnchor(value: unknown): 'scheduled' | 'completion' {
 	if (value === 'completion') return 'completion';
 	return 'scheduled';
@@ -308,6 +320,7 @@ export function taskToFrontmatter(task: Task): TaskFrontmatter {
 		scheduled: task.scheduledDate,
 		due: null, // Existing tasks don't have due dates
 		startTime: task.startTime,
+		plannedDuration: null,
 		tags: [...task.tags],
 		contexts: [...task.contexts],
 		projects: task.project ? [task.project] : [],

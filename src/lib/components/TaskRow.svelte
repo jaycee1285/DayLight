@@ -177,14 +177,14 @@
 	function openRecurrenceSheet() {
 		// Initialize with current recurrence values
 		if (recurrence) {
-			if (recurrence.type === 'weekly') {
+			if (recurrence.frequency === 'weekly') {
 				editRecurrenceType = 'weekly';
-				editWeeklyDays = [...recurrence.weekDays];
+				editWeeklyDays = [...(recurrence.weekDays || [])];
 				editMonthlyDay = 1;
-			} else if (recurrence.type === 'monthly') {
+			} else if (recurrence.frequency === 'monthly') {
 				editRecurrenceType = 'monthly';
 				editWeeklyDays = [];
-				editMonthlyDay = recurrence.dayOfMonth;
+				editMonthlyDay = recurrence.dayOfMonth || 1;
 			}
 		} else {
 			editRecurrenceType = 'none';

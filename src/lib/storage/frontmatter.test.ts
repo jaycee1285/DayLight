@@ -174,6 +174,7 @@ describe('serializeMarkdown', () => {
 			scheduled: '2026-01-25',
 			due: null,
 			startTime: null,
+			plannedDuration: null,
 			tags: ['task', 'work'],
 			contexts: ['computer'],
 			projects: ['Project A'],
@@ -209,6 +210,7 @@ describe('serializeMarkdown', () => {
 			scheduled: null,
 			due: null,
 			startTime: null,
+			plannedDuration: null,
 			tags: [],
 			contexts: [],
 			projects: [],
@@ -241,6 +243,7 @@ describe('serializeMarkdown', () => {
 			scheduled: '2026-01-25',
 			due: null,
 			startTime: null,
+			plannedDuration: null,
 			tags: [],
 			contexts: [],
 			projects: [],
@@ -274,6 +277,7 @@ describe('roundtrip: parse -> serialize -> parse', () => {
 			scheduled: '2026-01-25',
 			due: '2026-01-30',
 			startTime: '09:00',
+			plannedDuration: 60,
 			tags: ['task', 'urgent'],
 			contexts: ['work', 'phone'],
 			projects: ['Big Project'],
@@ -397,6 +401,7 @@ describe('frontmatterToTask', () => {
 			scheduled: null,
 			due: null,
 			startTime: null,
+			plannedDuration: null,
 			tags: [],
 			contexts: [],
 			projects: [],
@@ -427,6 +432,7 @@ describe('frontmatterToTask', () => {
 			scheduled: null,
 			due: null,
 			startTime: null,
+			plannedDuration: null,
 			tags: [],
 			contexts: [],
 			projects: [],
@@ -456,6 +462,7 @@ describe('frontmatterToTask', () => {
 			scheduled: null,
 			due: null,
 			startTime: null,
+			plannedDuration: null,
 			tags: [],
 			contexts: [],
 			projects: ['Project 1', 'Project 2'],
@@ -485,6 +492,7 @@ describe('frontmatterToTask', () => {
 			scheduled: '2026-01-25',
 			due: null,
 			startTime: null,
+			plannedDuration: null,
 			tags: [],
 			contexts: [],
 			projects: [],
@@ -638,5 +646,96 @@ describe('RRULE roundtrip', () => {
 
 		expect(parsed!.frequency).toBe(original.frequency);
 		expect(parsed!.dayOfMonth).toBe(original.dayOfMonth);
+	});
+});
+
+describe('plannedDuration', () => {
+	it('parses plannedDuration from frontmatter', () => {
+		const content = `---
+status: open
+scheduled: 2026-01-29
+startTime: "09:00"
+plannedDuration: 90
+tags:
+  - task
+dateCreated: 2026-01-29T00:00:00.000Z
+dateModified: 2026-01-29T00:00:00.000Z
+---
+`;
+		const result = parseMarkdown(content);
+		expect(result).not.toBeNull();
+		expect(result!.frontmatter.plannedDuration).toBe(90);
+		expect(result!.frontmatter.startTime).toBe('09:00');
+	});
+
+	it('defaults to null when not present', () => {
+		const content = `---
+status: open
+dateCreated: 2026-01-29T00:00:00.000Z
+dateModified: 2026-01-29T00:00:00.000Z
+---
+`;
+		const result = parseMarkdown(content);
+		expect(result!.frontmatter.plannedDuration).toBeNull();
+	});
+
+	it('ignores zero and negative values', () => {
+		const content = `---
+status: open
+plannedDuration: 0
+dateCreated: 2026-01-29T00:00:00.000Z
+dateModified: 2026-01-29T00:00:00.000Z
+---
+`;
+		const result = parseMarkdown(content);
+		expect(result!.frontmatter.plannedDuration).toBeNull();
+	});
+
+	it('coerces string values to numbers', () => {
+		const content = `---
+status: open
+plannedDuration: "60"
+dateCreated: 2026-01-29T00:00:00.000Z
+dateModified: 2026-01-29T00:00:00.000Z
+---
+`;
+		const result = parseMarkdown(content);
+		expect(result!.frontmatter.plannedDuration).toBe(60);
+	});
+
+	it('roundtrips through serialize/parse', () => {
+		const content = `---
+status: open
+scheduled: 2026-01-29
+startTime: "09:00"
+plannedDuration: 45
+tags:
+  - task
+dateCreated: 2026-01-29T00:00:00.000Z
+dateModified: 2026-01-29T00:00:00.000Z
+---
+
+Plan the sprint.
+`;
+		const parsed = parseMarkdown(content);
+		const serialized = serializeMarkdown(parsed!.frontmatter, parsed!.body);
+		const reparsed = parseMarkdown(serialized);
+
+		expect(reparsed!.frontmatter.plannedDuration).toBe(45);
+		expect(reparsed!.frontmatter.startTime).toBe('09:00');
+		expect(reparsed!.frontmatter.scheduled).toBe('2026-01-29');
+	});
+
+	it('omits plannedDuration from serialization when null', () => {
+		const content = `---
+status: open
+dateCreated: 2026-01-29T00:00:00.000Z
+dateModified: 2026-01-29T00:00:00.000Z
+---
+`;
+		const parsed = parseMarkdown(content);
+		const serialized = serializeMarkdown(parsed!.frontmatter, parsed!.body);
+
+		expect(serialized).not.toContain('plannedDuration');
 	});
 });

@@ -9,6 +9,7 @@
 	} from '$lib/stores/markdown-store.svelte';
 	import { getTodayDate, getOffsetDate, formatLocalDate } from '$lib/domain/task';
 	import { filterByProject, type ViewTask } from '$lib/services/ViewService';
+	import { formatDuration } from '$lib/domain/timeLog';
 
 	// Project filter state
 	let selectedProject = $state<string | null>(null);
@@ -30,6 +31,18 @@
 	const nowTasks = $derived(filterTasksByProject(markdownStore.groupedView.now));
 	const upcomingTasks = $derived(filterTasksByProject(markdownStore.groupedView.upcoming));
 	const wrappedTasks = $derived(filterTasksByProject(markdownStore.groupedView.wrapped));
+
+	// Total time logged on the selected date (deduplicated by filename for recurring tasks)
+	const totalTimeToday = $derived.by(() => {
+		let total = 0;
+		const seen = new Set<string>();
+		for (const task of markdownStore.viewTasks) {
+			if (seen.has(task.filename)) continue;
+			seen.add(task.filename);
+			total += task.timeTrackedToday;
+		}
+		return total;
+	});
 
 	function handleDateSelect(date: Date) {
 		setSelectedDate(formatLocalDate(date));
@@ -66,6 +79,9 @@
 	<!-- Header with date selector -->
 	<header class="flex items-center justify-between mb-4">
 		<h1 class="text-2xl font-bold">{formatDate(markdownStore.selectedDate)}</h1>
+		{#if totalTimeToday > 0}
+			<span class="time-total">{formatDuration(totalTimeToday)}</span>
+		{/if}
 		<DatePill
 			date={new Date(markdownStore.selectedDate + 'T00:00:00')}
 			onselect={handleDateSelect}
@@ -195,6 +211,12 @@
 </main>
 
 <style>
+	.time-total {
+		font-size: 0.875rem;
+		font-weight: 600;
+		opacity: 0.7;
+	}
+
 	.section-header-past {
 		color: rgb(var(--color-error-500));
 	}

@@ -8,7 +8,7 @@
 	import type { Recurrence } from '$lib/domain/recurrence';
 
 	// Get tag name from URL parameter
-	const tagName = $derived(decodeURIComponent($page.params.tag));
+	const tagName = $derived(decodeURIComponent($page.params.tag ?? ''));
 
 	// Build template map for recurrence lookup
 	const templateMap = $derived(() => {

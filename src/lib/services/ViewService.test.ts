@@ -15,7 +15,15 @@ import {
 	filterByProject,
 	filterIncomplete,
 	filterCompleted,
-	type ViewTask
+	parseTimeToMinutes,
+	minutesToTime,
+	snapToGrid,
+	getTimeBlocksForDate,
+	detectCollisions,
+	getUnplannedTasksForDates,
+	getBacklogTasks,
+	type ViewTask,
+	type TimeBlock
 } from './ViewService';
 import type { TaskFrontmatter } from '$lib/storage/frontmatter';
 
@@ -30,6 +38,7 @@ function createFrontmatter(overrides: Partial<TaskFrontmatter> = {}): TaskFrontm
 		scheduled: null,
 		due: null,
 		startTime: null,
+		plannedDuration: null,
 		tags: ['task'],
 		contexts: [],
 		projects: [],
@@ -450,5 +459,223 @@ describe('filterIncomplete/filterCompleted', () => {
 		const result = filterCompleted(tasks);
 		expect(result).toHaveLength(1);
 		expect(result[0].title).toBe('done');
+	});
+});
+
+// =============================================================================
+// Time Block (Weekly Planner) Tests
+// =============================================================================
+
+function makeViewTask(overrides: Omit<Partial<ViewTask>, 'frontmatter'> & { frontmatter?: Partial<TaskFrontmatter> }): ViewTask {
+	const { frontmatter: fmOverrides, ...rest } = overrides;
+	return {
+		filename: 'Test.md',
+		title: 'Test',
+		body: '',
+		dateGroup: 'Now',
+		urgencyScore: 0,
+		isActiveToday: false,
+		hasPastUncompleted: false,
+		totalTimeTracked: 0,
+		timeTrackedToday: 0,
+		instanceDate: null,
+		...rest,
+		frontmatter: { ...createFrontmatter(), ...fmOverrides }
+	};
+}
+
+describe('parseTimeToMinutes', () => {
+	it('parses 09:00 to 540', () => {
+		expect(parseTimeToMinutes('09:00')).toBe(540);
+	});
+
+	it('parses 00:00 to 0', () => {
+		expect(parseTimeToMinutes('00:00')).toBe(0);
+	});
+
+	it('parses 23:59 to 1439', () => {
+		expect(parseTimeToMinutes('23:59')).toBe(1439);
+	});
+
+	it('parses 14:30 to 870', () => {
+		expect(parseTimeToMinutes('14:30')).toBe(870);
+	});
+});
+
+describe('minutesToTime', () => {
+	it('converts 540 to 09:00', () => {
+		expect(minutesToTime(540)).toBe('09:00');
+	});
+
+	it('converts 0 to 00:00', () => {
+		expect(minutesToTime(0)).toBe('00:00');
+	});
+
+	it('converts 1439 to 23:59', () => {
+		expect(minutesToTime(1439)).toBe('23:59');
+	});
+
+	it('clamps negative to 00:00', () => {
+		expect(minutesToTime(-10)).toBe('00:00');
+	});
+
+	it('clamps above 1439 to 23:59', () => {
+		expect(minutesToTime(2000)).toBe('23:59');
+	});
+});
+
+describe('snapToGrid', () => {
+	it('snaps to 15-min increments', () => {
+		expect(snapToGrid(7, 15)).toBe(0);
+		expect(snapToGrid(8, 15)).toBe(15);
+		expect(snapToGrid(22, 15)).toBe(15);
+		expect(snapToGrid(23, 15)).toBe(30);
+	});
+
+	it('snaps to 30-min increments', () => {
+		expect(snapToGrid(14, 30)).toBe(0);
+		expect(snapToGrid(15, 30)).toBe(30);
+		expect(snapToGrid(45, 30)).toBe(60);
+	});
+});
+
+describe('getTimeBlocksForDate', () => {
+	it('returns blocks for tasks with startTime and plannedDuration', () => {
+		const tasks = [
+			makeViewTask({
+				filename: 'A.md',
+				frontmatter: { scheduled: '2026-01-29', startTime: '09:00', plannedDuration: 60 }
+			}),
+			makeViewTask({
+				filename: 'B.md',
+				frontmatter: { scheduled: '2026-01-29', startTime: '14:00', plannedDuration: 30 }
+			})
+		];
+
+		const blocks = getTimeBlocksForDate(tasks, '2026-01-29');
+		expect(blocks).toHaveLength(2);
+		expect(blocks[0].startMinutes).toBe(540);
+		expect(blocks[0].durationMinutes).toBe(60);
+		expect(blocks[1].startMinutes).toBe(840);
+		expect(blocks[1].durationMinutes).toBe(30);
+	});
+
+	it('excludes tasks without startTime or plannedDuration', () => {
+		const tasks = [
+			makeViewTask({
+				filename: 'A.md',
+				frontmatter: { scheduled: '2026-01-29', startTime: null, plannedDuration: 60 }
+			}),
+			makeViewTask({
+				filename: 'B.md',
+				frontmatter: { scheduled: '2026-01-29', startTime: '09:00', plannedDuration: null }
+			})
+		];
+
+		expect(getTimeBlocksForDate(tasks, '2026-01-29')).toHaveLength(0);
+	});
+
+	it('excludes tasks on a different date', () => {
+		const tasks = [
+			makeViewTask({
+				filename: 'A.md',
+				frontmatter: { scheduled: '2026-01-30', startTime: '09:00', plannedDuration: 60 }
+			})
+		];
+
+		expect(getTimeBlocksForDate(tasks, '2026-01-29')).toHaveLength(0);
+	});
+
+	it('matches recurring instance dates', () => {
+		const tasks = [
+			makeViewTask({
+				filename: 'A.md',
+				instanceDate: '2026-01-29',
+				frontmatter: { scheduled: '2026-01-27', startTime: '10:00', plannedDuration: 45 }
+			})
+		];
+
+		const blocks = getTimeBlocksForDate(tasks, '2026-01-29');
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0].startMinutes).toBe(600);
+	});
+});
+
+describe('detectCollisions', () => {
+	it('detects overlapping blocks', () => {
+		const blocks: TimeBlock[] = [
+			{
+				task: makeViewTask({ filename: 'A.md', frontmatter: {} }),
+				date: '2026-01-29',
+				startMinutes: 540,
+				durationMinutes: 60
+			},
+			{
+				task: makeViewTask({ filename: 'B.md', frontmatter: {} }),
+				date: '2026-01-29',
+				startMinutes: 570,
+				durationMinutes: 60
+			}
+		];
+
+		const collisions = detectCollisions(blocks);
+		expect(collisions.has('A.md')).toBe(true);
+		expect(collisions.has('B.md')).toBe(true);
+	});
+
+	it('does not flag adjacent (non-overlapping) blocks', () => {
+		const blocks: TimeBlock[] = [
+			{
+				task: makeViewTask({ filename: 'A.md', frontmatter: {} }),
+				date: '2026-01-29',
+				startMinutes: 540,
+				durationMinutes: 60
+			},
+			{
+				task: makeViewTask({ filename: 'B.md', frontmatter: {} }),
+				date: '2026-01-29',
+				startMinutes: 600,
+				durationMinutes: 60
+			}
+		];
+
+		expect(detectCollisions(blocks).size).toBe(0);
+	});
+
+	it('returns empty set for no blocks', () => {
+		expect(detectCollisions([]).size).toBe(0);
+	});
+});
+
+describe('getUnplannedTasksForDates', () => {
+	it('returns tasks scheduled for dates without time blocks', () => {
+		const tasks = [
+			makeViewTask({
+				filename: 'A.md',
+				frontmatter: { scheduled: '2026-01-29', startTime: null, plannedDuration: null }
+			}),
+			makeViewTask({
+				filename: 'B.md',
+				frontmatter: { scheduled: '2026-01-29', startTime: '09:00', plannedDuration: 60 }
+			})
+		];
+
+		const unplanned = getUnplannedTasksForDates(tasks, ['2026-01-29']);
+		expect(unplanned).toHaveLength(1);
+		expect(unplanned[0].filename).toBe('A.md');
+	});
+});
+
+describe('getBacklogTasks', () => {
+	it('returns open tasks without scheduled date or recurrence', () => {
+		const tasks = [
+			makeViewTask({ filename: 'A.md', frontmatter: { scheduled: null, recurrence: null } }),
+			makeViewTask({ filename: 'B.md', frontmatter: { scheduled: '2026-01-29' } }),
+			makeViewTask({ filename: 'C.md', frontmatter: { status: 'done', scheduled: null } })
+		];
+
+		const backlog = getBacklogTasks(tasks);
+		expect(backlog).toHaveLength(1);
+		expect(backlog[0].filename).toBe('A.md');
 	});
 });

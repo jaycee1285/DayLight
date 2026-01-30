@@ -167,6 +167,8 @@ export async function addTask(
 		projects?: string[];
 		scheduled?: string;
 		due?: string;
+		startTime?: string;
+		plannedDuration?: number;
 		priority?: 'none' | 'low' | 'normal' | 'high';
 	} = {}
 ): Promise<string> {
@@ -177,7 +179,8 @@ export async function addTask(
 		priority: options.priority || 'none',
 		scheduled: options.scheduled || null,
 		due: options.due || null,
-		startTime: null,
+		startTime: options.startTime || null,
+		plannedDuration: options.plannedDuration || null,
 		tags: ['task', ...(options.tags || [])],
 		contexts: options.contexts || [],
 		projects: options.projects || [],
@@ -230,6 +233,7 @@ export async function addRecurringTask(
 		scheduled: recurrence.startDate,
 		due: null,
 		startTime: null,
+		plannedDuration: null,
 		tags: ['task', ...(options.tags || [])],
 		contexts: options.contexts || [],
 		projects: options.projects || [],
@@ -390,6 +394,18 @@ export async function rescheduleTask(
 	newDate: string
 ): Promise<void> {
 	await updateTask(filename, { scheduled: newDate });
+}
+
+/**
+ * Update a task's time block (for weekly planner drag/resize)
+ */
+export async function updateTaskTimeBlock(
+	filename: string,
+	scheduled: string,
+	startTime: string | null,
+	plannedDuration: number | null
+): Promise<void> {
+	await updateTask(filename, { scheduled, startTime, plannedDuration });
 }
 
 /**

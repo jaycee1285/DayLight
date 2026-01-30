@@ -156,14 +156,15 @@ export function createViewTasks(
 				});
 			}
 
-			// If no uncompleted instances, still show in Upcoming (for the next occurrence)
+			// If no uncompleted instances, determine group from frontmatter
+			// (Wrapped if today's instance was completed, Upcoming otherwise)
 			if (uncompletedInstances.length === 0) {
 				tasks.push({
 					filename,
 					title,
 					frontmatter,
 					body,
-					dateGroup: 'Upcoming',
+					dateGroup: getTaskDateGroup(frontmatter, today),
 					urgencyScore: calculateUrgencyScore(frontmatter, today),
 					isActiveToday: false,
 					hasPastUncompleted: false,
@@ -582,6 +583,119 @@ export function deduplicateByFilename(tasks: ViewTask[]): ViewTask[] {
  */
 export function filterWithStartTime(tasks: ViewTask[]): ViewTask[] {
 	return tasks.filter((task) => task.frontmatter.startTime !== null);
+}
+
+// =============================================================================
+// Time Block Functions (for Weekly Planner)
+// =============================================================================
+
+/**
+ * A positioned time block on the weekly planner grid
+ */
+export interface TimeBlock {
+	task: ViewTask;
+	date: string;
+	startMinutes: number; // minutes from midnight (e.g., 540 = 9:00)
+	durationMinutes: number;
+}
+
+/**
+ * Parse HH:MM time string to minutes from midnight
+ */
+export function parseTimeToMinutes(time: string): number {
+	const [h, m] = time.split(':').map(Number);
+	return h * 60 + (m || 0);
+}
+
+/**
+ * Convert minutes from midnight to HH:MM string
+ */
+export function minutesToTime(minutes: number): string {
+	const clamped = Math.max(0, Math.min(1439, minutes));
+	const h = Math.floor(clamped / 60);
+	const m = clamped % 60;
+	return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Snap minutes to a given increment (e.g., 15-minute grid)
+ */
+export function snapToGrid(minutes: number, increment: number = 15): number {
+	return Math.round(minutes / increment) * increment;
+}
+
+/**
+ * Get time blocks for a specific date (tasks with both startTime and plannedDuration)
+ */
+export function getTimeBlocksForDate(
+	tasks: ViewTask[],
+	date: string
+): TimeBlock[] {
+	return tasks
+		.filter((t) => {
+			const scheduled = t.instanceDate || t.frontmatter.scheduled;
+			return (
+				scheduled === date &&
+				t.frontmatter.startTime !== null &&
+				t.frontmatter.plannedDuration !== null &&
+				t.frontmatter.plannedDuration > 0
+			);
+		})
+		.map((t) => ({
+			task: t,
+			date,
+			startMinutes: parseTimeToMinutes(t.frontmatter.startTime!),
+			durationMinutes: t.frontmatter.plannedDuration!
+		}));
+}
+
+/**
+ * Detect colliding (overlapping) time blocks.
+ * Returns the set of filenames that have at least one collision.
+ */
+export function detectCollisions(blocks: TimeBlock[]): Set<string> {
+	const colliding = new Set<string>();
+	for (let i = 0; i < blocks.length; i++) {
+		for (let j = i + 1; j < blocks.length; j++) {
+			const a = blocks[i];
+			const b = blocks[j];
+			const aEnd = a.startMinutes + a.durationMinutes;
+			const bEnd = b.startMinutes + b.durationMinutes;
+			if (a.startMinutes < bEnd && b.startMinutes < aEnd) {
+				colliding.add(a.task.filename);
+				colliding.add(b.task.filename);
+			}
+		}
+	}
+	return colliding;
+}
+
+/**
+ * Get tasks that are unplanned for given dates (scheduled but no time block)
+ */
+export function getUnplannedTasksForDates(
+	tasks: ViewTask[],
+	dates: string[]
+): ViewTask[] {
+	const dateSet = new Set(dates);
+	return tasks.filter((t) => {
+		// Exclude completed and overdue tasks
+		if (t.dateGroup === 'Wrapped' || t.dateGroup === 'Past') return false;
+		const scheduled = t.instanceDate || t.frontmatter.scheduled;
+		if (!scheduled || !dateSet.has(scheduled)) return false;
+		// Has a scheduled date in range but no time block
+		return t.frontmatter.startTime === null || t.frontmatter.plannedDuration === null;
+	});
+}
+
+/**
+ * Get backlog tasks (open, not scheduled)
+ */
+export function getBacklogTasks(tasks: ViewTask[]): ViewTask[] {
+	return tasks.filter((t) => {
+		const fm = t.frontmatter;
+		return fm.status === 'open' && !fm.scheduled && !fm.recurrence;
+	});
 }
 
 /**

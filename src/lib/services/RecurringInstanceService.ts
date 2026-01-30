@@ -64,8 +64,8 @@ export function processRecurringInstances(
 	const errors: Array<{ filename: string; message: string }> = [];
 
 	for (const [filename, frontmatter] of tasks) {
-		// Skip non-recurring tasks
-		if (!frontmatter.recurrence) {
+		// Skip non-recurring tasks and non-template instances
+		if (!frontmatter.recurrence || !frontmatter.isSeriesTemplate) {
 			continue;
 		}
 
@@ -277,10 +277,9 @@ export function getTaskDateGroup(frontmatter: TaskFrontmatter, today: string = g
 			return 'Now';
 		}
 
-		// Today's instance completed → Upcoming (next occurrence is in the future)
-		// Recurring tasks don't go to "Wrapped" unless the entire series is done
+		// Today's instance completed → Wrapped
 		if (frontmatter.complete_instances.includes(today)) {
-			return 'Upcoming';
+			return 'Wrapped';
 		}
 
 		// Has recurrence but no active instances yet → Upcoming

@@ -4,6 +4,19 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<script>
+			// Synchronous theme application to prevent FOUC (flash of unstyled content).
+			// Runs before paint so the correct theme is visible immediately.
+			try {
+				var saved = localStorage.getItem('spredux-theme');
+				if (saved && saved !== 'system') {
+					document.documentElement.setAttribute('data-theme', saved);
+				} else {
+					var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+					document.documentElement.setAttribute('data-theme', prefersDark ? 'flexoki-dark' : 'flexoki-light');
+				}
+			} catch (e) {}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
