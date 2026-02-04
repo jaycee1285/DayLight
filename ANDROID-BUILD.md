@@ -26,7 +26,7 @@ keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -
 ## Sign APK
 
 ```bash
-~/.local/share/android-sdk/build-tools/34.0.0/apksigner sign --ks debug.keystore --ks-pass pass:android --out spredux-signed.apk src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
+
 ```
 
 ## Install
@@ -40,3 +40,4 @@ adb install -r spredux-signed.apk
 ```bash
 bun run tauri android dev
 ```
+~/.local/share/android-sdk/build-tools/34.0.0/apksigner sign --ks debug.keystore --ks-pass pass:android --out spredux-signed.apk src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk

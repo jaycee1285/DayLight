@@ -43,6 +43,7 @@ import { generateConflictArchiveName, SYNCTHING_CONFLICT_PATTERN, DIR_CONFLICTS 
  */
 export const DIR_TASKS = 'Tasks';
 export const DIR_VIEWS = 'Views';
+export const DIR_IMPORTED = 'Imported';
 
 /**
  * File state for conflict detection
@@ -209,6 +210,50 @@ export async function loadAllTasks(): Promise<LoadTasksResult> {
 	loadedFileStates = fileStates;
 
 	return { tasks, errors, fileStates, parsedFiles };
+}
+
+/**
+ * Load archived task files from Imported/ directory (read-only, no state tracking)
+ * Used by reports for historical time data outside the active Tasks/ window.
+ */
+export async function loadArchiveFiles(): Promise<ParsedTaskFile[]> {
+	const dataPath = await getDataPath();
+	const archiveDir = await join(dataPath, DIR_IMPORTED);
+
+	if (!(await exists(archiveDir))) return [];
+
+	const parsedFiles: ParsedTaskFile[] = [];
+
+	try {
+		const entries = await readDir(archiveDir);
+
+		for (const entry of entries) {
+			if (!entry.isFile || !entry.name.endsWith('.md')) continue;
+			if (SYNCTHING_CONFLICT_PATTERN.test(entry.name)) continue;
+
+			try {
+				const filePath = await join(archiveDir, entry.name);
+				const content = await readTextFile(filePath);
+				const parsed = parseMarkdown(content);
+				if (!parsed) continue;
+
+				// Only include files that have time entries (skip empty ones for perf)
+				if (parsed.frontmatter.timeEntries.length === 0) continue;
+
+				parsedFiles.push({
+					filename: entry.name,
+					frontmatter: parsed.frontmatter,
+					body: parsed.body
+				});
+			} catch {
+				// Skip unreadable archive files silently
+			}
+		}
+	} catch {
+		// Imported/ missing or unreadable — not an error
+	}
+
+	return parsedFiles;
 }
 
 /**

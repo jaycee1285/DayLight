@@ -31,6 +31,7 @@ function createTestFrontmatter(overrides: Partial<TaskFrontmatter> = {}): TaskFr
 		active_instances: [],
 		complete_instances: [],
 		skipped_instances: [],
+		rescheduled_instances: {},
 		seriesId: null,
 		isSeriesTemplate: false,
 		parentId: null,

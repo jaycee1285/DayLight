@@ -1,0 +1,88 @@
+/* Generated from YAML theme: Selenized White.yml
+   Theme: Selenized White (light)
+*/
+
+[data-theme="selenized-white"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 255 255 255; /* #FFFFFF */
+  --color-surface-100: 248 248 248; /* #F8F8F8 */
+  --color-surface-200: 240 240 240; /* #F0F0F0 */
+  --color-surface-300: 229 229 229; /* #E5E5E5 */
+  --color-surface-400: 209 209 209; /* #D1D1D1 */
+  --color-surface-500: 181 181 181; /* #B5B5B5 */
+  --color-surface-600: 154 154 154; /* #9A9A9A */
+  --color-surface-700: 135 135 135; /* #878787 */
+  --color-surface-800: 111 111 111; /* #6F6F6F */
+  --color-surface-900:  93  93  93; /* #5D5D5D */
+  --color-surface-950:  71  71  71; /* #474747 */
+
+  /* --- Primary (blue) --- */
+  --color-primary-50: 235 243 253;
+  --color-primary-100: 204 224 250;
+  --color-primary-200: 166 201 246;
+  --color-primary-300: 115 170 240;
+  --color-primary-400:  56 134 234;
+  --color-primary-500:   0 100 228;
+  --color-primary-600:   0  82 187;
+  --color-primary-700:   0  67 153;
+  --color-primary-800:   0  55 125;
+  --color-primary-900:   0  40  91;
+  --color-primary-950:   0  28  64;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 252 236 247;
+  --color-secondary-100: 248 207 235;
+  --color-secondary-200: 243 171 221;
+  --color-secondary-300: 236 123 201;
+  --color-secondary-400: 228  68 179;
+  --color-secondary-500: 221  15 157;
+  --color-secondary-600: 181  12 129;
+  --color-secondary-700: 148  10 105;
+  --color-secondary-800: 122   8  86;
+  --color-secondary-900:  88   6  63;
+  --color-secondary-950:  62   4  44;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 237 247 235;
+  --color-tertiary-100: 210 234 204;
+  --color-tertiary-200: 176 219 166;
+  --color-tertiary-300: 131 198 115;
+  --color-tertiary-400:  79 174  56;
+  --color-tertiary-500:  29 151   0;
+  --color-tertiary-600:  24 124   0;
+  --color-tertiary-700:  19 101   0;
+  --color-tertiary-800:  16  83   0;
+  --color-tertiary-900:  12  60   0;
+  --color-tertiary-950:   8  42   0;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 235 248 247;
+  --color-accent-100: 204 239 235;
+  --color-accent-200: 166 226 220;
+  --color-accent-300: 115 210 201;
+  --color-accent-400:  56 191 178;
+  --color-accent-500:   0 173 156;
+  --color-accent-600:   0 142 128;
+  --color-accent-700:   0 116 105;
+  --color-accent-800:   0  95  86;
+  --color-accent-900:   0  69  62;
+  --color-accent-950:   0  48  44;
+
+  /* --- Semantic --- */
+  --color-success-500:  29 151   0;
+  --color-warning-500: 196 151   0;
+  --color-error-500:   214   0  12;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-50));
+  --body-text-color:        71  71  71;
+
+  --theme-selection-bg:    229 229 229;
+  --theme-selection-fg:     71  71  71;
+
+  --color-on-primary:      255 255 255;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-200);
+  --color-hover-bg-strong: var(--color-surface-300);
+}

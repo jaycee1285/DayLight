@@ -29,7 +29,7 @@
 {#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
-		class="sheet-backdrop fixed inset-0 bg-black/50 z-[60] flex items-end justify-center"
+		class="sheet-backdrop fixed inset-0 z-[60] flex items-end justify-center"
 		onclick={handleBackdropClick}
 		role="dialog"
 		aria-modal="true"
@@ -73,27 +73,40 @@
 		min-height: 0; /* Important for flex scroll */
 	}
 
-	:global([data-theme='flexoki-dark']) .sheet-content,
-	:global([data-theme='ayu-dark']) .sheet-content {
+	.sheet-backdrop {
+		background-color: rgb(var(--color-overlay) / 0.5);
+	}
+
+	:global([data-mode='dark']) .sheet-content {
 		background-color: rgb(var(--color-surface-800));
+	}
+
+	:global([data-gtk='true'][data-mode='dark']) .sheet-content {
+		background-color: rgb(var(--color-surface-700));
 	}
 
 	.sheet-header {
 		border-bottom-color: rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .sheet-header,
-	:global([data-theme='ayu-dark']) .sheet-header {
+	:global([data-mode='dark']) .sheet-header {
 		border-bottom-color: rgb(var(--color-surface-600));
 	}
 
-	.sheet-close:hover {
-		background-color: rgb(var(--color-surface-200));
+	:global([data-gtk='true'][data-mode='dark']) .sheet-header {
+		border-bottom-color: rgb(var(--color-surface-500));
 	}
 
-	:global([data-theme='flexoki-dark']) .sheet-close:hover,
-	:global([data-theme='ayu-dark']) .sheet-close:hover {
+	.sheet-close:hover {
+		background-color: rgb(var(--color-hover-bg));
+	}
+
+	:global([data-mode='dark']) .sheet-close:hover {
 		background-color: rgb(var(--color-surface-600));
+	}
+
+	:global([data-gtk='true'][data-mode='dark']) .sheet-close:hover {
+		background-color: rgb(var(--color-surface-500));
 	}
 
 	@keyframes slide-up {

@@ -223,12 +223,11 @@
 	}
 
 	.day-nav-btn:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-nav-btn:hover,
-	:global([data-theme='ayu-dark']) .day-nav-btn:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .day-nav-btn:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.day-nav-title {
@@ -240,8 +239,7 @@
 		color: rgb(var(--color-primary-600));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-nav-title.today,
-	:global([data-theme='ayu-dark']) .day-nav-title.today {
+	:global([data-mode='dark']) .day-nav-title.today {
 		color: rgb(var(--color-primary-300));
 	}
 
@@ -253,8 +251,7 @@
 		border-top: 1px solid rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .grid-scroll,
-	:global([data-theme='ayu-dark']) .grid-scroll {
+	:global([data-mode='dark']) .grid-scroll {
 		border-top-color: rgb(var(--color-surface-600));
 	}
 
@@ -285,8 +282,7 @@
 		border-top: 1px solid rgb(var(--color-surface-200) / 0.5);
 	}
 
-	:global([data-theme='flexoki-dark']) .hour-line,
-	:global([data-theme='ayu-dark']) .hour-line {
+	:global([data-mode='dark']) .hour-line {
 		border-top-color: rgb(var(--color-surface-700) / 0.5);
 	}
 
@@ -306,8 +302,7 @@
 		flex-shrink: 0;
 	}
 
-	:global([data-theme='flexoki-dark']) .unplanned-hint,
-	:global([data-theme='ayu-dark']) .unplanned-hint {
+	:global([data-mode='dark']) .unplanned-hint {
 		border-top-color: rgb(var(--color-surface-600));
 	}
 
@@ -339,8 +334,7 @@
 		box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
 	}
 
-	:global([data-theme='flexoki-dark']) .picker-sheet,
-	:global([data-theme='ayu-dark']) .picker-sheet {
+	:global([data-mode='dark']) .picker-sheet {
 		background-color: rgb(var(--color-surface-800));
 	}
 
@@ -353,8 +347,7 @@
 		flex-shrink: 0;
 	}
 
-	:global([data-theme='flexoki-dark']) .picker-header,
-	:global([data-theme='ayu-dark']) .picker-header {
+	:global([data-mode='dark']) .picker-header {
 		border-bottom-color: rgb(var(--color-surface-600));
 	}
 
@@ -395,12 +388,11 @@
 	}
 
 	.picker-task:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .picker-task:hover,
-	:global([data-theme='ayu-dark']) .picker-task:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .picker-task:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.picker-task-title {

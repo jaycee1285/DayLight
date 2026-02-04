@@ -1,0 +1,88 @@
+/* Generated from kitty config: Arc_Light.conf
+   Theme: Arc Light (light)
+*/
+
+[data-theme="arc-light"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 232 236 242; /* #E8ECF2 */
+  --color-surface-100: 225 229 234; /* #E1E5EA */
+  --color-surface-200: 218 221 227; /* #DADDE3 */
+  --color-surface-300: 207 210 215; /* #CFD2D7 */
+  --color-surface-400: 187 190 194; /* #BBBEC2 */
+  --color-surface-500: 160 162 166; /* #A0A2A6 */
+  --color-surface-600: 132 134 137; /* #848689 */
+  --color-surface-700: 114 116 118; /* #727476 */
+  --color-surface-800:  91  92  93; /* #5B5C5D */
+  --color-surface-900:  73  73  74; /* #49494A */
+  --color-surface-950:  51  51  51; /* #333333 */
+
+  /* --- Primary (blue) --- */
+  --color-primary-50: 237 241 250;
+  --color-primary-100: 211 221 243;
+  --color-primary-200: 178 196 234;
+  --color-primary-300: 135 162 222;
+  --color-primary-400:  84 122 208;
+  --color-primary-500:  36  85 195;
+  --color-primary-600:  30  70 160;
+  --color-primary-700:  24  57 131;
+  --color-primary-800:  20  47 107;
+  --color-primary-900:  14  34  78;
+  --color-primary-950:  10  24  55;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 250 237 250;
+  --color-secondary-100: 243 211 243;
+  --color-secondary-200: 234 178 234;
+  --color-secondary-300: 221 135 222;
+  --color-secondary-400: 207  84 208;
+  --color-secondary-500: 194  36 195;
+  --color-secondary-600: 159  30 160;
+  --color-secondary-700: 130  24 131;
+  --color-secondary-800: 107  20 107;
+  --color-secondary-900:  78  14  78;
+  --color-secondary-950:  54  10  55;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 237 250 246;
+  --color-tertiary-100: 211 243 233;
+  --color-tertiary-200: 178 234 217;
+  --color-tertiary-300: 135 222 195;
+  --color-tertiary-400:  84 208 169;
+  --color-tertiary-500:  36 195 145;
+  --color-tertiary-600:  30 160 119;
+  --color-tertiary-700:  24 131  97;
+  --color-tertiary-800:  20 107  80;
+  --color-tertiary-900:  14  78  58;
+  --color-tertiary-950:  10  55  41;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 237 249 250;
+  --color-accent-100: 211 241 243;
+  --color-accent-200: 178 231 234;
+  --color-accent-300: 135 217 222;
+  --color-accent-400:  84 201 208;
+  --color-accent-500:  36 186 195;
+  --color-accent-600:  30 153 160;
+  --color-accent-700:  24 125 131;
+  --color-accent-800:  20 102 107;
+  --color-accent-900:  14  74  78;
+  --color-accent-950:  10  52  55;
+
+  /* --- Semantic --- */
+  --color-success-500:  36 195 145;
+  --color-warning-500: 195 169  36;
+  --color-error-500:   195  36  36;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-50));
+  --body-text-color:        51  51  51;
+
+  --theme-selection-bg:     36  85 195;
+  --theme-selection-fg:    232 236 242;
+
+  --color-on-primary:      255 255 255;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-200);
+  --color-hover-bg-strong: var(--color-surface-300);
+}

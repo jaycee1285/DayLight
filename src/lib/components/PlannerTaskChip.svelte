@@ -46,8 +46,7 @@
 		transition: background-color 0.15s, box-shadow 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .planner-chip,
-	:global([data-theme='ayu-dark']) .planner-chip {
+	:global([data-mode='dark']) .planner-chip {
 		background-color: rgb(var(--color-surface-700));
 		border-left-color: rgb(var(--color-surface-500));
 	}
@@ -57,8 +56,7 @@
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 	}
 
-	:global([data-theme='flexoki-dark']) .planner-chip:hover,
-	:global([data-theme='ayu-dark']) .planner-chip:hover {
+	:global([data-mode='dark']) .planner-chip:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 

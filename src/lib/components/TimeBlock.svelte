@@ -70,8 +70,7 @@
 		transition: box-shadow 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .time-block,
-	:global([data-theme='ayu-dark']) .time-block {
+	:global([data-mode='dark']) .time-block {
 		background-color: rgb(var(--color-primary-900) / 0.6);
 		color: rgb(var(--color-primary-200));
 	}
@@ -134,8 +133,7 @@
 		background-color: rgb(var(--color-primary-300) / 0.5);
 	}
 
-	:global([data-theme='flexoki-dark']) .resize-handle:hover,
-	:global([data-theme='ayu-dark']) .resize-handle:hover {
+	:global([data-mode='dark']) .resize-handle:hover {
 		background-color: rgb(var(--color-primary-700) / 0.5);
 	}
 </style>

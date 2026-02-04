@@ -294,7 +294,7 @@
 		padding-top: 0.875rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .task-time {
+	:global([data-mode='dark']) .task-time {
 		color: rgb(var(--color-tertiary-400));
 	}
 
@@ -324,7 +324,7 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .appointment-card {
+	:global([data-mode='dark']) .appointment-card {
 		background-color: rgb(var(--color-surface-800));
 	}
 </style>

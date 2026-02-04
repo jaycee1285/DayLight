@@ -13,7 +13,7 @@ export default defineConfig({
 
 	// Tauri expects a fixed port
 	server: {
-		port: 1420,
+		port: 43181,
 		strictPort: true,
 		watch: {
 			ignored: ['**/src-tauri/**']

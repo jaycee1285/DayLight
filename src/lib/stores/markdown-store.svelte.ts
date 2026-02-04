@@ -189,6 +189,7 @@ export async function addTask(
 		active_instances: [],
 		complete_instances: [],
 		skipped_instances: [],
+		rescheduled_instances: {},
 		seriesId: null,
 		isSeriesTemplate: false,
 		parentId: null,
@@ -242,6 +243,7 @@ export async function addRecurringTask(
 		active_instances: instances,
 		complete_instances: [],
 		skipped_instances: [],
+		rescheduled_instances: {},
 		seriesId: null,
 		isSeriesTemplate: true,
 		parentId: null,
@@ -387,13 +389,35 @@ export async function skipTaskInstance(
 }
 
 /**
- * Reschedule a task
+ * Reschedule a task (series-level, sets scheduled date)
  */
 export async function rescheduleTask(
 	filename: string,
 	newDate: string
 ): Promise<void> {
 	await updateTask(filename, { scheduled: newDate });
+}
+
+/**
+ * Reschedule a single recurring instance to a new date
+ */
+export async function rescheduleInstance(
+	filename: string,
+	instanceDate: string,
+	newDate: string
+): Promise<void> {
+	const file = taskFiles.get(filename);
+	if (!file) return;
+
+	const fm = file.frontmatter;
+	if (!fm.recurrence) {
+		// Not recurring — fall back to regular reschedule
+		await rescheduleTask(filename, newDate);
+		return;
+	}
+
+	const updatedMap = { ...fm.rescheduled_instances, [instanceDate]: newDate };
+	await updateTask(filename, { rescheduled_instances: updatedMap });
 }
 
 /**

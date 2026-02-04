@@ -108,18 +108,16 @@
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .date-pill,
-	:global([data-theme='ayu-dark']) .date-pill {
+	:global([data-mode='dark']) .date-pill {
 		background-color: rgb(var(--color-surface-800));
 	}
 
 	.date-pill:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .date-pill:hover,
-	:global([data-theme='ayu-dark']) .date-pill:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .date-pill:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.date-picker-dropdown {
@@ -128,8 +126,7 @@
 		min-width: 160px;
 	}
 
-	:global([data-theme='flexoki-dark']) .date-picker-dropdown,
-	:global([data-theme='ayu-dark']) .date-picker-dropdown {
+	:global([data-mode='dark']) .date-picker-dropdown {
 		background-color: rgb(var(--color-surface-800));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -144,21 +141,19 @@
 	}
 
 	.quick-date-btn:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-date-btn:hover,
-	:global([data-theme='ayu-dark']) .quick-date-btn:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .quick-date-btn:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.divider {
 		height: 1px;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .divider,
-	:global([data-theme='ayu-dark']) .divider {
+	:global([data-mode='dark']) .divider {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -168,8 +163,7 @@
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .date-input,
-	:global([data-theme='ayu-dark']) .date-input {
+	:global([data-mode='dark']) .date-input {
 		background-color: rgb(var(--color-surface-800));
 		border-color: rgb(var(--color-surface-600));
 	}

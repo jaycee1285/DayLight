@@ -1,0 +1,85 @@
+Control kitty by sending it commands.
+
+[1;34mCommands[221;39m:
+  [32maction[39m
+    Run the specified mappable action
+  [32mclose-tab[39m
+    Close the specified tabs
+  [32mclose-window[39m
+    Close the specified windows
+  [32mcreate-marker[39m
+    Create a marker that highlights specified text
+  [32mdetach-tab[39m
+    Detach the specified tabs and place them in a different/new OS window
+  [32mdetach-window[39m
+    Detach the specified windows and place them in a different/new tab
+  [32mdisable-ligatures[39m
+    Control ligature rendering
+  [32menv[39m
+    Change environment variables seen by future children
+  [32mfocus-tab[39m
+    Focus the specified tab
+  [32mfocus-window[39m
+    Focus the specified window
+  [32mget-colors[39m
+    Get terminal colors
+  [32mget-text[39m
+    Get text from the specified window
+  [32mgoto-layout[39m
+    Set the window layout
+  [32mkitten[39m
+    Run a kitten
+  [32mlast-used-layout[39m
+    Switch to the last used layout
+  [32mlaunch[39m
+    Run an arbitrary process in a new window/tab
+  [32mload-config[39m
+    (Re)load a config file
+  [32mls[39m
+    List tabs/windows
+  [32mnew-window[39m
+    Open new window
+  [32mremove-marker[39m
+    Remove the currently set marker, if any.
+  [32mresize-os-window[39m
+    Resize/show/hide/etc. the specified OS Windows
+  [32mresize-window[39m
+    Resize the specified windows
+  [32mrun[39m
+    Run a program on the computer in which kitty is running and get the output
+  [32mscroll-window[39m
+    Scroll the specified windows
+  [32mselect-window[39m
+    Visually select a window in the specified tab
+  [32msend-key[39m
+    Send arbitrary key presses to the specified windows
+  [32msend-text[39m
+    Send arbitrary text to specified windows
+  [32mset-background-image[39m
+    Set the background image
+  [32mset-background-opacity[39m
+    Set the background opacity
+  [32mset-colors[39m
+    Set terminal colors
+  [32mset-enabled-layouts[39m
+    Set the enabled layouts in tabs
+  [32mset-font-size[39m
+    Set the font size in the active top-level OS window
+  [32mset-spacing[39m
+    Set window paddings and margins
+  [32mset-tab-color[39m
+    Change the color of the specified tabs in the tab bar
+  [32mset-tab-title[39m
+    Set the tab title
+  [32mset-user-vars[39m
+    Set user variables on a window
+  [32mset-window-logo[39m
+    Set the window logo
+  [32mset-window-title[39m
+    Set the window title
+  [32msignal-child[39m
+    Send a signal to the foreground process in the specified windows
+  [32mhelp[39m
+    Show this help
+  [32mexit[39m
+    Exit this shell

@@ -5,7 +5,7 @@
   "identifier": "com.spredux.app",
   "build": {
     "beforeDevCommand": "bun run dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:43181",
     "beforeBuildCommand": "bun run build",
     "frontendDist": "../build"
   },

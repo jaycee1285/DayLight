@@ -8,6 +8,7 @@
 		markTaskComplete,
 		markTaskIncomplete,
 		rescheduleTask,
+		rescheduleInstance,
 		logTime
 	} from '$lib/stores/markdown-store.svelte';
 	import Sheet from './Sheet.svelte';
@@ -137,7 +138,11 @@
 
 	async function quickReschedule(offset: number) {
 		const newDate = offset === 0 ? getTodayDate() : getOffsetDate(offset);
-		await rescheduleTask(task.filename, newDate);
+		if (task.instanceDate && task.frontmatter.recurrence) {
+			await rescheduleInstance(task.filename, task.instanceDate, newDate);
+		} else {
+			await rescheduleTask(task.filename, newDate);
+		}
 		showReschedule = false;
 	}
 
@@ -237,7 +242,12 @@
 		<!-- Instance date for recurring tasks -->
 		{#if task.instanceDate}
 			<div class="task-date text-xs mt-1 opacity-60">
-				{formatShortDate(task.instanceDate)}
+				{#if task.effectiveDate && task.effectiveDate !== task.instanceDate}
+					{formatShortDate(task.effectiveDate)}
+					<span class="opacity-50">(was {formatShortDate(task.instanceDate)})</span>
+				{:else}
+					{formatShortDate(task.instanceDate)}
+				{/if}
 			</div>
 		{:else if task.frontmatter.scheduled && task.frontmatter.scheduled !== getTodayDate()}
 			<!-- Scheduled date (if not today, non-recurring) -->
@@ -438,7 +448,14 @@
 				</button>
 				<DatePill
 					date={task.frontmatter.scheduled ? new Date(task.frontmatter.scheduled + 'T00:00:00') : new Date()}
-					onselect={(date) => rescheduleTask(task.filename, formatLocalDate(date))}
+					onselect={(date) => {
+						const newDate = formatLocalDate(date);
+						if (task.instanceDate && task.frontmatter.recurrence) {
+							rescheduleInstance(task.filename, task.instanceDate, newDate);
+						} else {
+							rescheduleTask(task.filename, newDate);
+						}
+					}}
 				/>
 			</div>
 			{#if task.frontmatter.scheduled}
@@ -466,21 +483,24 @@
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .task-row {
+	:global([data-mode='dark']) .task-row {
 		background-color: rgb(var(--color-surface-800));
 	}
 
-	:global([data-theme='ayu-dark']) .task-row {
-		background-color: rgb(var(--color-surface-800));
+	:global([data-gtk='true'][data-mode='dark']) .task-row {
+		background-color: rgb(var(--color-surface-700));
 	}
 
 	.task-row:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .task-row:hover,
-	:global([data-theme='ayu-dark']) .task-row:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .task-row:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
+	}
+
+	:global([data-gtk='true'][data-mode='dark']) .task-row:hover {
+		background-color: rgb(var(--color-surface-600));
 	}
 
 	.task-row.completed {
@@ -500,7 +520,7 @@
 	.task-checkbox.checked {
 		background-color: rgb(var(--color-primary-500));
 		border-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
 	.task-title {
@@ -519,8 +539,7 @@
 		color: rgb(var(--color-primary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-tag,
-	:global([data-theme='ayu-dark']) .chip-tag {
+	:global([data-mode='dark']) .chip-tag {
 		background-color: rgb(var(--color-primary-900));
 		color: rgb(var(--color-primary-300));
 	}
@@ -530,8 +549,7 @@
 		color: rgb(var(--color-secondary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-context,
-	:global([data-theme='ayu-dark']) .chip-context {
+	:global([data-mode='dark']) .chip-context {
 		background-color: rgb(var(--color-secondary-900));
 		color: rgb(var(--color-secondary-300));
 	}
@@ -541,8 +559,7 @@
 		color: rgb(var(--color-tertiary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-project,
-	:global([data-theme='ayu-dark']) .chip-project {
+	:global([data-mode='dark']) .chip-project {
 		background-color: rgb(var(--color-tertiary-900));
 		color: rgb(var(--color-tertiary-300));
 	}
@@ -554,8 +571,7 @@
 		border-radius: 9999px;
 	}
 
-	:global([data-theme='flexoki-dark']) .recurrence-label,
-	:global([data-theme='ayu-dark']) .recurrence-label {
+	:global([data-mode='dark']) .recurrence-label {
 		color: rgb(var(--color-primary-300));
 		background-color: rgb(var(--color-primary-900) / 0.5);
 	}
@@ -568,8 +584,7 @@
 		font-weight: 500;
 	}
 
-	:global([data-theme='flexoki-dark']) .time-spent,
-	:global([data-theme='ayu-dark']) .time-spent {
+	:global([data-mode='dark']) .time-spent {
 		color: rgb(var(--color-tertiary-300));
 		background-color: rgb(var(--color-tertiary-900) / 0.5);
 	}
@@ -591,9 +606,8 @@
 		border: 1px solid rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .reschedule-dropdown,
-	:global([data-theme='ayu-dark']) .reschedule-dropdown {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .reschedule-dropdown {
+		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
 	}
 
@@ -611,11 +625,10 @@
 	}
 
 	.dropdown-item:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .dropdown-item:hover,
-	:global([data-theme='ayu-dark']) .dropdown-item:hover {
+	:global([data-mode='dark']) .dropdown-item:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -634,8 +647,7 @@
 		border-radius: 9999px;
 	}
 
-	:global([data-theme='flexoki-dark']) .time-spent-badge,
-	:global([data-theme='ayu-dark']) .time-spent-badge {
+	:global([data-mode='dark']) .time-spent-badge {
 		color: rgb(var(--color-tertiary-300));
 		background-color: rgb(var(--color-tertiary-900) / 0.5);
 	}
@@ -644,9 +656,8 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .task-body,
-	:global([data-theme='ayu-dark']) .task-body {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .task-body {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.schedule-btn {
@@ -663,9 +674,8 @@
 		transition: background-color 0.15s, transform 0.1s;
 	}
 
-	:global([data-theme='flexoki-dark']) .schedule-btn,
-	:global([data-theme='ayu-dark']) .schedule-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .schedule-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.schedule-btn:hover {
@@ -673,29 +683,27 @@
 		transform: scale(1.05);
 	}
 
-	:global([data-theme='flexoki-dark']) .schedule-btn:hover,
-	:global([data-theme='ayu-dark']) .schedule-btn:hover {
+	:global([data-mode='dark']) .schedule-btn:hover {
 		background-color: rgb(var(--color-primary-900));
 	}
 
 	.schedule-btn.active {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
 	.recurrence-section {
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .recurrence-section,
-	:global([data-theme='ayu-dark']) .recurrence-section {
+	:global([data-mode='dark']) .recurrence-section {
 		background-color: rgb(var(--color-surface-800));
 	}
 
 	/* Time Tracking Styles */
 	.log-time-btn {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 		border: none;
 		cursor: pointer;
 		transition: background-color 0.15s, opacity 0.15s;
@@ -716,9 +724,8 @@
 		color: inherit;
 	}
 
-	:global([data-theme='flexoki-dark']) .date-input,
-	:global([data-theme='ayu-dark']) .date-input {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .date-input {
+		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
 	}
 
@@ -731,38 +738,35 @@
 		padding: 0.5rem 0.75rem;
 		border-radius: 0.5rem;
 		font-size: 0.75rem;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		border: none;
 		cursor: pointer;
 		transition: background-color 0.15s;
 		white-space: nowrap;
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-date-btn,
-	:global([data-theme='ayu-dark']) .quick-date-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .quick-date-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.quick-date-btn:hover {
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-date-btn:hover,
-	:global([data-theme='ayu-dark']) .quick-date-btn:hover {
+	:global([data-mode='dark']) .quick-date-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
 	.quick-date-btn.active {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
 	.time-summary {
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .time-summary,
-	:global([data-theme='ayu-dark']) .time-summary {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .time-summary {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 </style>

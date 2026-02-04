@@ -308,8 +308,8 @@
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .freq-btn,
-	:global([data-theme='flexoki-dark']) .mode-btn {
+	:global([data-mode='dark']) .freq-btn,
+	:global([data-mode='dark']) .mode-btn {
 		background-color: rgb(var(--color-surface-700));
 	}
 
@@ -317,8 +317,8 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .freq-btn:hover,
-	:global([data-theme='flexoki-dark']) .mode-btn:hover {
+	:global([data-mode='dark']) .freq-btn:hover,
+	:global([data-mode='dark']) .mode-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -333,21 +333,21 @@
 		border-radius: 50%;
 		font-size: 0.75rem;
 		font-weight: 600;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		border: none;
 		cursor: pointer;
 		transition: all 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .weekday-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .weekday-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.weekday-btn:hover {
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .weekday-btn:hover {
+	:global([data-mode='dark']) .weekday-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -364,8 +364,8 @@
 		font-size: 0.875rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .interval-input,
-	:global([data-theme='flexoki-dark']) .select-input {
+	:global([data-mode='dark']) .interval-input,
+	:global([data-mode='dark']) .select-input {
 		background-color: rgb(var(--color-surface-800));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -382,24 +382,24 @@
 		margin-bottom: 0.5rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .options-section {
+	:global([data-mode='dark']) .options-section {
 		background-color: rgb(var(--color-surface-800));
 	}
 
 	.cancel-btn {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		border: none;
 	}
 
-	:global([data-theme='flexoki-dark']) .cancel-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .cancel-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.cancel-btn:hover {
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .cancel-btn:hover {
+	:global([data-mode='dark']) .cancel-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 

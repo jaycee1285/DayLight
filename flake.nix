@@ -135,54 +135,51 @@
 
           # Cargo.toml is in src-tauri, not root
           cargoRoot = "src-tauri";
+          buildAndTestSubdir = "src-tauri";
 
           nativeBuildInputs = with pkgs; [
             pkg-config
             gobject-introspection
             wrapGAppsHook3
-            cargo-tauri
             bun
             nodejs_22
           ];
 
           buildInputs = tauriDeps;
 
-          # Disable check phase - cargoCheckHook can't handle Tauri's structure
-          # (Cargo.toml is in src-tauri, and we use a custom build with cargo-tauri)
           doCheck = false;
+
+          # Disable the explicit --target flag that cargoBuildHook adds.
+          # When --target is set, Cargo resolves features separately for host
+          # (proc macros) and target dependencies. This prevents the
+          # custom-protocol feature from reaching tauri-macros, causing the
+          # generate_context!() proc macro to emit dev-server code instead of
+          # embedding the frontend assets.
+          CARGO_BUILD_TARGET = "";
 
           OPENSSL_DIR = "${pkgs.openssl.dev}";
           OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
           OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
 
-          # Override build to use cargo-tauri instead of plain cargo
-          buildPhase = ''
-            runHook preBuild
-
-            # Setup bun dependencies
+          # Build the SvelteKit frontend BEFORE cargoBuildHook runs cargo build.
+          # preBuild runs from the project root (cargoBuildHook handles cd into
+          # cargoRoot internally, after preBuild completes).
+          preBuild = ''
             cp -r ${bunDeps}/node_modules .
             chmod -R u+w node_modules
             patchShebangs node_modules
-
-            # cargo-tauri needs HOME for cache
             export HOME=$(mktemp -d)
-
-            # Build with tauri CLI (embeds frontend properly)
-            cargo tauri build --no-bundle
-
-            runHook postBuild
+            ./node_modules/.bin/vite build
           '';
 
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/bin
-            cp src-tauri/target/release/spredux $out/bin/
-            runHook postInstall
-          '';
+          # Let cargoInstallHook handle installation (it knows the --target path)
 
           postFixup = ''
             wrapProgram $out/bin/spredux \
-              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath runtimeLibs}"
+              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath runtimeLibs}" \
+              --set GIO_MODULE_DIR "${pkgs.glib-networking}/lib/gio/modules" \
+              --set WEBKIT_DISABLE_COMPOSITING_MODE "1" \
+              --prefix XDG_DATA_DIRS : "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
           '';
         };
 

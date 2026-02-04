@@ -216,8 +216,7 @@
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-input,
-	:global([data-theme='ayu-dark']) .chip-input {
+	:global([data-mode='dark']) .chip-input {
 		background-color: rgb(var(--color-surface-700));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -242,8 +241,7 @@
 		color: rgb(var(--color-primary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-tag,
-	:global([data-theme='ayu-dark']) .chip-tag {
+	:global([data-mode='dark']) .chip-tag {
 		background-color: rgb(var(--color-primary-900));
 		color: rgb(var(--color-primary-300));
 	}
@@ -253,8 +251,7 @@
 		color: rgb(var(--color-secondary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-context,
-	:global([data-theme='ayu-dark']) .chip-context {
+	:global([data-mode='dark']) .chip-context {
 		background-color: rgb(var(--color-secondary-900));
 		color: rgb(var(--color-secondary-300));
 	}
@@ -264,8 +261,7 @@
 		color: rgb(var(--color-tertiary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-project,
-	:global([data-theme='ayu-dark']) .chip-project {
+	:global([data-mode='dark']) .chip-project {
 		background-color: rgb(var(--color-tertiary-900));
 		color: rgb(var(--color-tertiary-300));
 	}
@@ -287,8 +283,7 @@
 		margin: 0;
 	}
 
-	:global([data-theme='flexoki-dark']) .suggestions-dropdown,
-	:global([data-theme='ayu-dark']) .suggestions-dropdown {
+	:global([data-mode='dark']) .suggestions-dropdown {
 		background-color: rgb(var(--color-surface-700));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -302,13 +297,11 @@
 
 	.suggestion-item:hover,
 	.suggestion-item.selected {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .suggestion-item:hover,
-	:global([data-theme='flexoki-dark']) .suggestion-item.selected,
-	:global([data-theme='ayu-dark']) .suggestion-item:hover,
-	:global([data-theme='ayu-dark']) .suggestion-item.selected {
+	:global([data-mode='dark']) .suggestion-item:hover,
+	:global([data-mode='dark']) .suggestion-item.selected {
 		background-color: rgb(var(--color-surface-600));
 	}
 

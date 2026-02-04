@@ -96,16 +96,55 @@
 	let currentTheme = $state('flexoki-light');
 	let themePreference = $state('flexoki-light');
 
+	const darkThemes = new Set([
+		'flexoki-dark', 'ayu-dark',
+		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard',
+		'kanagawa', 'liquidcarbon', 'modus-vivendi', 'modus-vivendi-tinted',
+		'nordfox', 'pencildark', 'tokyo-night-storm'
+	]);
+
+	function setThemeAttributes(theme: string) {
+		document.documentElement.setAttribute('data-theme', theme);
+		document.documentElement.setAttribute('data-mode', darkThemes.has(theme) ? 'dark' : 'light');
+	}
+
 	function resolveSystemTheme(): string {
 		const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 		return prefersDark ? 'flexoki-dark' : 'flexoki-light';
 	}
 
-	function applyTheme(preference: string) {
+	async function applyTheme(preference: string) {
 		themePreference = preference;
-		const resolved = preference === 'system' ? resolveSystemTheme() : preference;
-		currentTheme = resolved;
-		document.documentElement.setAttribute('data-theme', resolved);
+
+		if (preference === 'gtk') {
+			try {
+				const { invoke } = await import('@tauri-apps/api/core');
+				const { applyGtkTheme, initGtkThemeListener } = await import('$lib/services/gtk-theme');
+				const data = await invoke<{ colors: Record<string, string>; prefer_dark: boolean; theme_path: string | null }>('get_gtk_colors');
+				applyGtkTheme(data);
+				currentTheme = data.prefer_dark ? 'flexoki-dark' : 'flexoki-light';
+				await initGtkThemeListener();
+			} catch {
+				// GTK not available, fall back to system
+				const resolved = resolveSystemTheme();
+				currentTheme = resolved;
+				setThemeAttributes(resolved);
+			}
+		} else {
+			// Clear any GTK overrides when switching away
+			try {
+				const { clearGtkTheme, destroyGtkThemeListener } = await import('$lib/services/gtk-theme');
+				clearGtkTheme();
+				destroyGtkThemeListener();
+			} catch {
+				// Module not loaded yet
+			}
+
+			const resolved = preference === 'system' ? resolveSystemTheme() : preference;
+			currentTheme = resolved;
+			setThemeAttributes(resolved);
+		}
+
 		try {
 			localStorage.setItem('spredux-theme', preference);
 		} catch {
@@ -246,7 +285,7 @@
 			if (themePreference === 'system') {
 				const resolved = resolveSystemTheme();
 				currentTheme = resolved;
-				document.documentElement.setAttribute('data-theme', resolved);
+				setThemeAttributes(resolved);
 			}
 		}
 		darkMq.addEventListener('change', onSystemThemeChange);
@@ -267,7 +306,7 @@
 					const resolved = resolveSystemTheme();
 					currentTheme = resolved;
 					themePreference = 'system';
-					document.documentElement.setAttribute('data-theme', resolved);
+					setThemeAttributes(resolved);
 				}
 				const tauriGlobal = window as unknown as { __TAURI__?: { invoke?: unknown } };
 				const isTauri =
@@ -320,6 +359,9 @@
 			if (midnightTimer) {
 				clearTimeout(midnightTimer);
 			}
+			import('$lib/services/gtk-theme')
+				.then((m) => m.destroyGtkThemeListener())
+				.catch(() => {});
 		};
 	});
 </script>
@@ -589,7 +631,7 @@
 <style>
 	.fab {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
 	.fab:hover {
@@ -601,27 +643,26 @@
 		bottom: 0;
 		top: auto;
 		/* Use max() to ensure minimum height even if env() returns 0 on Android */
-		height: calc(3.5rem + max(env(safe-area-inset-bottom, 0px), 12px));
-		padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+		height: calc(3.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback)));
+		padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback));
 		background-color: rgb(var(--color-surface-100));
 		border-top: 1px solid rgb(var(--color-surface-200));
 		border-bottom: none;
 	}
 
-	:global([data-theme='flexoki-dark']) .nav-bar,
-	:global([data-theme='ayu-dark']) .nav-bar {
+	:global([data-mode='dark']) .nav-bar {
 		background-color: rgb(var(--color-surface-800));
 		border-top-color: rgb(var(--color-surface-600));
 	}
 
 	.main-content {
 		/* Add extra padding to ensure content clears the nav bar */
-		padding-bottom: calc(4.5rem + max(env(safe-area-inset-bottom, 0px), 12px));
-		padding-top: max(env(safe-area-inset-top, 0px), 4px);
+		padding-bottom: calc(4.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback)));
+		padding-top: max(env(safe-area-inset-top, 0px), var(--android-status-fallback));
 	}
 
 	.fab-container {
-		bottom: calc(5.5rem + max(env(safe-area-inset-bottom, 0px), 12px));
+		bottom: calc(5.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback)));
 	}
 
 	/* Desktop: nav bar at top */
@@ -636,8 +677,7 @@
 			border-bottom: 1px solid rgb(var(--color-surface-200));
 		}
 
-		:global([data-theme='flexoki-dark']) .nav-bar,
-		:global([data-theme='ayu-dark']) .nav-bar {
+		:global([data-mode='dark']) .nav-bar {
 			border-bottom-color: rgb(var(--color-surface-600));
 			border-top: none;
 		}
@@ -669,13 +709,12 @@
 	}
 
 	.nav-btn:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .nav-btn:hover,
-	:global([data-theme='ayu-dark']) .nav-btn:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .nav-btn:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.nav-btn.active {
@@ -683,15 +722,14 @@
 		background-color: rgb(var(--color-primary-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .nav-btn.active,
-	:global([data-theme='ayu-dark']) .nav-btn.active {
+	:global([data-mode='dark']) .nav-btn.active {
 		background-color: rgb(var(--color-primary-900) / 0.5);
 		color: rgb(var(--color-primary-400));
 	}
 
 	.primary-btn {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
 	.primary-btn:hover {
@@ -704,12 +742,11 @@
 	}
 
 	.cancel-btn {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .cancel-btn,
-	:global([data-theme='ayu-dark']) .cancel-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .cancel-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.select-input {
@@ -718,9 +755,8 @@
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .select-input,
-	:global([data-theme='ayu-dark']) .select-input {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .select-input {
+		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
 	}
 
@@ -728,15 +764,14 @@
 		padding: 0.5rem 0.75rem;
 		border-radius: 9999px;
 		font-size: 0.875rem;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		border: none;
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-date-btn,
-	:global([data-theme='ayu-dark']) .quick-date-btn {
-		background-color: rgb(var(--body-background-700));
+	:global([data-mode='dark']) .quick-date-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 		color: rgb(var(--body-text-color));
 	}
 
@@ -744,19 +779,17 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-date-btn:hover,
-	:global([data-theme='ayu-dark']) .quick-date-btn:hover {
-		background-color: rgb(var(--body-background-600));
+	:global([data-mode='dark']) .quick-date-btn:hover {
+		background-color: rgb(var(--color-surface-600));
 	}
 
 	.quick-date-btn.active {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-date-btn.active,
-	:global([data-theme='ayu-dark']) .quick-date-btn.active {
-		background-color: rgb(var(--color-primary));
+	:global([data-mode='dark']) .quick-date-btn.active {
+		background-color: rgb(var(--color-primary-500));
 		color: rgb(var(--body-text-color));
 	}
 
@@ -765,29 +798,27 @@
 		padding: 0.5rem 0.75rem;
 		border-radius: 0.5rem;
 		font-size: 0.875rem;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		border: none;
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .recurrence-btn,
-	:global([data-theme='ayu-dark']) .recurrence-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .recurrence-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.recurrence-btn:hover {
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .recurrence-btn:hover,
-	:global([data-theme='ayu-dark']) .recurrence-btn:hover {
+	:global([data-mode='dark']) .recurrence-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
 	.recurrence-btn.active {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
 	.recurrence-btn.icon-btn {
@@ -803,29 +834,27 @@
 		border-radius: 50%;
 		font-size: 0.75rem;
 		font-weight: 600;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		border: none;
 		cursor: pointer;
 		transition: all 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .weekday-btn,
-	:global([data-theme='ayu-dark']) .weekday-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .weekday-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.weekday-btn:hover {
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .weekday-btn:hover,
-	:global([data-theme='ayu-dark']) .weekday-btn:hover {
+	:global([data-mode='dark']) .weekday-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
 	.weekday-btn.selected {
 		background-color: rgb(var(--color-primary-500));
-		color: white;
+		color: rgb(var(--color-on-primary));
 	}
 
 	.monthly-day-select {
@@ -834,9 +863,8 @@
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .monthly-day-select,
-	:global([data-theme='ayu-dark']) .monthly-day-select {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .monthly-day-select {
+		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
 	}
 </style>

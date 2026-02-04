@@ -6,8 +6,10 @@
 	import {
 		getTotalTimeInRange,
 		getTimeByProject,
-		getTimeByTag
+		getTimeByTag,
+		type ViewTask
 	} from '$lib/services/ViewService';
+	import { loadArchiveFiles, type ParsedTaskFile } from '$lib/storage/markdown-storage';
 	import { formatDuration } from '$lib/domain/timeLog';
 	import { getTodayDate, formatLocalDate } from '$lib/domain/task';
 
@@ -17,14 +19,56 @@
 	let customEndDate = $state(getTodayDate());
 	let initialized = $state(false);
 
+	// Archive state: loaded once on demand, cached for session
+	let archiveFiles = $state<ParsedTaskFile[]>([]);
+	let archiveLoaded = $state(false);
+	let archiveLoading = $state(false);
+
 	$effect(() => {
 		if (initialized) return;
 		initialized = true;
 		initializeMarkdownStore();
 	});
 
+	// Load archive when switching to custom range
+	$effect(() => {
+		if (rangeType === 'custom' && !archiveLoaded && !archiveLoading) {
+			archiveLoading = true;
+			loadArchiveFiles().then((files) => {
+				archiveFiles = files;
+				archiveLoaded = true;
+				archiveLoading = false;
+			}).catch(() => {
+				archiveLoading = false;
+			});
+		}
+	});
+
+	// Convert archive files to minimal ViewTask shells for time aggregation
+	let archiveViewTasks = $derived<ViewTask[]>(
+		archiveFiles.map((f) => ({
+			filename: f.filename,
+			title: f.filename.replace(/\.md$/, ''),
+			frontmatter: f.frontmatter,
+			body: f.body,
+			dateGroup: 'Wrapped' as const,
+			urgencyScore: 0,
+			isActiveToday: false,
+			hasPastUncompleted: false,
+			totalTimeTracked: f.frontmatter.timeEntries.reduce((sum, e) => sum + (e.minutes || 0), 0),
+			timeTrackedToday: 0,
+			instanceDate: null,
+			effectiveDate: null
+		}))
+	);
+
 	// Get view tasks from markdown store (already computed)
-	let viewTasks = $derived(markdownStore.viewTasks);
+	let activeViewTasks = $derived(markdownStore.viewTasks);
+
+	// For custom range, combine active + archive; otherwise just active
+	let viewTasks = $derived<ViewTask[]>(
+		rangeType === 'custom' ? [...activeViewTasks, ...archiveViewTasks] : activeViewTasks
+	);
 
 	// Calculate date range based on selected type
 	let dateRange = $derived.by(() => {
@@ -152,7 +196,10 @@
 		<div class="summary-card p-4 rounded-lg mb-6">
 			<div class="text-sm opacity-70">{formatRangeLabel()}</div>
 			<div class="text-3xl font-bold">{formatDuration(totalMinutes)}</div>
-			<div class="text-sm opacity-70">Total time logged</div>
+			<div class="text-sm opacity-70">
+				Total time logged{#if rangeType === 'custom' && archiveLoading}&ensp;(loading archive...){/if}
+				{#if rangeType === 'custom' && archiveLoaded}&ensp;(incl. archive){/if}
+			</div>
 		</div>
 
 		<!-- Time by Project -->
@@ -229,8 +276,7 @@
 		white-space: nowrap;
 	}
 
-	:global([data-theme='flexoki-dark']) .range-btn,
-	:global([data-theme='ayu-dark']) .range-btn {
+	:global([data-mode='dark']) .range-btn {
 		background-color: rgb(var(--color-surface-700));
 	}
 
@@ -238,8 +284,7 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .range-btn:hover,
-	:global([data-theme='ayu-dark']) .range-btn:hover {
+	:global([data-mode='dark']) .range-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -254,9 +299,8 @@
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .date-input,
-	:global([data-theme='ayu-dark']) .date-input {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .date-input {
+		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
 	}
 
@@ -264,8 +308,7 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .summary-card,
-	:global([data-theme='ayu-dark']) .summary-card {
+	:global([data-mode='dark']) .summary-card {
 		background-color: rgb(var(--color-surface-800));
 	}
 
@@ -273,21 +316,19 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .report-row,
-	:global([data-theme='ayu-dark']) .report-row {
+	:global([data-mode='dark']) .report-row {
 		background-color: rgb(var(--color-surface-800));
 	}
 
 	.progress-bar {
 		height: 4px;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		border-radius: 2px;
 		overflow: hidden;
 	}
 
-	:global([data-theme='flexoki-dark']) .progress-bar,
-	:global([data-theme='ayu-dark']) .progress-bar {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .progress-bar {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.progress-fill {

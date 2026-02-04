@@ -13,7 +13,7 @@ crate-type = ["lib", "cdylib", "staticlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["custom-protocol"] }
 tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
@@ -23,3 +23,5 @@ tokio = { version = "1", features = ["sync", "time"] }
 tiny_http = "0.12"
 url = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+notify = { version = "7", default-features = false, features = ["macos_fsevent"] }
+dirs = "5"

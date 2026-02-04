@@ -54,6 +54,9 @@ export interface ViewTask {
 
 	/** For recurring tasks: which specific instance date this ViewTask represents */
 	instanceDate: string | null;
+
+	/** The effective display date (rescheduled date if applicable, otherwise instanceDate or scheduled) */
+	effectiveDate: string | null;
 }
 
 /**
@@ -118,27 +121,35 @@ export function createViewTasks(
 
 		// For recurring tasks, expand into per-instance ViewTasks
 		if (frontmatter.recurrence) {
-			// If the task has been rescheduled to the future, only consider instances >= scheduled
-			// This prevents past uncompleted instances from showing when user has rescheduled
-			const effectiveStartDate = frontmatter.scheduled && frontmatter.scheduled > today
+			// If the task has been rescheduled to the future (series-level), only consider
+			// instances that have been per-instance rescheduled
+			const seriesRescheduled = frontmatter.scheduled && frontmatter.scheduled > today
 				? frontmatter.scheduled
 				: null;
 
-			// Get all uncompleted instances (past + today), respecting rescheduling
-			const uncompletedInstances = frontmatter.active_instances.filter((date) => {
-				// Only include today and past dates
-				if (date > today) return false;
-				// If rescheduled to future, skip all past instances
-				if (effectiveStartDate) return false;
+			const rescheduledMap = frontmatter.rescheduled_instances;
+
+			// Get all uncompleted instances whose effective date is <= today
+			const instancesToShow = frontmatter.active_instances.filter((date) => {
 				// Exclude completed and skipped
 				if (frontmatter.complete_instances.includes(date)) return false;
 				if (frontmatter.skipped_instances.includes(date)) return false;
+
+				const effectiveDate = rescheduledMap[date] || date;
+
+				// Only include instances with effective date <= today
+				if (effectiveDate > today) return false;
+
+				// If the series was rescheduled to the future, only show per-instance overrides
+				if (seriesRescheduled && !rescheduledMap[date]) return false;
+
 				return true;
 			});
 
 			// Create a ViewTask for each uncompleted instance
-			for (const instanceDate of uncompletedInstances) {
-				const dateGroup: 'Past' | 'Now' = instanceDate < today ? 'Past' : 'Now';
+			for (const instanceDate of instancesToShow) {
+				const effectiveDate = rescheduledMap[instanceDate] || instanceDate;
+				const dateGroup: 'Past' | 'Now' = effectiveDate < today ? 'Past' : 'Now';
 
 				tasks.push({
 					filename,
@@ -146,19 +157,19 @@ export function createViewTasks(
 					frontmatter,
 					body,
 					dateGroup,
-					urgencyScore: calculateUrgencyScoreForInstance(frontmatter, instanceDate, today),
-					isActiveToday: instanceDate === today,
-					hasPastUncompleted: instanceDate < today,
-					// For recurring instances, show time tracked for THIS specific instance date
+					urgencyScore: calculateUrgencyScoreForInstance(frontmatter, effectiveDate, today),
+					isActiveToday: effectiveDate === today,
+					hasPastUncompleted: effectiveDate < today,
 					totalTimeTracked: calculateTimeTrackedOnDate(frontmatter.timeEntries, instanceDate),
 					timeTrackedToday: calculateTimeTrackedOnDate(frontmatter.timeEntries, today),
-					instanceDate
+					instanceDate,
+					effectiveDate
 				});
 			}
 
 			// If no uncompleted instances, determine group from frontmatter
 			// (Wrapped if today's instance was completed, Upcoming otherwise)
-			if (uncompletedInstances.length === 0) {
+			if (instancesToShow.length === 0) {
 				tasks.push({
 					filename,
 					title,
@@ -170,7 +181,8 @@ export function createViewTasks(
 					hasPastUncompleted: false,
 					totalTimeTracked: calculateTotalTimeTracked(frontmatter.timeEntries),
 					timeTrackedToday: calculateTimeTrackedOnDate(frontmatter.timeEntries, today),
-					instanceDate: null
+					instanceDate: null,
+					effectiveDate: null
 				});
 			}
 		} else {
@@ -186,7 +198,8 @@ export function createViewTasks(
 				hasPastUncompleted: hasPastUncompletedInstances(frontmatter, today),
 				totalTimeTracked: calculateTotalTimeTracked(frontmatter.timeEntries),
 				timeTrackedToday: calculateTimeTrackedOnDate(frontmatter.timeEntries, today),
-				instanceDate: null
+				instanceDate: null,
+				effectiveDate: frontmatter.scheduled || null
 			});
 		}
 	}
@@ -319,9 +332,9 @@ export function getTasksForDate(
 	return tasks.filter((task) => {
 		const fm = task.frontmatter;
 
-		// For expanded recurring instances, only match the specific instanceDate
+		// For expanded recurring instances, match on effective date
 		if (task.instanceDate) {
-			return task.instanceDate === date;
+			return (task.effectiveDate || task.instanceDate) === date;
 		}
 
 		// Non-recurring: check scheduled date
@@ -375,14 +388,14 @@ export function getTasksInDateRange(
 			tasksByDate.get(fm.due)!.push(task);
 		}
 
-		// Check recurring instances
-		for (const instanceDate of fm.active_instances) {
-			if (tasksByDate.has(instanceDate) &&
-					!fm.complete_instances.includes(instanceDate) &&
-					!fm.skipped_instances.includes(instanceDate)) {
-				// Avoid duplicates if already added via scheduled
-				const existing = tasksByDate.get(instanceDate)!;
-				if (!existing.some((t) => t.filename === task.filename)) {
+		// Check recurring instances (using effective dates for rescheduled instances)
+		for (const instDate of fm.active_instances) {
+			if (fm.complete_instances.includes(instDate)) continue;
+			if (fm.skipped_instances.includes(instDate)) continue;
+			const effectiveDate = fm.rescheduled_instances[instDate] || instDate;
+			if (tasksByDate.has(effectiveDate)) {
+				const existing = tasksByDate.get(effectiveDate)!;
+				if (!existing.some((t) => t.filename === task.filename && t.instanceDate === instDate)) {
 					existing.push(task);
 				}
 			}
@@ -633,7 +646,7 @@ export function getTimeBlocksForDate(
 ): TimeBlock[] {
 	return tasks
 		.filter((t) => {
-			const scheduled = t.instanceDate || t.frontmatter.scheduled;
+			const scheduled = t.effectiveDate || t.instanceDate || t.frontmatter.scheduled;
 			return (
 				scheduled === date &&
 				t.frontmatter.startTime !== null &&
@@ -681,7 +694,7 @@ export function getUnplannedTasksForDates(
 	return tasks.filter((t) => {
 		// Exclude completed and overdue tasks
 		if (t.dateGroup === 'Wrapped' || t.dateGroup === 'Past') return false;
-		const scheduled = t.instanceDate || t.frontmatter.scheduled;
+		const scheduled = t.effectiveDate || t.instanceDate || t.frontmatter.scheduled;
 		if (!scheduled || !dateSet.has(scheduled)) return false;
 		// Has a scheduled date in range but no time block
 		return t.frontmatter.startTime === null || t.frontmatter.plannedDuration === null;
@@ -708,10 +721,16 @@ export function filterScheduledForDate(tasks: ViewTask[], date: string): ViewTas
 		// Direct match on scheduled date
 		if (fm.scheduled === date) return true;
 
-		// Check active recurring instances
-		if (fm.recurrence && fm.active_instances.includes(date)) {
-			// Not completed or skipped
-			return !fm.complete_instances.includes(date) && !fm.skipped_instances.includes(date);
+		// Check active recurring instances (accounting for rescheduled dates)
+		if (fm.recurrence) {
+			for (const instDate of fm.active_instances) {
+				const effectiveDate = fm.rescheduled_instances[instDate] || instDate;
+				if (effectiveDate === date &&
+					!fm.complete_instances.includes(instDate) &&
+					!fm.skipped_instances.includes(instDate)) {
+					return true;
+				}
+			}
 		}
 
 		return false;

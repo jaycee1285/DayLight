@@ -64,7 +64,7 @@
 		white-space: nowrap;
 	}
 
-	:global([data-theme='flexoki-dark']) .tab {
+	:global([data-mode='dark']) .tab {
 		background-color: rgb(var(--color-surface-700));
 	}
 
@@ -72,7 +72,7 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .tab:hover {
+	:global([data-mode='dark']) .tab:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 

@@ -259,8 +259,7 @@
 		min-width: 0;
 	}
 
-	:global([data-theme='flexoki-dark']) .time-grid-container,
-	:global([data-theme='ayu-dark']) .time-grid-container {
+	:global([data-mode='dark']) .time-grid-container {
 		border-color: rgb(var(--color-surface-600));
 		background-color: rgb(var(--color-surface-900));
 	}
@@ -276,8 +275,7 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .grid-header,
-	:global([data-theme='ayu-dark']) .grid-header {
+	:global([data-mode='dark']) .grid-header {
 		border-bottom-color: rgb(var(--color-surface-600));
 		background-color: rgb(var(--color-surface-800));
 	}
@@ -294,8 +292,7 @@
 		border-left: 1px solid rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-header,
-	:global([data-theme='ayu-dark']) .day-header {
+	:global([data-mode='dark']) .day-header {
 		border-left-color: rgb(var(--color-surface-600));
 	}
 
@@ -304,8 +301,7 @@
 		background-color: rgb(var(--color-primary-50));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-header.today,
-	:global([data-theme='ayu-dark']) .day-header.today {
+	:global([data-mode='dark']) .day-header.today {
 		color: rgb(var(--color-primary-300));
 		background-color: rgb(var(--color-primary-900) / 0.3);
 	}
@@ -349,8 +345,7 @@
 		min-height: 100%;
 	}
 
-	:global([data-theme='flexoki-dark']) .day-column,
-	:global([data-theme='ayu-dark']) .day-column {
+	:global([data-mode='dark']) .day-column {
 		border-left-color: rgb(var(--color-surface-700));
 	}
 
@@ -358,8 +353,7 @@
 		background-color: rgb(var(--color-primary-50) / 0.3);
 	}
 
-	:global([data-theme='flexoki-dark']) .day-column.today,
-	:global([data-theme='ayu-dark']) .day-column.today {
+	:global([data-mode='dark']) .day-column.today {
 		background-color: rgb(var(--color-primary-900) / 0.1);
 	}
 
@@ -372,8 +366,7 @@
 		border-top: 1px solid rgb(var(--color-surface-200) / 0.5);
 	}
 
-	:global([data-theme='flexoki-dark']) .hour-line,
-	:global([data-theme='ayu-dark']) .hour-line {
+	:global([data-mode='dark']) .hour-line {
 		border-top-color: rgb(var(--color-surface-700) / 0.5);
 	}
 
@@ -394,8 +387,7 @@
 		z-index: 5;
 	}
 
-	:global([data-theme='flexoki-dark']) .drag-preview,
-	:global([data-theme='ayu-dark']) .drag-preview {
+	:global([data-mode='dark']) .drag-preview {
 		background-color: rgb(var(--color-primary-800) / 0.5);
 		border-color: rgb(var(--color-primary-500));
 	}

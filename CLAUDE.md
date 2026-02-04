@@ -78,14 +78,26 @@ taskFiles = new Map(taskFiles).set(filename, newData);
 ```
 
 ### CSS Theming
-Uses CSS variables with `rgb()` wrapper pattern:
+Uses CSS variables with `rgb()` wrapper pattern. Dark mode uses `data-mode` attribute (not per-theme selectors):
 ```css
 background-color: rgb(var(--color-surface-100));
 
-:global([data-theme='flexoki-dark']) .my-class {
+/* Dark mode — applies to ALL dark themes */
+:global([data-mode='dark']) .my-class {
     background-color: rgb(var(--color-surface-800));
 }
 ```
+
+**Theme system architecture:**
+- `generate-skeleton-themes.ts` converts kitty `.conf` and YAML `.yml` theme files → skeleton CSS
+- Generated CSS lives in `/home/john/repos/skeleton-themes/` (sibling repo)
+- Imported in `src/app.css` via `@import '../../skeleton-themes/...'`
+- `data-theme` attribute selects the active theme, `data-mode="dark"|"light"` set alongside it
+- `darkThemes` Set in both `+layout.svelte` and `settings/+page.svelte` tracks which themes are dark
+- `setThemeAttributes()` helper sets both attributes together
+- Adding a new theme: add source file to `themes/`, run generator, add import to `app.css`, add to `baseThemeOptions` and `darkThemes` (if dark) in settings and layout
+
+**WebKitGTK gotcha:** Tauri's Linux WebView doesn't re-render native `<select>` options after reactive DOM updates. The settings `<select>` is gated behind `{#if initialized}` to ensure it renders only once with final options.
 
 ### Mobile Scroll Fix Pattern
 For scrollable containers that get cut off:
@@ -153,6 +165,8 @@ bun run tauri:android
 | `src/lib/components/RecurrenceEditor.svelte` | Recurrence configuration UI |
 | `src/routes/today-bases/+page.svelte` | Main daily view (uses markdown store) |
 | `src-tauri/capabilities/default.json` | Tauri permissions and fs:scope |
+| `generate-skeleton-themes.ts` | Converts kitty/YAML themes → skeleton CSS |
+| `src/app.css` | Theme CSS imports + base styles |
 
 ---
 
@@ -169,9 +183,8 @@ bun run tauri:android
 - Editable: notes/body, tags (chip UI), projects (chip UI), recurrence
 - "Edit Task" option (pencil icon) replaced "Set Recurrence" in context menu
 
-### Theme Consistency
+### Theme Consistency (superseded by Feb 2026 theme overhaul)
 - Navbar, sidebar, settings cards now use `--color-surface-100` (light) / `--color-surface-800` (dark)
-- Added `ayu-dark` theme variants throughout (previously only `flexoki-dark`)
 
 ### Android File Access
 - Fixed race condition: data path override now set synchronously before store init
@@ -184,6 +197,42 @@ bun run tauri:android
 - Updated `@sveltejs/vite-plugin-svelte` to ^5.1.1 (Svelte 5 compatibility)
 - Added `export const prerender = false` to dynamic routes (`/projects/[project]`, `/tags/[tag]`)
 - Configured all Android Rust targets in `flake.nix`
+
+## Recent Changes (Feb 2026)
+
+### Theme System Overhaul
+- Expanded from 4 hardcoded themes to 30+ generated skeleton themes
+- `generate-skeleton-themes.ts` parses both kitty `.conf` and YAML `.yml` terminal theme files
+- Color mapping: blue→primary, magenta→secondary, green→tertiary/success, cyan→accent, yellow→warning, red→error
+- Surface scales generated differently for light vs dark themes (light: bg→fg lerp, dark: fg→bg lerp)
+- YAML parser handles `color_01`–`color_16` (1-indexed) format alongside kitty's `color0`–`color15`
+- YAML preferred over `.conf` when both exist for the same theme name
+
+### Dark Mode CSS Selector Migration
+- Replaced all per-theme dark selectors (`[data-theme='flexoki-dark']`, `[data-theme='ayu-dark']`) with `[data-mode='dark']`
+- 188 selectors across 25 `.svelte` files updated
+- New `data-mode` attribute set alongside `data-theme` via `setThemeAttributes()` helper
+- `darkThemes` Set maintained in both `+layout.svelte` and `settings/+page.svelte`
+
+### WebKitGTK Select Fix
+- Tauri's WebKitGTK doesn't re-render native `<select>` widget after reactive option changes
+- Fix: `<select>` wrapped in `{#if initialized}` so it only renders once with final option list
+- Added key `(option.value)` to `{#each}` for stable DOM identity
+
+### Per-Instance Rescheduling for Recurring Tasks
+- New `rescheduled_instances: Record<string, string>` field in frontmatter maps `original_date → new_date`
+- Individual recurring instances can be deferred without affecting the series (e.g. "dog meds due Feb 1, defer to Feb 3")
+- `rescheduleInstance()` store function updates the map; `rescheduleTask()` still exists for series-level scheduling
+- ViewService uses effective dates (rescheduled or original) for grouping, filtering, and calendar placement
+- `instanceDate` on ViewTask stays as the original RRULE-generated date (needed for completion tracking)
+- `effectiveDate` on ViewTask is the display/grouping date
+- RecurringInstanceService's `isActiveToday()` and `hasPastUncompletedInstances()` are rescheduled-aware
+- Compatible with TaskNotes Obsidian plugin (unknown fields preserved as customProperties)
+- Re-rescheduling overwrites the map entry; completing uses the original instanceDate
+
+### Stale Build Cache
+- When CSS imports or structural changes are made, clear caches before dev: `rm -rf .svelte-kit node_modules/.vite build`
+- Tauri's `generate_context!()` requires `build/` dir to exist at compile time
 
 ---
 

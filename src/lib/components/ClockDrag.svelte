@@ -176,7 +176,7 @@
 		user-select: none;
 	}
 
-	:global([data-theme='flexoki-dark']) .clock-face {
+	:global([data-mode='dark']) .clock-face {
 		background-color: rgb(var(--color-surface-800));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -213,7 +213,7 @@
 		stroke: rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .arc-background {
+	:global([data-mode='dark']) .arc-background {
 		stroke: rgb(var(--color-surface-700));
 	}
 

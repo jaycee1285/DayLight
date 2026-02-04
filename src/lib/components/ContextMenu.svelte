@@ -104,7 +104,7 @@
 		padding: 0.25rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .context-menu {
+	:global([data-mode='dark']) .context-menu {
 		background-color: rgb(var(--color-surface-700));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -126,10 +126,10 @@
 	}
 
 	.menu-item:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .menu-item:hover {
+	:global([data-mode='dark']) .menu-item:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -141,7 +141,7 @@
 		background-color: rgb(var(--color-error-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .menu-item.destructive:hover {
+	:global([data-mode='dark']) .menu-item.destructive:hover {
 		background-color: rgb(var(--color-error-900) / 0.5);
 	}
 

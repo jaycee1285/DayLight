@@ -34,13 +34,50 @@
 	let initialized = $state(false);
 	let hasStoragePermission = $state(true); // Assume true on non-Android
 
-	const themeOptions = [
+	const baseThemeOptions = [
 		{ value: 'system', label: 'System (auto)' },
 		{ value: 'flexoki-light', label: 'Flexoki Light' },
 		{ value: 'flexoki-dark', label: 'Flexoki Dark' },
 		{ value: 'ayu-light', label: 'Ayu Light' },
-		{ value: 'ayu-dark', label: 'Ayu Dark' }
+		{ value: 'ayu-dark', label: 'Ayu Dark' },
+		{ value: 'arc-light', label: 'Arc Light' },
+		{ value: 'bluloco-light', label: 'Bluloco Light' },
+		{ value: 'catppuccin-latte', label: 'Catppuccin Latte' },
+		{ value: 'dawnfox', label: 'Dawnfox' },
+		{ value: 'everforest-dark-hard', label: 'Everforest Dark' },
+		{ value: 'everforest-light-hard', label: 'Everforest Light' },
+		{ value: 'glacier', label: 'Glacier' },
+		{ value: 'gruvbox-dark-hard', label: 'Gruvbox Dark' },
+		{ value: 'gruvbox-material-light', label: 'Gruvbox Material Light' },
+		{ value: 'gruvbox-material-light-hard', label: 'Gruvbox Material Light Hard' },
+		{ value: 'kanagawa', label: 'Kanagawa' },
+		{ value: 'kanagawa-lotus', label: 'Kanagawa Lotus' },
+		{ value: 'liquidcarbon', label: 'Liquid Carbon' },
+		{ value: 'modus-operandi', label: 'Modus Operandi' },
+		{ value: 'modus-vivendi', label: 'Modus Vivendi' },
+		{ value: 'modus-vivendi-tinted', label: 'Modus Vivendi Tinted' },
+		{ value: 'nordfox', label: 'Nordfox' },
+		{ value: 'one-light', label: 'One Light' },
+		{ value: 'pencil-light', label: 'Pencil Light' },
+		{ value: 'pencildark', label: 'Pencil Dark' },
+		{ value: 'polar', label: 'Polar' },
+		{ value: 'rose-pine-dawn', label: 'Rosé Pine Dawn' },
+		{ value: 'selenized-light', label: 'Selenized Light' },
+		{ value: 'selenized-white', label: 'Selenized White' },
+		{ value: 'solarized-light', label: 'Solarized Light' },
+		{ value: 'tempus-dawn', label: 'Tempus Dawn' },
+		{ value: 'tokyo-night-storm', label: 'Tokyo Night Storm' },
+		{ value: 'tomorrow', label: 'Tomorrow' }
 	];
+	let themeOptions = $derived(
+		isTauri && !isMobile
+			? [
+					{ value: 'system', label: 'System (auto)' },
+					{ value: 'gtk', label: 'GTK Theme' },
+					...baseThemeOptions.slice(1)
+				]
+			: baseThemeOptions
+	);
 
 	function getCalendarSettings() {
 		return store.meta.googleCalendar ?? createGoogleCalendarSettings();
@@ -127,18 +164,52 @@
 		}
 	});
 
-	function handleThemeChange(event: Event) {
+	const darkThemes = new Set([
+		'flexoki-dark', 'ayu-dark',
+		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard',
+		'kanagawa', 'liquidcarbon', 'modus-vivendi', 'modus-vivendi-tinted',
+		'nordfox', 'pencildark', 'tokyo-night-storm'
+	]);
+
+	function setThemeAttributes(theme: string) {
+		document.documentElement.setAttribute('data-theme', theme);
+		document.documentElement.setAttribute('data-mode', darkThemes.has(theme) ? 'dark' : 'light');
+	}
+
+	async function handleThemeChange(event: Event) {
 		const target = event.target as HTMLSelectElement;
 		const preference = target.value;
 		selectedTheme = preference;
 
-		// Resolve "system" to an actual theme for the DOM
-		let resolved = preference;
-		if (preference === 'system') {
-			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-			resolved = prefersDark ? 'flexoki-dark' : 'flexoki-light';
+		if (preference === 'gtk') {
+			try {
+				const { invoke } = await import('@tauri-apps/api/core');
+				const { applyGtkTheme, initGtkThemeListener } = await import('$lib/services/gtk-theme');
+				const data = await invoke<{ colors: Record<string, string>; prefer_dark: boolean; theme_path: string | null }>('get_gtk_colors');
+				applyGtkTheme(data);
+				await initGtkThemeListener();
+			} catch (err) {
+				console.error('[Settings] GTK theme failed, falling back:', err);
+				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				setThemeAttributes(prefersDark ? 'flexoki-dark' : 'flexoki-light');
+			}
+		} else {
+			// Clear any GTK overrides if switching away
+			try {
+				const { clearGtkTheme, destroyGtkThemeListener } = await import('$lib/services/gtk-theme');
+				clearGtkTheme();
+				destroyGtkThemeListener();
+			} catch {
+				// Module not loaded yet, nothing to clear
+			}
+
+			let resolved = preference;
+			if (preference === 'system') {
+				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				resolved = prefersDark ? 'flexoki-dark' : 'flexoki-light';
+			}
+			setThemeAttributes(resolved);
 		}
-		document.documentElement.setAttribute('data-theme', resolved);
 
 		try {
 			localStorage.setItem('spredux-theme', preference);
@@ -781,15 +852,21 @@
 	<section class="settings-section mb-6">
 		<h2 class="text-lg font-semibold mb-3">Theme</h2>
 		<div class="settings-card p-4 rounded-lg">
-			<p class="text-sm opacity-70 mb-3">Switch between Flexoki and Ayu themes, or follow your OS.</p>
-			<select class="settings-select" onchange={handleThemeChange} bind:value={selectedTheme}>
-				{#each themeOptions as option}
-					<option value={option.value}>{option.label}</option>
-				{/each}
-			</select>
+			<p class="text-sm opacity-70 mb-3">Choose a color theme, use your GTK theme, or follow your OS.</p>
+			{#if initialized}
+				<select class="settings-select" onchange={handleThemeChange} bind:value={selectedTheme}>
+					{#each themeOptions as option (option.value)}
+						<option value={option.value}>{option.label}</option>
+					{/each}
+				</select>
+			{/if}
 			{#if selectedTheme === 'system'}
 				<p class="text-xs opacity-60 mt-2">
 					Currently using {document.documentElement.getAttribute('data-theme')?.replaceAll('-', ' ') ?? 'system default'}
+				</p>
+			{:else if selectedTheme === 'gtk'}
+				<p class="text-xs opacity-60 mt-2">
+					Using GTK4 theme colors. Changes to your system theme update automatically.
 				</p>
 			{/if}
 		</div>
@@ -811,8 +888,7 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .settings-card,
-	:global([data-theme='ayu-dark']) .settings-card {
+	:global([data-mode='dark']) .settings-card {
 		background-color: rgb(var(--color-surface-800));
 	}
 
@@ -845,9 +921,8 @@
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .settings-input,
-	:global([data-theme='ayu-dark']) .settings-input {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .settings-input {
+		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
 		color: rgb(var(--body-text-color));
 	}
@@ -860,23 +935,21 @@
 		color: rgb(var(--body-text-color));
 	}
 
-	:global([data-theme='flexoki-dark']) .settings-select,
-	:global([data-theme='ayu-dark']) .settings-select {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .settings-select {
+		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
 		color: rgb(var(--body-text-color));
 	}
 
 	.code-inline {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
 		font-family: monospace;
 		font-size: 0.875rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .code-inline,
-	:global([data-theme='ayu-dark']) .code-inline {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .code-inline {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 </style>

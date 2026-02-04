@@ -1,8 +1,36 @@
 @import 'tailwindcss';
 
-/* Skeleton theme - allow switching between flexoki and ayu */
-@import '../flexoki-skeleton.css';
-@import '../ayu-skeleton.css';
+/* Skeleton themes */
+@import './themes/flexoki-skeleton.css';
+@import './themes/ayu-skeleton.css';
+@import './themes/arc-light-skeleton.css';
+@import './themes/bluloco-light-skeleton.css';
+@import './themes/catppuccin-latte-skeleton.css';
+@import './themes/dawnfox-skeleton.css';
+@import './themes/everforest-dark-hard-skeleton.css';
+@import './themes/everforest-light-hard-skeleton.css';
+@import './themes/glacier-skeleton.css';
+@import './themes/gruvbox-dark-hard-skeleton.css';
+@import './themes/gruvbox-material-light-skeleton.css';
+@import './themes/gruvbox-material-light-hard-skeleton.css';
+@import './themes/kanagawa-skeleton.css';
+@import './themes/kanagawa-lotus-skeleton.css';
+@import './themes/liquidcarbon-skeleton.css';
+@import './themes/modus-operandi-skeleton.css';
+@import './themes/modus-vivendi-skeleton.css';
+@import './themes/modus-vivendi-tinted-skeleton.css';
+@import './themes/nordfox-skeleton.css';
+@import './themes/one-light-skeleton.css';
+@import './themes/pencil-light-skeleton.css';
+@import './themes/pencildark-skeleton.css';
+@import './themes/polar-skeleton.css';
+@import './themes/rose-pine-dawn-skeleton.css';
+@import './themes/selenized-light-skeleton.css';
+@import './themes/selenized-white-skeleton.css';
+@import './themes/solarized-light-skeleton.css';
+@import './themes/tempus-dawn-skeleton.css';
+@import './themes/tokyo-night-storm-skeleton.css';
+@import './themes/tomorrow-skeleton.css';
 
 /* Base styles */
 html {

@@ -5,6 +5,7 @@
 		markTaskComplete,
 		markTaskIncomplete,
 		rescheduleTask,
+		rescheduleInstance,
 		deleteTask
 	} from '$lib/stores/markdown-store.svelte';
 
@@ -80,7 +81,11 @@
 
 	async function quickReschedule(offset: number) {
 		const newDate = offset === 0 ? getTodayDate() : getOffsetDate(offset);
-		await rescheduleTask(task.filename, newDate);
+		if (task.instanceDate && task.frontmatter.recurrence) {
+			await rescheduleInstance(task.filename, task.instanceDate, newDate);
+		} else {
+			await rescheduleTask(task.filename, newDate);
+		}
 		onclose();
 	}
 
@@ -238,8 +243,7 @@
 		z-index: 201;
 	}
 
-	:global([data-theme='flexoki-dark']) .context-menu,
-	:global([data-theme='ayu-dark']) .context-menu {
+	:global([data-mode='dark']) .context-menu {
 		background-color: rgb(var(--color-surface-800));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -265,8 +269,7 @@
 		transition: background-color 0.15s, transform 0.1s;
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-action-btn,
-	:global([data-theme='ayu-dark']) .quick-action-btn {
+	:global([data-mode='dark']) .quick-action-btn {
 		background-color: rgb(var(--color-surface-700));
 	}
 
@@ -275,8 +278,7 @@
 		transform: scale(1.05);
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-action-btn:hover,
-	:global([data-theme='ayu-dark']) .quick-action-btn:hover {
+	:global([data-mode='dark']) .quick-action-btn:hover {
 		background-color: rgb(var(--color-primary-900));
 	}
 
@@ -288,8 +290,7 @@
 		background-color: rgb(var(--color-error-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .quick-action-delete:hover,
-	:global([data-theme='ayu-dark']) .quick-action-delete:hover {
+	:global([data-mode='dark']) .quick-action-delete:hover {
 		background-color: rgb(var(--color-error-900));
 	}
 
@@ -299,8 +300,7 @@
 		border-top: 1px solid rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .menu-divider,
-	:global([data-theme='ayu-dark']) .menu-divider {
+	:global([data-mode='dark']) .menu-divider {
 		border-top-color: rgb(var(--color-surface-600));
 	}
 
@@ -327,9 +327,8 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .menu-option:hover,
-	:global([data-theme='ayu-dark']) .menu-option:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .menu-option:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.menu-icon {

@@ -47,6 +47,7 @@ function createFrontmatter(overrides: Partial<TaskFrontmatter> = {}): TaskFrontm
 		active_instances: [],
 		complete_instances: [],
 		skipped_instances: [],
+		rescheduled_instances: {},
 		seriesId: null,
 		isSeriesTemplate: false,
 		parentId: null,
@@ -479,6 +480,7 @@ function makeViewTask(overrides: Omit<Partial<ViewTask>, 'frontmatter'> & { fron
 		totalTimeTracked: 0,
 		timeTrackedToday: 0,
 		instanceDate: null,
+		effectiveDate: null,
 		...rest,
 		frontmatter: { ...createFrontmatter(), ...fmOverrides }
 	};

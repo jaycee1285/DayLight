@@ -80,8 +80,7 @@
 		background-color: rgb(var(--color-surface-50));
 	}
 
-	:global([data-theme='flexoki-dark']) .planner-sidebar,
-	:global([data-theme='ayu-dark']) .planner-sidebar {
+	:global([data-mode='dark']) .planner-sidebar {
 		border-left-color: rgb(var(--color-surface-600));
 		background-color: rgb(var(--color-surface-900));
 	}
@@ -131,8 +130,7 @@
 		font-weight: 500;
 	}
 
-	:global([data-theme='flexoki-dark']) .count,
-	:global([data-theme='ayu-dark']) .count {
+	:global([data-mode='dark']) .count {
 		background-color: rgb(var(--color-surface-700));
 	}
 

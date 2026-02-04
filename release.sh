@@ -14,22 +14,32 @@ TARBALL="${APP_NAME}-${TAG}-${PLATFORM}-${ARCH}.tar.xz"
 echo "==> Building ${APP_NAME} ${TAG} (${PLATFORM}/${ARCH})"
 
 cd "$REPO_ROOT"
-bun install
-bun run tauri:build
+nix build
 
-BINARY="$REPO_ROOT/src-tauri/target/release/${APP_NAME}"
-if [[ ! -f "$BINARY" ]]; then
-  echo "ERROR: Binary not found at ${BINARY}"
+NIX_RESULT="$REPO_ROOT/result"
+if [[ ! -d "$NIX_RESULT/bin" ]]; then
+  echo "ERROR: nix build output not found at ${NIX_RESULT}/bin"
   exit 1
 fi
 
 STAGING=$(mktemp -d)
-trap "rm -rf $STAGING" EXIT
+trap "chmod -R u+w $STAGING && rm -rf $STAGING" EXIT
 
-cp "$BINARY" "$STAGING/"
+# Copy the raw binary, stripping Nix wrapper scripts
+mkdir -p "$STAGING/bin"
+if [[ -f "$NIX_RESULT/bin/.${APP_NAME}-wrapped_" ]]; then
+  cp "$NIX_RESULT/bin/.${APP_NAME}-wrapped_" "$STAGING/bin/${APP_NAME}"
+elif [[ -f "$NIX_RESULT/bin/.${APP_NAME}-wrapped" ]]; then
+  cp "$NIX_RESULT/bin/.${APP_NAME}-wrapped" "$STAGING/bin/${APP_NAME}"
+else
+  cp "$NIX_RESULT/bin/${APP_NAME}" "$STAGING/bin/${APP_NAME}"
+fi
+chmod +x "$STAGING/bin/${APP_NAME}"
+
+cp -r "$NIX_RESULT/lib" "$STAGING/"
 
 echo "==> Creating ${TARBALL}"
-tar -cJf "$REPO_ROOT/$TARBALL" -C "$STAGING" "${APP_NAME}"
+tar -cJf "$REPO_ROOT/$TARBALL" -C "$STAGING" bin lib
 
 echo "==> Uploading to GitHub release ${TAG}"
 if gh release view "$TAG" --repo jaycee1285/SPRedux &>/dev/null; then

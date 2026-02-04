@@ -1,0 +1,88 @@
+/* Generated from kitty config: nordfox.conf
+   Theme: nordfox (dark)
+*/
+
+[data-theme="nordfox"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 205 206 207; /* #CDCECF */
+  --color-surface-100: 197 198 200; /* #C5C6C8 */
+  --color-surface-200: 133 137 143; /* #85898F */
+  --color-surface-300: 102 106 114; /* #666A72 */
+  --color-surface-400:  91  95 104; /* #5B5F68 */
+  --color-surface-500:  81  86  95; /* #51565F */
+  --color-surface-600:  75  80  90; /* #4B505A */
+  --color-surface-700:  67  72  83; /* #434853 */
+  --color-surface-800:  57  63  74; /* #393F4A */
+  --color-surface-900:  51  57  68; /* #333944 */
+  --color-surface-950:  46  52  64; /* #2E3440 */
+
+  /* --- Primary (blue) --- */
+  --color-primary-50: 246 249 251;
+  --color-primary-100: 232 239 246;
+  --color-primary-200: 215 227 239;
+  --color-primary-300: 192 211 230;
+  --color-primary-400: 165 193 220;
+  --color-primary-500: 140 175 210;
+  --color-primary-600: 115 144 172;
+  --color-primary-700:  94 117 141;
+  --color-primary-800:  77  96 116;
+  --color-primary-900:  56  70  84;
+  --color-primary-950:  39  49  59;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 249 246 248;
+  --color-secondary-100: 240 232 239;
+  --color-secondary-200: 229 215 226;
+  --color-secondary-300: 214 193 210;
+  --color-secondary-400: 197 167 191;
+  --color-secondary-500: 180 142 173;
+  --color-secondary-600: 148 116 142;
+  --color-secondary-700: 121  95 116;
+  --color-secondary-800:  99  78  95;
+  --color-secondary-900:  72  57  69;
+  --color-secondary-950:  50  40  48;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 248 250 246;
+  --color-tertiary-100: 237 242 232;
+  --color-tertiary-200: 223 232 215;
+  --color-tertiary-300: 204 219 192;
+  --color-tertiary-400: 183 204 165;
+  --color-tertiary-500: 163 190 140;
+  --color-tertiary-600: 134 156 115;
+  --color-tertiary-700: 109 127  94;
+  --color-tertiary-800:  90 105  77;
+  --color-tertiary-900:  65  76  56;
+  --color-tertiary-950:  46  53  39;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 245 250 251;
+  --color-accent-100: 231 242 246;
+  --color-accent-200: 213 233 239;
+  --color-accent-300: 190 220 229;
+  --color-accent-400: 162 206 218;
+  --color-accent-500: 136 192 208;
+  --color-accent-600: 112 157 171;
+  --color-accent-700:  91 129 139;
+  --color-accent-800:  75 106 114;
+  --color-accent-900:  54  77  83;
+  --color-accent-950:  38  54  58;
+
+  /* --- Semantic --- */
+  --color-success-500: 163 190 140;
+  --color-warning-500: 240 211 153;
+  --color-error-500:   208 111 121;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-950));
+  --body-text-color:       205 206 207;
+
+  --theme-selection-bg:     62  74  91;
+  --theme-selection-fg:    205 206 207;
+
+  --color-on-primary:        0   0   0;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-700);
+  --color-hover-bg-strong: var(--color-surface-600);
+}

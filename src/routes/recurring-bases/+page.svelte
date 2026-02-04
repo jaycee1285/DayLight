@@ -180,8 +180,7 @@
 		font-size: 0.875rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .tag-select,
-	:global([data-theme='ayu-dark']) .tag-select {
+	:global([data-mode='dark']) .tag-select {
 		background-color: rgb(var(--color-surface-700));
 		border-color: rgb(var(--color-surface-600));
 	}

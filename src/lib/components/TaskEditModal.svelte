@@ -276,8 +276,7 @@
 		border-radius: 0.5rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .task-title-display,
-	:global([data-theme='ayu-dark']) .task-title-display {
+	:global([data-mode='dark']) .task-title-display {
 		background-color: rgb(var(--color-surface-700));
 	}
 
@@ -292,8 +291,7 @@
 		min-height: 4rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .task-info-input,
-	:global([data-theme='ayu-dark']) .task-info-input {
+	:global([data-mode='dark']) .task-info-input {
 		background-color: rgb(var(--color-surface-700));
 		border-color: rgb(var(--color-surface-600));
 	}
@@ -331,8 +329,7 @@
 		color: rgb(var(--color-primary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-tag,
-	:global([data-theme='ayu-dark']) .chip-tag {
+	:global([data-mode='dark']) .chip-tag {
 		background-color: rgb(var(--color-primary-900));
 		color: rgb(var(--color-primary-300));
 	}
@@ -342,8 +339,7 @@
 		color: rgb(var(--color-tertiary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-project,
-	:global([data-theme='ayu-dark']) .chip-project {
+	:global([data-mode='dark']) .chip-project {
 		background-color: rgb(var(--color-tertiary-900));
 		color: rgb(var(--color-tertiary-300));
 	}
@@ -386,9 +382,8 @@
 		width: 8rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .chip-input,
-	:global([data-theme='ayu-dark']) .chip-input {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .chip-input {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.chip-input:focus {
@@ -400,15 +395,14 @@
 		font-size: 0.875rem;
 		border-radius: 0.5rem;
 		border: none;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		color: rgb(var(--color-primary-600));
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .recurrence-toggle,
-	:global([data-theme='ayu-dark']) .recurrence-toggle {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .recurrence-toggle {
+		background-color: rgb(var(--color-hover-bg-strong));
 		color: rgb(var(--color-primary-400));
 	}
 
@@ -416,8 +410,7 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .recurrence-toggle:hover,
-	:global([data-theme='ayu-dark']) .recurrence-toggle:hover {
+	:global([data-mode='dark']) .recurrence-toggle:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -428,9 +421,8 @@
 		border-radius: 0.5rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .recurrence-editor-wrapper,
-	:global([data-theme='ayu-dark']) .recurrence-editor-wrapper {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .recurrence-editor-wrapper {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.actions {
@@ -442,8 +434,7 @@
 		border-top: 1px solid rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .actions,
-	:global([data-theme='ayu-dark']) .actions {
+	:global([data-mode='dark']) .actions {
 		border-top-color: rgb(var(--color-surface-600));
 	}
 
@@ -453,22 +444,20 @@
 		font-size: 0.875rem;
 		font-weight: 500;
 		border: none;
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .cancel-btn,
-	:global([data-theme='ayu-dark']) .cancel-btn {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .cancel-btn {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.cancel-btn:hover {
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .cancel-btn:hover,
-	:global([data-theme='ayu-dark']) .cancel-btn:hover {
+	:global([data-mode='dark']) .cancel-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 

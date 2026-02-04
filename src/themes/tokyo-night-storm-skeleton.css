@@ -1,0 +1,88 @@
+/* Generated from kitty config: Tokyo Night Storm.conf
+   Theme: Tokyo Night Storm (dark)
+*/
+
+[data-theme="tokyo-night-storm"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 192 202 245; /* #C0CAF5 */
+  --color-surface-100: 184 194 236; /* #B8C2EC */
+  --color-surface-200: 122 129 161; /* #7A81A1 */
+  --color-surface-300:  91  97 124; /* #5B617C */
+  --color-surface-400:  80  85 111; /* #50556F */
+  --color-surface-500:  70  76 100; /* #464C64 */
+  --color-surface-600:  64  69  92; /* #40455C */
+  --color-surface-700:  56  61  83; /* #383D53 */
+  --color-surface-800:  47  51  72; /* #2F3348 */
+  --color-surface-900:  41  45  65; /* #292D41 */
+  --color-surface-950:  36  40  59; /* #24283B */
+
+  /* --- Primary (blue) --- */
+  --color-primary-50: 244 248 254;
+  --color-primary-100: 228 236 253;
+  --color-primary-200: 208 222 252;
+  --color-primary-300: 182 204 251;
+  --color-primary-400: 151 182 249;
+  --color-primary-500: 122 162 247;
+  --color-primary-600: 100 133 203;
+  --color-primary-700:  82 109 165;
+  --color-primary-800:  67  89 136;
+  --color-primary-900:  49  65  99;
+  --color-primary-950:  34  45  69;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 250 247 254;
+  --color-secondary-100: 241 235 253;
+  --color-secondary-200: 231 220 252;
+  --color-secondary-300: 218 199 251;
+  --color-secondary-400: 202 176 249;
+  --color-secondary-500: 187 154 247;
+  --color-secondary-600: 153 126 203;
+  --color-secondary-700: 125 103 165;
+  --color-secondary-800: 103  85 136;
+  --color-secondary-900:  75  62  99;
+  --color-secondary-950:  52  43  69;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 247 251 243;
+  --color-tertiary-100: 236 245 225;
+  --color-tertiary-200: 221 238 203;
+  --color-tertiary-300: 202 228 173;
+  --color-tertiary-400: 179 217 139;
+  --color-tertiary-500: 158 206 106;
+  --color-tertiary-600: 130 169  87;
+  --color-tertiary-700: 106 138  71;
+  --color-tertiary-800:  87 113  58;
+  --color-tertiary-900:  63  82  42;
+  --color-tertiary-950:  44  58  30;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 245 251 255;
+  --color-accent-100: 229 245 255;
+  --color-accent-200: 210 238 255;
+  --color-accent-300: 184 229 255;
+  --color-accent-400: 154 218 255;
+  --color-accent-500: 125 207 255;
+  --color-accent-600: 103 170 209;
+  --color-accent-700:  84 139 171;
+  --color-accent-800:  69 114 140;
+  --color-accent-900:  50  83 102;
+  --color-accent-950:  35  58  71;
+
+  /* --- Semantic --- */
+  --color-success-500: 158 206 106;
+  --color-warning-500: 224 175 104;
+  --color-error-500:   247 118 142;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-950));
+  --body-text-color:       192 202 245;
+
+  --theme-selection-bg:     46  60 100;
+  --theme-selection-fg:    192 202 245;
+
+  --color-on-primary:        0   0   0;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-700);
+  --color-hover-bg-strong: var(--color-surface-600);
+}

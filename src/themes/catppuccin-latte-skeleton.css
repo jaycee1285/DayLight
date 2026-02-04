@@ -1,0 +1,88 @@
+/* Generated from kitty config: Catppuccin-Latte.conf
+   Theme: Catppuccin-Latte (light)
+*/
+
+[data-theme="catppuccin-latte"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 239 241 245; /* #EFF1F5 */
+  --color-surface-100: 232 235 239; /* #E8EBEF */
+  --color-surface-200: 226 228 234; /* #E2E4EA */
+  --color-surface-300: 216 218 225; /* #D8DAE1 */
+  --color-surface-400: 198 201 210; /* #C6C9D2 */
+  --color-surface-500: 174 176 189; /* #AEB0BD */
+  --color-surface-600: 149 152 168; /* #9598A8 */
+  --color-surface-700: 133 136 154; /* #85889A */
+  --color-surface-800: 112 115 136; /* #707388 */
+  --color-surface-900:  96  98 122; /* #60627A */
+  --color-surface-950:  76  79 105; /* #4C4F69 */
+
+  /* --- Primary (blue) --- */
+  --color-primary-50: 237 243 254;
+  --color-primary-100: 210 224 253;
+  --color-primary-200: 176 201 252;
+  --color-primary-300: 131 171 250;
+  --color-primary-400:  80 136 247;
+  --color-primary-500:  30 102 245;
+  --color-primary-600:  25  84 201;
+  --color-primary-700:  20  68 164;
+  --color-primary-800:  17  56 135;
+  --color-primary-900:  12  41  98;
+  --color-primary-950:   8  29  69;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 253 244 251;
+  --color-secondary-100: 251 228 245;
+  --color-secondary-200: 248 207 237;
+  --color-secondary-300: 243 180 226;
+  --color-secondary-400: 239 148 214;
+  --color-secondary-500: 234 118 203;
+  --color-secondary-600: 192  97 166;
+  --color-secondary-700: 157  79 136;
+  --color-secondary-800: 129  65 112;
+  --color-secondary-900:  94  47  81;
+  --color-secondary-950:  66  33  57;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 240 247 238;
+  --color-tertiary-100: 217 236 213;
+  --color-tertiary-200: 188 222 181;
+  --color-tertiary-300: 150 203 138;
+  --color-tertiary-400: 106 181  90;
+  --color-tertiary-500:  64 160  43;
+  --color-tertiary-600:  52 131  35;
+  --color-tertiary-700:  43 107  29;
+  --color-tertiary-800:  35  88  24;
+  --color-tertiary-900:  26  64  17;
+  --color-tertiary-950:  18  45  12;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 236 246 247;
+  --color-accent-100: 209 233 235;
+  --color-accent-200: 174 217 219;
+  --color-accent-300: 127 195 199;
+  --color-accent-400:  74 170 175;
+  --color-accent-500:  23 146 153;
+  --color-accent-600:  19 120 125;
+  --color-accent-700:  15  98 103;
+  --color-accent-800:  13  80  84;
+  --color-accent-900:   9  58  61;
+  --color-accent-950:   6  41  43;
+
+  /* --- Semantic --- */
+  --color-success-500:  64 160  43;
+  --color-warning-500: 223 142  29;
+  --color-error-500:   210  15  57;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-50));
+  --body-text-color:        76  79 105;
+
+  --theme-selection-bg:    220 138 120;
+  --theme-selection-fg:    239 241 245;
+
+  --color-on-primary:      255 255 255;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-200);
+  --color-hover-bg-strong: var(--color-surface-300);
+}

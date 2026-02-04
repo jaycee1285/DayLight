@@ -116,17 +116,14 @@ export function processRecurringInstances(
  * @returns true if task is active today
  */
 export function isActiveToday(frontmatter: TaskFrontmatter, today: string = getTodayDate()): boolean {
+	const rescheduledMap = frontmatter.rescheduled_instances;
 
-	// Check if today is in active_instances
-	if (frontmatter.active_instances.includes(today)) {
-		// Make sure it's not already completed or skipped for today
-		if (frontmatter.complete_instances.includes(today)) {
-			return false;
-		}
-		if (frontmatter.skipped_instances.includes(today)) {
-			return false;
-		}
-		return true;
+	for (const date of frontmatter.active_instances) {
+		if (frontmatter.complete_instances.includes(date)) continue;
+		if (frontmatter.skipped_instances.includes(date)) continue;
+
+		const effectiveDate = rescheduledMap[date] || date;
+		if (effectiveDate === today) return true;
 	}
 
 	return false;
@@ -145,15 +142,18 @@ export function hasPastUncompletedInstances(frontmatter: TaskFrontmatter, today:
 		return false;
 	}
 
-	for (const date of frontmatter.active_instances) {
-		// Skip future dates
-		if (date >= today) continue;
+	const rescheduledMap = frontmatter.rescheduled_instances;
 
-		// Check if this past instance is incomplete
-		if (!frontmatter.complete_instances.includes(date) &&
-				!frontmatter.skipped_instances.includes(date)) {
-			return true;
-		}
+	for (const date of frontmatter.active_instances) {
+		if (frontmatter.complete_instances.includes(date)) continue;
+		if (frontmatter.skipped_instances.includes(date)) continue;
+
+		const effectiveDate = rescheduledMap[date] || date;
+
+		// Only count as past if effective date is before today
+		if (effectiveDate >= today) continue;
+
+		return true;
 	}
 
 	return false;

@@ -353,8 +353,7 @@
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .nav-button,
-	:global([data-theme='ayu-dark']) .nav-button {
+	:global([data-mode='dark']) .nav-button {
 		background-color: rgb(var(--color-surface-700));
 	}
 
@@ -362,18 +361,16 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .nav-button:hover,
-	:global([data-theme='ayu-dark']) .nav-button:hover {
+	:global([data-mode='dark']) .nav-button:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
 	.view-toggle {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .view-toggle,
-	:global([data-theme='ayu-dark']) .view-toggle {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .view-toggle {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.toggle-btn {
@@ -387,8 +384,7 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .toggle-btn:hover,
-	:global([data-theme='ayu-dark']) .toggle-btn:hover {
+	:global([data-mode='dark']) .toggle-btn:hover {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -406,8 +402,7 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-pane,
-	:global([data-theme='ayu-dark']) .day-pane {
+	:global([data-mode='dark']) .day-pane {
 		background-color: rgb(var(--color-surface-800));
 	}
 
@@ -424,20 +419,18 @@
 	}
 
 	.day-pane-header:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-pane-header:hover,
-	:global([data-theme='ayu-dark']) .day-pane-header:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .day-pane-header:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.day-pane-header.selected {
 		background-color: rgb(var(--color-primary-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-pane-header.selected,
-	:global([data-theme='ayu-dark']) .day-pane-header.selected {
+	:global([data-mode='dark']) .day-pane-header.selected {
 		background-color: rgb(var(--color-primary-900) / 0.5);
 	}
 
@@ -461,8 +454,7 @@
 		border-top: 1px solid rgb(var(--color-surface-200));
 	}
 
-	:global([data-theme='flexoki-dark']) .day-pane-content,
-	:global([data-theme='ayu-dark']) .day-pane-content {
+	:global([data-mode='dark']) .day-pane-content {
 		border-top-color: rgb(var(--color-surface-600));
 	}
 
@@ -477,18 +469,16 @@
 		overflow: hidden;
 	}
 
-	:global([data-theme='flexoki-dark']) .month-day-cell,
-	:global([data-theme='ayu-dark']) .month-day-cell {
+	:global([data-mode='dark']) .month-day-cell {
 		background-color: rgb(var(--color-surface-800));
 	}
 
 	.month-day-cell:hover {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .month-day-cell:hover,
-	:global([data-theme='ayu-dark']) .month-day-cell:hover {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .month-day-cell:hover {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.month-day-cell.today {
@@ -499,8 +489,7 @@
 		background-color: rgb(var(--color-primary-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .month-day-cell.selected,
-	:global([data-theme='ayu-dark']) .month-day-cell.selected {
+	:global([data-mode='dark']) .month-day-cell.selected {
 		background-color: rgb(var(--color-primary-900) / 0.5);
 	}
 
@@ -515,8 +504,7 @@
 		color: rgb(var(--color-primary-700));
 	}
 
-	:global([data-theme='flexoki-dark']) .preview-task,
-	:global([data-theme='ayu-dark']) .preview-task {
+	:global([data-mode='dark']) .preview-task {
 		background-color: rgb(var(--color-primary-900));
 		color: rgb(var(--color-primary-300));
 	}
@@ -527,14 +515,13 @@
 	}
 
 	.item-count {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 		padding: 0 0.25rem;
 		border-radius: 9999px;
 		font-size: 0.625rem;
 	}
 
-	:global([data-theme='flexoki-dark']) .item-count,
-	:global([data-theme='ayu-dark']) .item-count {
+	:global([data-mode='dark']) .item-count {
 		background-color: rgb(var(--color-surface-600));
 	}
 

@@ -232,16 +232,16 @@
 		border-left: 4px solid rgb(var(--color-error-500));
 	}
 
-	:global([data-theme='flexoki-dark']) .conflict-card {
+	:global([data-mode='dark']) .conflict-card {
 		background-color: rgb(var(--color-surface-800));
 	}
 
 	.comparison-info {
-		background-color: rgb(var(--color-surface-200));
+		background-color: rgb(var(--color-hover-bg));
 	}
 
-	:global([data-theme='flexoki-dark']) .comparison-info {
-		background-color: rgb(var(--color-surface-700));
+	:global([data-mode='dark']) .comparison-info {
+		background-color: rgb(var(--color-hover-bg-strong));
 	}
 
 	.resolve-btn {
@@ -275,7 +275,7 @@
 		background-color: rgb(var(--color-surface-300));
 	}
 
-	:global([data-theme='flexoki-dark']) .resolve-both {
+	:global([data-mode='dark']) .resolve-both {
 		background-color: rgb(var(--color-surface-600));
 	}
 
@@ -283,7 +283,7 @@
 		background-color: rgb(var(--color-surface-400));
 	}
 
-	:global([data-theme='flexoki-dark']) .resolve-both:hover {
+	:global([data-mode='dark']) .resolve-both:hover {
 		background-color: rgb(var(--color-surface-500));
 	}
 
@@ -298,7 +298,7 @@
 		background-color: rgb(var(--color-surface-100));
 	}
 
-	:global([data-theme='flexoki-dark']) .archived-item {
+	:global([data-mode='dark']) .archived-item {
 		background-color: rgb(var(--color-surface-800));
 	}
 
@@ -314,7 +314,7 @@
 		transition: background-color 0.15s;
 	}
 
-	:global([data-theme='flexoki-dark']) .delete-btn {
+	:global([data-mode='dark']) .delete-btn {
 		background-color: rgb(var(--color-surface-600));
 	}
 

@@ -40,6 +40,8 @@ export interface TaskFrontmatter {
 	active_instances: string[];
 	complete_instances: string[];
 	skipped_instances: string[];
+	// Per-instance rescheduling: maps original_date → new_date
+	rescheduled_instances: Record<string, string>;
 
 	// Series relationship
 	seriesId: string | null;
@@ -144,6 +146,7 @@ function normalizeFrontmatter(raw: Record<string, unknown>): TaskFrontmatter {
 		active_instances: normalizeStringArray(raw.active_instances),
 		complete_instances: normalizeStringArray(raw.complete_instances),
 		skipped_instances: normalizeStringArray(raw.skipped_instances),
+		rescheduled_instances: normalizeRescheduledInstances(raw.rescheduled_instances),
 		seriesId: normalizeString(raw.seriesId),
 		isSeriesTemplate: Boolean(raw.isSeriesTemplate),
 		parentId: normalizeString(raw.parentId),
@@ -187,6 +190,7 @@ function cleanFrontmatterForSerialization(fm: TaskFrontmatter): Record<string, u
 	if (fm.active_instances.length > 0) result.active_instances = fm.active_instances;
 	if (fm.complete_instances.length > 0) result.complete_instances = fm.complete_instances;
 	if (fm.skipped_instances.length > 0) result.skipped_instances = fm.skipped_instances;
+	if (Object.keys(fm.rescheduled_instances).length > 0) result.rescheduled_instances = fm.rescheduled_instances;
 
 	// Series relationship
 	if (fm.seriesId) result.seriesId = fm.seriesId;
@@ -250,6 +254,21 @@ function normalizeStringArray(value: unknown): string[] {
 		return value.filter((v): v is string => typeof v === 'string' && v.trim() !== '');
 	}
 	return [];
+}
+
+function normalizeRescheduledInstances(value: unknown): Record<string, string> {
+	if (value && typeof value === 'object' && !Array.isArray(value)) {
+		const result: Record<string, string> = {};
+		for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+			const normalizedKey = normalizeDate(key);
+			const normalizedVal = normalizeDate(val);
+			if (normalizedKey && normalizedVal) {
+				result[normalizedKey] = normalizedVal;
+			}
+		}
+		return result;
+	}
+	return {};
 }
 
 function normalizeProjects(projects: unknown, legacyProject: unknown): string[] {
@@ -329,6 +348,7 @@ export function taskToFrontmatter(task: Task): TaskFrontmatter {
 		active_instances: [],
 		complete_instances: [],
 		skipped_instances: [],
+		rescheduled_instances: {},
 		seriesId: task.seriesId,
 		isSeriesTemplate: task.isSeriesTemplate,
 		parentId: task.parentId,

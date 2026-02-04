@@ -1,3 +1,5 @@
+mod theme;
+
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -96,11 +98,17 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_oauth_listener,
             await_oauth_code,
-            fetch_url
+            fetch_url,
+            theme::get_gtk_colors
         ])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            #[cfg(target_os = "linux")]
+            theme::setup_gtk_watcher(app.handle());
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

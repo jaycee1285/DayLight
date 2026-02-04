@@ -1,0 +1,88 @@
+/* Generated from kitty config: Modus Vivendi Tinted.conf
+   Theme: Modus Vivendi Tinted (dark)
+*/
+
+[data-theme="modus-vivendi-tinted"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 255 255 255; /* #FFFFFF */
+  --color-surface-100: 243 243 244; /* #F3F3F4 */
+  --color-surface-200: 146 147 153; /* #929399 */
+  --color-surface-300:  98  98 107; /* #62626B */
+  --color-surface-400:  81  81  92; /* #51515C */
+  --color-surface-500:  66  67  78; /* #42434E */
+  --color-surface-600:  57  57  69; /* #393945 */
+  --color-surface-700:  44  45  58; /* #2C2D3A */
+  --color-surface-800:  30  31  44; /* #1E1F2C */
+  --color-surface-900:  20  21  35; /* #141523 */
+  --color-surface-950:  13  14  28; /* #0D0E1C */
+
+  /* --- Primary (blue) --- */
+  --color-primary-50: 244 248 255;
+  --color-primary-100: 228 238 255;
+  --color-primary-200: 208 225 255;
+  --color-primary-300: 181 207 255;
+  --color-primary-400: 150 187 255;
+  --color-primary-500: 121 168 255;
+  --color-primary-600:  99 138 209;
+  --color-primary-700:  81 113 171;
+  --color-primary-800:  67  92 140;
+  --color-primary-900:  48  67 102;
+  --color-primary-950:  34  47  71;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 255 248 251;
+  --color-secondary-100: 255 238 246;
+  --color-secondary-200: 255 226 239;
+  --color-secondary-300: 254 209 229;
+  --color-secondary-400: 254 190 218;
+  --color-secondary-500: 254 172 208;
+  --color-secondary-600: 208 141 171;
+  --color-secondary-700: 170 115 139;
+  --color-secondary-800: 140  95 114;
+  --color-secondary-900: 102  69  83;
+  --color-secondary-950:  71  48  58;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 240 250 240;
+  --color-tertiary-100: 218 242 218;
+  --color-tertiary-200: 190 232 190;
+  --color-tertiary-300: 152 218 152;
+  --color-tertiary-400: 109 203 109;
+  --color-tertiary-500:  68 188  68;
+  --color-tertiary-600:  56 154  56;
+  --color-tertiary-700:  46 126  46;
+  --color-tertiary-800:  37 103  37;
+  --color-tertiary-900:  27  75  27;
+  --color-tertiary-950:  19  53  19;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 235 251 251;
+  --color-accent-100: 204 246 246;
+  --color-accent-200: 166 240 239;
+  --color-accent-300: 115 231 229;
+  --color-accent-400:  56 221 218;
+  --color-accent-500:   0 211 208;
+  --color-accent-600:   0 173 171;
+  --color-accent-700:   0 141 139;
+  --color-accent-800:   0 116 114;
+  --color-accent-900:   0  84  83;
+  --color-accent-950:   0  59  58;
+
+  /* --- Semantic --- */
+  --color-success-500:  68 188  68;
+  --color-warning-500: 254 196  63;
+  --color-error-500:   255 107  85;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-950));
+  --body-text-color:       255 255 255;
+
+  --theme-selection-bg:     85  90 102;
+  --theme-selection-fg:    255 255 255;
+
+  --color-on-primary:        0   0   0;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-700);
+  --color-hover-bg-strong: var(--color-surface-600);
+}
