@@ -1,5 +1,6 @@
 /* Generated from YAML theme: Modus Vivendi.yml
    Theme: Modus Vivendi (dark)
+   Primary: #338FFF (from color4 (blue))
 */
 
 [data-theme="modus-vivendi"] {
@@ -16,7 +17,7 @@
   --color-surface-900:   8   8   8; /* #080808 */
   --color-surface-950:   0   0   0; /* #000000 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #338FFF) --- */
   --color-primary-50: 239 246 255;
   --color-primary-100: 214 233 255;
   --color-primary-200: 184 216 255;

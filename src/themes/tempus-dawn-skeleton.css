@@ -1,5 +1,6 @@
 /* Generated from YAML theme: Tempus Dawn.yml
    Theme: Tempus Dawn (light)
+   Primary: #4B529A (from color4 (blue))
 */
 
 [data-theme="tempus-dawn"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  94  95  98; /* #5E5F62 */
   --color-surface-950:  74  75  78; /* #4A4B4E */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #4B529A) --- */
   --color-primary-50: 241 241 247;
   --color-primary-100: 219 220 235;
   --color-primary-200: 192 194 220;

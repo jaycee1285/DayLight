@@ -1,5 +1,6 @@
 /* Generated from YAML theme: Kanagawa Lotus.yml
    Theme: Kanagawa Lotus (light)
+   Primary: #4D699B (from color4 (blue))
 */
 
 [data-theme="kanagawa-lotus"] {
@@ -16,7 +17,7 @@
   --color-surface-900: 103 102 111; /* #67666F */
   --color-surface-950:  84  84 100; /* #545464 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #4D699B) --- */
   --color-primary-50: 241 243 247;
   --color-primary-100: 219 225 235;
   --color-primary-200: 193 203 220;

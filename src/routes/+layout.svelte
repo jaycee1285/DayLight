@@ -26,6 +26,8 @@
 		setSelectedDate
 	} from '$lib/stores/app.svelte';
 	import {
+		markdownStore,
+		initializeMarkdownStore,
 		addTask as addMarkdownTask,
 		addRecurringTask as addMarkdownRecurringTask
 	} from '$lib/stores/markdown-store.svelte';
@@ -326,6 +328,7 @@
 
 				const result = await loadAllWithErrors();
 				initializeStore(result);
+				initializeMarkdownStore();
 				if (calendarEnabled) {
 					const { isCalendarRefreshDue, refreshCalendarCache } = await import(
 						'$lib/calendar/refresh'
@@ -370,8 +373,8 @@
 	<Sidebar
 		open={sidebarOpen}
 		onclose={() => (sidebarOpen = false)}
-		projects={store.allProjects}
-		tags={store.allTags}
+		projects={markdownStore.allProjects}
+		tags={markdownStore.allTags}
 	/>
 
 	<div class="app-shell min-h-screen flex flex-col">
@@ -426,7 +429,7 @@
 		<ChipInput
 			bind:value={taskInput}
 			placeholder="Task title with #tags @contexts +project"
-			suggestions={[...store.allTags, ...store.allContexts, ...store.allProjects]}
+			suggestions={[...markdownStore.allTags, ...markdownStore.allContexts, ...markdownStore.allProjects]}
 		/>
 
 		<div class="flex items-center gap-2">

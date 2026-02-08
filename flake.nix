@@ -254,6 +254,27 @@
               export PATH="${androidSdkPath}/platform-tools:${androidSdkPath}/cmdline-tools/latest/bin:$PATH"
               # NDK toolchain needs its own libc++ for the host clang
               export LD_LIBRARY_PATH="${androidSdkPath}/ndk/${ndkVersion}/toolchains/llvm/prebuilt/linux-x86_64/lib64:$LD_LIBRARY_PATH"
+
+              # NixOS fix: Android SDK scripts use #!/bin/bash which doesn't exist on NixOS
+              if [ ! -f "/bin/bash" ]; then
+                # NDK clang wrappers
+                if [ -d "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" ]; then
+                  for f in "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/"*-clang \
+                           "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/"*-clang++; do
+                    if head -1 "$f" 2>/dev/null | grep -q '^#!/bin/bash$'; then
+                      sed -i '1s|^#!/bin/bash$|#!/usr/bin/env bash|' "$f" 2>/dev/null || true
+                    fi
+                  done
+                fi
+                # Build-tools (apksigner, d8, etc.)
+                for f in "${androidSdkPath}/build-tools/"*/apksigner \
+                         "${androidSdkPath}/build-tools/"*/d8; do
+                  if [ -f "$f" ] && head -1 "$f" 2>/dev/null | grep -q '^#!/bin/bash$'; then
+                    sed -i '1s|^#!/bin/bash$|#!/usr/bin/env bash|' "$f" 2>/dev/null || true
+                  fi
+                done
+              fi
+
               ANDROID_STATUS="found at ${androidSdkPath}"
             else
               ANDROID_STATUS="not found (run 'flutter doctor' to set up)"

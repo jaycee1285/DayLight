@@ -70,6 +70,53 @@ function pickOnColor(bg: RGB): RGB {
 	return contrastRatio(white, bg) >= contrastRatio(black, bg) ? white : black;
 }
 
+function colorDistance(a: RGB, b: RGB): number {
+	return Math.sqrt(
+		Math.pow(a[0] - b[0], 2) +
+		Math.pow(a[1] - b[1], 2) +
+		Math.pow(a[2] - b[2], 2)
+	);
+}
+
+function saturation(rgb: RGB): number {
+	const max = Math.max(...rgb);
+	const min = Math.min(...rgb);
+	if (max === 0) return 0;
+	return (max - min) / max;
+}
+
+function isDistinctiveAccent(color: RGB, bg: RGB, fg: RGB, minDistance = 60, minSaturation = 0.35): boolean {
+	const distFromBg = colorDistance(color, bg);
+	const distFromFg = colorDistance(color, fg);
+	const sat = saturation(color);
+	return distFromBg > minDistance && distFromFg > minDistance && sat > minSaturation;
+}
+
+/**
+ * Find a distinctive accent color from theme metadata.
+ * Checks cursor, selection_background, active_border_color, url_color in priority order.
+ * Returns null if no distinctive accent found (caller should fall back to color4/blue).
+ */
+function findAccentColor(colors: KittyColors, bg: RGB, fg: RGB): { color: RGB; source: string } | null {
+	const candidates = [
+		'cursor',
+		'selection_background',
+		'active_border_color',
+		'url_color',
+		'color16',
+		'color17',
+	];
+
+	for (const key of candidates) {
+		const rgb = getColor(colors, key);
+		if (rgb && isDistinctiveAccent(rgb, bg, fg)) {
+			return { color: rgb, source: key };
+		}
+	}
+
+	return null;
+}
+
 // ── scale generation ─────────────────────────────────────────────────
 
 function generateColorScale(base: RGB): Record<number, RGB> {
@@ -196,11 +243,17 @@ function getColor(colors: KittyColors, key: string): RGB | null {
 
 // ── CSS generation ───────────────────────────────────────────────────
 
-function generateThemeCss(
+interface ThemeCssResult {
+	css: string;
+	primarySource: string;
+	primaryHex: string;
+}
+
+function generateThemeCssWithInfo(
 	themeName: string,
 	dataTheme: string,
 	colors: KittyColors
-): string {
+): ThemeCssResult {
 	const bg = hexToRgb(colors.background);
 	const fg = hexToRgb(colors.foreground);
 	const isDark = luminance(bg) < 0.2;
@@ -211,9 +264,17 @@ function generateThemeCss(
 		: lightSurfaceScale(bg, fg);
 
 	// Color scales from terminal ANSI colors
+	// First, try to find a distinctive accent color from theme metadata
+	const detectedAccent = findAccentColor(colors, bg, fg);
+
 	const blue = getColor(colors, 'color4') ?? (isDark ? [100, 149, 237] as RGB : [65, 105, 225] as RGB);
 	const brightBlue = getColor(colors, 'color12');
-	const primary = generateColorScale(isDark && brightBlue ? brightBlue : blue);
+	const defaultBlue = isDark && brightBlue ? brightBlue : blue;
+
+	// Use distinctive accent if found, otherwise fall back to blue
+	const primaryBase = detectedAccent ? detectedAccent.color : defaultBlue;
+	const primarySource = detectedAccent ? detectedAccent.source : 'color4 (blue)';
+	const primary = generateColorScale(primaryBase);
 
 	const magenta = getColor(colors, 'color5') ?? [186, 85, 211] as RGB;
 	const secondary = generateColorScale(magenta);
@@ -250,7 +311,8 @@ function generateThemeCss(
 	css += '\n';
 
 	// Primary
-	css += `  /* --- Primary (blue) --- */\n`;
+	const primaryHex = `#${primaryBase.map(c => c.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+	css += `  /* --- Primary (${primarySource}: ${primaryHex}) --- */\n`;
 	for (const s of steps) {
 		css += `  --color-primary-${s}: ${padTriplet(primary[s])};\n`;
 	}
@@ -295,7 +357,6 @@ function generateThemeCss(
 	css += `  --theme-selection-fg:    ${padTriplet(selFg)};\n`;
 	css += '\n';
 
-	const primaryBase = isDark && brightBlue ? brightBlue : blue;
 	const onPrimary = pickOnColor(primaryBase);
 	css += `  --color-on-primary:      ${padTriplet(onPrimary)};\n`;
 	css += `  --color-overlay:         ${isDark ? '0 0 0' : '0 0 0'};\n`;
@@ -310,7 +371,7 @@ function generateThemeCss(
 	}
 
 	css += `}\n`;
-	return css;
+	return { css, primarySource, primaryHex };
 }
 
 // ── main ─────────────────────────────────────────────────────────────
@@ -324,7 +385,7 @@ const SKIP = new Set([
 	'current-theme.conf',
 	'set-colors'
 ]);
-const SKIP_PATTERNS = [/flexoki/i, /ayu/i];
+const SKIP_PATTERNS = [/flexoki/i, /ayu/i, /gruvbox.material/i];
 
 // Dedup: prefer files without underscores (space versions)
 const seen = new Map<string, string>(); // normalized name → path
@@ -377,13 +438,13 @@ for (const [normalized, filename] of seen) {
 	const themeName = filename.replace(/\.(conf|ya?ml)$/, '').replace(/_/g, ' ');
 
 	const sourceType = isYaml ? 'YAML theme' : 'kitty config';
-	const css = `/* Generated from ${sourceType}: ${filename}\n   Theme: ${themeName} (${isDark ? 'dark' : 'light'})\n*/\n\n` +
-		generateThemeCss(themeName, dataTheme, colors);
+	const { css, primarySource, primaryHex } = generateThemeCssWithInfo(themeName, dataTheme, colors);
 
-	writeFileSync(join(OUTPUT_DIR, cssFilename), css);
+	const header = `/* Generated from ${sourceType}: ${filename}\n   Theme: ${themeName} (${isDark ? 'dark' : 'light'})\n   Primary: ${primaryHex} (from ${primarySource})\n*/\n\n`;
+	writeFileSync(join(OUTPUT_DIR, cssFilename), header + css);
 
 	generated.push({ file: cssFilename, dataTheme, name: themeName, isDark });
-	console.log(`  ${isDark ? '🌙' : '☀️'}  ${dataTheme} → ${cssFilename}`);
+	console.log(`  ${isDark ? '🌙' : '☀️'}  ${dataTheme} → ${cssFilename} [primary: ${primaryHex} from ${primarySource}]`);
 }
 
 console.log(`\nGenerated ${generated.length} skeleton themes in ${OUTPUT_DIR}`);

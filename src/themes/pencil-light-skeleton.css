@@ -1,5 +1,6 @@
 /* Generated from YAML theme: Pencil Light.yml
    Theme: Pencil Light (light)
+   Primary: #008EC4 (from color4 (blue))
 */
 
 [data-theme="pencil-light"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  87  87  87; /* #575757 */
   --color-surface-950:  66  66  66; /* #424242 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #008EC4) --- */
   --color-primary-50: 235 246 250;
   --color-primary-100: 204 232 243;
   --color-primary-200: 166 215 234;

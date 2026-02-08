@@ -415,14 +415,8 @@ export function getCompletedTasksForDate(
 	return tasks.filter((task) => {
 		const fm = task.frontmatter;
 
-		// Non-recurring: check completedAt date
-		if (fm.status === 'done' && fm.completedAt) {
-			const completedDate = fm.completedAt.split('T')[0];
-			return completedDate === date;
-		}
-
-		// Recurring: check complete_instances
-		if (fm.recurrence && fm.complete_instances.includes(date)) {
+		// All tasks (recurring and non-recurring) use complete_instances now
+		if (fm.complete_instances.includes(date)) {
 			return true;
 		}
 
@@ -565,10 +559,10 @@ export function filterIncomplete(tasks: ViewTask[]): ViewTask[] {
 }
 
 /**
- * Filter to only completed tasks
+ * Filter to only completed tasks (tasks that have at least one completion)
  */
 export function filterCompleted(tasks: ViewTask[]): ViewTask[] {
-	return tasks.filter((task) => task.frontmatter.status === 'done');
+	return tasks.filter((task) => task.frontmatter.complete_instances.length > 0);
 }
 
 /**

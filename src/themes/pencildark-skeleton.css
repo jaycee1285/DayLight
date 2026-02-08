@@ -1,5 +1,6 @@
 /* Generated from kitty config: PencilDark.conf
    Theme: PencilDark (dark)
+   Primary: #20BAFB (from cursor)
 */
 
 [data-theme="pencildark"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  38  38  38; /* #262626 */
   --color-surface-950:  32  32  32; /* #202020 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (cursor: #20BAFB) --- */
   --color-primary-50: 237 249 255;
   --color-primary-100: 210 241 254;
   --color-primary-200: 177 231 254;

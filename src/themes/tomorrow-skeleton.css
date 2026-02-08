@@ -1,5 +1,6 @@
 /* Generated from kitty config: Tomorrow.conf
    Theme: Tomorrow (light)
+   Primary: #4271AE (from selection_background)
 */
 
 [data-theme="tomorrow"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  98  98  97; /* #626261 */
   --color-surface-950:  77  77  76; /* #4D4D4C */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (selection_background: #4271AE) --- */
   --color-primary-50: 240 244 249;
   --color-primary-100: 217 227 239;
   --color-primary-200: 189 205 227;

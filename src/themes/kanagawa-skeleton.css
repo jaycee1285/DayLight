@@ -1,5 +1,6 @@
 /* Generated from kitty config: Kanagawa.conf
    Theme: Kanagawa (dark)
+   Primary: #2D4F67 (from selection_background)
 */
 
 [data-theme="kanagawa"] {
@@ -16,18 +17,18 @@
   --color-surface-900:  37  37  44; /* #25252C */
   --color-surface-950:  31  31  40; /* #1F1F28 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 245 249 251;
-  --color-primary-100: 229 240 244;
-  --color-primary-200: 210 229 236;
-  --color-primary-300: 185 214 226;
-  --color-primary-400: 155 197 214;
-  --color-primary-500: 127 180 202;
-  --color-primary-600: 104 148 166;
-  --color-primary-700:  85 121 135;
-  --color-primary-800:  70  99 111;
-  --color-primary-900:  51  72  81;
-  --color-primary-950:  36  50  57;
+  /* --- Primary (selection_background: #2D4F67) --- */
+  --color-primary-50: 238 241 243;
+  --color-primary-100: 213 220 225;
+  --color-primary-200: 182 193 202;
+  --color-primary-300: 140 158 171;
+  --color-primary-400:  91 118 136;
+  --color-primary-500:  45  79 103;
+  --color-primary-600:  37  65  84;
+  --color-primary-700:  30  53  69;
+  --color-primary-800:  25  43  57;
+  --color-primary-900:  18  32  41;
+  --color-primary-950:  13  22  29;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 247 245 249;
@@ -80,7 +81,7 @@
   --theme-selection-bg:     45  79 103;
   --theme-selection-fg:    200 192 147;
 
-  --color-on-primary:        0   0   0;
+  --color-on-primary:      255 255 255;
   --color-overlay:         0 0 0;
   --color-shadow:          0 0 0;
   --color-hover-bg:        var(--color-surface-700);

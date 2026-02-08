@@ -1,5 +1,6 @@
 /* Generated from kitty config: Modus Vivendi Tinted.conf
    Theme: Modus Vivendi Tinted (dark)
+   Primary: #FF66FF (from cursor)
 */
 
 [data-theme="modus-vivendi-tinted"] {
@@ -16,18 +17,18 @@
   --color-surface-900:  20  21  35; /* #141523 */
   --color-surface-950:  13  14  28; /* #0D0E1C */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 244 248 255;
-  --color-primary-100: 228 238 255;
-  --color-primary-200: 208 225 255;
-  --color-primary-300: 181 207 255;
-  --color-primary-400: 150 187 255;
-  --color-primary-500: 121 168 255;
-  --color-primary-600:  99 138 209;
-  --color-primary-700:  81 113 171;
-  --color-primary-800:  67  92 140;
-  --color-primary-900:  48  67 102;
-  --color-primary-950:  34  47  71;
+  /* --- Primary (cursor: #FF66FF) --- */
+  --color-primary-50: 255 243 255;
+  --color-primary-100: 255 224 255;
+  --color-primary-200: 255 201 255;
+  --color-primary-300: 255 171 255;
+  --color-primary-400: 255 136 255;
+  --color-primary-500: 255 102 255;
+  --color-primary-600: 209  84 209;
+  --color-primary-700: 171  68 171;
+  --color-primary-800: 140  56 140;
+  --color-primary-900: 102  41 102;
+  --color-primary-950:  71  29  71;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 255 248 251;

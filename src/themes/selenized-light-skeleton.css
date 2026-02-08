@@ -1,5 +1,6 @@
 /* Generated from YAML theme: Selenized Light.yml
    Theme: Selenized Light (light)
+   Primary: #0072D4 (from color4 (blue))
 */
 
 [data-theme="selenized-light"] {
@@ -16,7 +17,7 @@
   --color-surface-900: 103 120 122; /* #67787A */
   --color-surface-950:  83 103 109; /* #53676D */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #0072D4) --- */
   --color-primary-50: 235 244 252;
   --color-primary-100: 204 227 246;
   --color-primary-200: 166 206 240;

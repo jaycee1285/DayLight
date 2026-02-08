@@ -38,11 +38,18 @@ This is a two-way contract: John needs to provide context, Claude needs to ask w
 
 **He knows his codebase.** Trust his intuition about where problems are. If he says "it's not X", he's probably right.
 
+**Trust specific directions.** When John gives precise instructions (like "add the conditional" or specific CSS patterns), follow them. He's learned patterns from watching Claude work and knows what fixes issues in this codebase. Direct responses aren't meant to dismiss your reasoning—they're meant to be efficient. Don't second-guess or re-derive when he's already told you the answer.
+
 **Mobile-first.** The Tauri app starts at mobile size. Test mentally against small screens. Scrolling, touch targets, and viewport constraints matter.
 
 **Personal project pragmatism.** This is for his use, not a team. Don't over-engineer. Don't build for hypothetical future requirements.
 
-**ALWAYS suggest restarting the dev server.** John hates reloading `bun run tauri:dev`, but that aversion can mask whether a fix actually worked. If there's *any* doubt that hot-reload might not pick up the change (store changes, new imports, structural changes), explicitly say: "Restart the dev server to test this." Don't let us debug "bugs" that are actually stale code. The app working matters more than avoiding a restart.
+**Clean build before testing.** In Svelte-Tauri projects, always clear caches and rebuild before asking John to test:
+```bash
+rm -rf .svelte-kit build
+bun run build
+```
+Then restart: `bun run tauri:dev`. Hot-reload doesn't always pick up new files, store changes, or structural changes. We've wasted time debugging "bugs" that were actually stale code. The app working matters more than avoiding a rebuild.
 
 ---
 
@@ -66,6 +73,38 @@ Tasks are markdown files with YAML frontmatter:
 - Location: `~/Sync/JMC/TaskNotes/Tasks/`
 - Synced via Syncthing
 - Format: See `src/lib/storage/frontmatter.ts` for the `TaskFrontmatter` type
+
+### Activity Ledger Model (Feb 2026)
+
+SPRedux treats tasks as **reusable activity buckets**, not one-shot checkboxes.
+
+**Core principle:** The app is 90% self-accountability (seeing where time goes) and 10% not forgetting things. This inverts how most task managers work.
+
+**What this means for the data model:**
+
+1. **Completing a task adds to `complete_instances`**, not `status: 'done'`
+   - Task goes to "Wrapped" group for today
+   - Tomorrow it's back in the backlog (Upcoming), ready to be scheduled again
+   - `status: 'done'` is legacy/unused for new tasks
+
+2. **Adding a task that already exists reschedules it**
+   - `addTask("Walmart", { scheduled: "2026-02-14" })` finds existing "Walmart.md"
+   - Sets its `scheduled` date instead of creating "Walmart (1).md"
+   - Time entries and completion history accumulate in one file
+
+3. **Tasks don't nag you unless scheduled**
+   - Unscheduled tasks live in Upcoming (the backlog)
+   - They only appear in Now when explicitly scheduled for today
+   - "Walmart" exists as "a thing I do sometimes" without daily reminders
+
+4. **Reports aggregate across completions**
+   - "Walmart: 6 completions, 14h total, avg 2h 25m" tells you where time goes
+   - Tags/projects let you see "Housework: 38h this month"
+
+**Key fields:**
+- `scheduled: string | null` — when the next instance is planned (cleared on completion)
+- `complete_instances: string[]` — dates when this activity was completed
+- `timeEntries: TimeEntry[]` — time logged, accumulates across all completions
 
 ### Svelte 5 Gotcha: Map Reactivity
 When mutating a `$state` Map, derived values may not update. Create a new Map:
@@ -233,6 +272,15 @@ bun run tauri:android
 ### Stale Build Cache
 - When CSS imports or structural changes are made, clear caches before dev: `rm -rf .svelte-kit node_modules/.vite build`
 - Tauri's `generate_context!()` requires `build/` dir to exist at compile time
+
+### Activity Ledger Model
+- Tasks are reusable activity buckets, not one-shot checkboxes
+- `markTaskComplete` adds to `complete_instances` for ALL tasks (recurring and non-recurring)
+- `scheduled` cleared on completion; task returns to backlog
+- `addTask` checks for existing file with same name; reschedules instead of creating duplicates
+- Title editing in TaskEditModal with conflict detection ("A task with that name already exists")
+- `getTaskDateGroup` checks `complete_instances.includes(today)` for Wrapped status
+- `isCompleted` in ViewTaskRow/TaskContextMenu uses `dateGroup === 'Wrapped'` for non-recurring tasks
 
 ---
 

@@ -4,7 +4,7 @@
 	import { rruleToRecurrence, recurrenceToRRule } from '$lib/storage/frontmatter';
 	import { formatLocalDate } from '$lib/domain/task';
 	import { formatRecurrenceShort } from '$lib/domain/recurrence';
-	import { updateTaskWithBody } from '$lib/stores/markdown-store.svelte';
+	import { updateTaskWithBody, renameTask } from '$lib/stores/markdown-store.svelte';
 	import RecurrenceEditor from './RecurrenceEditor.svelte';
 	import Sheet from './Sheet.svelte';
 
@@ -20,6 +20,7 @@
 	let { task, open, onclose }: Props = $props();
 
 	// Local state for editing
+	let taskTitle = $state('');
 	let taskInfo = $state('');
 	let tags = $state<string[]>([]);
 	let projects = $state<string[]>([]);
@@ -28,6 +29,7 @@
 	let showTagInput = $state(false);
 	let showProjectInput = $state(false);
 	let showRecurrenceEditor = $state(false);
+	let titleError = $state('');
 
 	// Recurrence state
 	const existingRecurrence = $derived.by(() => {
@@ -39,6 +41,7 @@
 	// Reset state when modal opens or task changes
 	$effect(() => {
 		if (open) {
+			taskTitle = task.title || '';
 			taskInfo = task.body || '';
 			tags = [...task.frontmatter.tags.filter(t => t !== 'task')];
 			projects = [...task.frontmatter.projects];
@@ -48,6 +51,7 @@
 			newProjectInput = '';
 			showTagInput = false;
 			showProjectInput = false;
+			titleError = '';
 		}
 	});
 
@@ -87,6 +91,21 @@
 	}
 
 	async function handleSave() {
+		titleError = '';
+
+		// Handle rename if title changed
+		const trimmedTitle = taskTitle.trim();
+		let currentFilename = task.filename;
+
+		if (trimmedTitle && trimmedTitle !== task.title) {
+			const result = await renameTask(task.filename, trimmedTitle);
+			if (!result.success) {
+				titleError = result.error || 'Failed to rename task';
+				return;
+			}
+			currentFilename = result.newFilename!;
+		}
+
 		const updates: Record<string, unknown> = {
 			tags: ['task', ...tags],
 			projects
@@ -98,7 +117,7 @@
 			updates.recurrence_anchor = 'scheduled';
 		}
 
-		await updateTaskWithBody(task.filename, updates, taskInfo);
+		await updateTaskWithBody(currentFilename, updates, taskInfo);
 		onclose();
 	}
 
@@ -109,12 +128,21 @@
 	}
 </script>
 
-<Sheet {open} onclose={onclose} title={task.title || 'Edit Task'}>
+<Sheet {open} onclose={onclose} title="Edit Task">
 	<div class="task-edit-modal">
-		<!-- Task Title (read-only) -->
+		<!-- Task Title (editable) -->
 		<div class="section mb-4">
-			<span class="section-label">Task</span>
-			<div class="task-title-display">{task.title}</div>
+			<span class="section-label">Task Name</span>
+			<input
+				type="text"
+				class="task-title-input"
+				class:has-error={titleError}
+				bind:value={taskTitle}
+				placeholder="Task name..."
+			/>
+			{#if titleError}
+				<div class="title-error">{titleError}</div>
+			{/if}
 		</div>
 
 		<!-- Task Info (body - editable) -->
@@ -268,16 +296,34 @@
 		margin-bottom: 0.5rem;
 	}
 
-	.task-title-display {
+	.task-title-input {
+		width: 100%;
 		font-size: 1rem;
 		font-weight: 500;
-		padding: 0.5rem;
+		padding: 0.5rem 0.75rem;
 		background-color: rgb(var(--color-surface-100));
 		border-radius: 0.5rem;
+		border: 1px solid rgb(var(--color-surface-300));
 	}
 
-	:global([data-mode='dark']) .task-title-display {
+	:global([data-mode='dark']) .task-title-input {
 		background-color: rgb(var(--color-surface-700));
+		border-color: rgb(var(--color-surface-600));
+	}
+
+	.task-title-input:focus {
+		outline: none;
+		border-color: rgb(var(--color-primary-500));
+	}
+
+	.task-title-input.has-error {
+		border-color: rgb(var(--color-error-500));
+	}
+
+	.title-error {
+		margin-top: 0.375rem;
+		font-size: 0.8125rem;
+		color: rgb(var(--color-error-500));
 	}
 
 	.task-info-input {

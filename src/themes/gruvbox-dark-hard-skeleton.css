@@ -1,5 +1,6 @@
 /* Generated from kitty config: Gruvbox Dark Hard.conf
    Theme: Gruvbox Dark Hard (dark)
+   Primary: #D65D0E (from selection_background)
 */
 
 [data-theme="gruvbox-dark-hard"] {
@@ -16,18 +17,18 @@
   --color-surface-900:  35  38  37; /* #232625 */
   --color-surface-950:  29  32  33; /* #1D2021 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 245 248 247;
-  --color-primary-100: 230 237 234;
-  --color-primary-200: 212 224 219;
-  --color-primary-300: 187 206 198;
-  --color-primary-400: 158 185 175;
-  --color-primary-500: 131 165 152;
-  --color-primary-600: 107 135 125;
-  --color-primary-700:  88 111 102;
-  --color-primary-800:  72  91  84;
-  --color-primary-900:  52  66  61;
-  --color-primary-950:  37  46  43;
+  /* --- Primary (selection_background: #D65D0E) --- */
+  --color-primary-50: 252 242 236;
+  --color-primary-100: 247 223 207;
+  --color-primary-200: 241 198 171;
+  --color-primary-300: 232 166 122;
+  --color-primary-400: 223 129  67;
+  --color-primary-500: 214  93  14;
+  --color-primary-600: 175  76  11;
+  --color-primary-700: 143  62   9;
+  --color-primary-800: 118  51   8;
+  --color-primary-900:  86  37   6;
+  --color-primary-950:  60  26   4;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 249 242 245;

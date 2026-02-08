@@ -1,5 +1,6 @@
 /* Generated from kitty config: Rosé Pine Dawn.conf
    Theme: Rosé Pine Dawn (light)
+   Primary: #56949F (from color4 (blue))
 */
 
 [data-theme="rose-pine-dawn"] {
@@ -16,7 +17,7 @@
   --color-surface-900: 107 101 135; /* #6B6587 */
   --color-surface-950:  87  82 121; /* #575279 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #56949F) --- */
   --color-primary-50: 241 246 247;
   --color-primary-100: 221 234 236;
   --color-primary-200: 196 218 221;

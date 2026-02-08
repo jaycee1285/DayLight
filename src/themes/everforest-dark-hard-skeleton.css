@@ -1,5 +1,6 @@
 /* Generated from kitty config: Everforest Dark Hard.conf
    Theme: Everforest Dark Hard (dark)
+   Primary: #7FBBB3 (from color4 (blue))
 */
 
 [data-theme="everforest-dark-hard"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  44  51  55; /* #2C3337 */
   --color-surface-950:  39  46  51; /* #272E33 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #7FBBB3) --- */
   --color-primary-50: 245 250 249;
   --color-primary-100: 229 241 240;
   --color-primary-200: 210 231 228;

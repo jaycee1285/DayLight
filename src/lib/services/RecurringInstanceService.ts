@@ -254,18 +254,29 @@ export function uncompleteInstance(
 /**
  * Determine the task date group for Bases view
  *
+ * Attention-based grouping:
+ * - Now: Needs action today
+ * - Past: Overdue, needs action
+ * - Upcoming: Will need attention on a known future date
+ * - Wrapped: Not demanding attention (quiet backlog)
+ *
  * @param frontmatter The task frontmatter
  * @param today Optional override for today's date (for testing)
  * @returns Group name: 'Wrapped', 'Past', 'Now', or 'Upcoming'
  */
 export function getTaskDateGroup(frontmatter: TaskFrontmatter, today: string = getTodayDate()): 'Wrapped' | 'Past' | 'Now' | 'Upcoming' {
 
-	// 1. Non-recurring: status=done → Wrapped
+	// 1. Status 'done' → Wrapped (permanently closed)
 	if (frontmatter.status === 'done') {
 		return 'Wrapped';
 	}
 
-	// 2. Recurring task logic
+	// 2. Completed today → Wrapped (for both recurring and non-recurring)
+	if (frontmatter.complete_instances.includes(today)) {
+		return 'Wrapped';
+	}
+
+	// 3. Recurring task logic
 	if (frontmatter.recurrence) {
 		// Has past uncompleted instances → Past
 		if (hasPastUncompletedInstances(frontmatter, today)) {
@@ -277,30 +288,43 @@ export function getTaskDateGroup(frontmatter: TaskFrontmatter, today: string = g
 			return 'Now';
 		}
 
-		// Today's instance completed → Wrapped
-		if (frontmatter.complete_instances.includes(today)) {
-			return 'Wrapped';
-		}
-
 		// Has recurrence but no active instances yet → Upcoming
 		return 'Upcoming';
 	}
 
-	// 3. Non-recurring: Due or scheduled today → Now
+	// 4. Non-recurring: Due or scheduled today → Now
 	if (frontmatter.scheduled === today || frontmatter.due === today) {
 		return 'Now';
 	}
 
-	// 4. Non-recurring: Due or scheduled in past → Past
+	// 5. Non-recurring: Past scheduled date
 	if (frontmatter.scheduled && frontmatter.scheduled < today) {
-		return 'Past';
-	}
-	if (frontmatter.due && frontmatter.due < today) {
+		// Was completed on the scheduled date → Wrapped (done)
+		if (frontmatter.complete_instances.includes(frontmatter.scheduled)) {
+			return 'Wrapped';
+		}
+		// Not completed → Past (overdue)
 		return 'Past';
 	}
 
-	// 5. Everything else → Upcoming
-	return 'Upcoming';
+	// 6. Non-recurring: Past due date
+	if (frontmatter.due && frontmatter.due < today) {
+		// Was completed on the due date → Wrapped (done)
+		if (frontmatter.complete_instances.includes(frontmatter.due)) {
+			return 'Wrapped';
+		}
+		// Not completed → Past (overdue)
+		return 'Past';
+	}
+
+	// 7. Non-recurring: Future scheduled or due date → Upcoming
+	if ((frontmatter.scheduled && frontmatter.scheduled > today) ||
+		(frontmatter.due && frontmatter.due > today)) {
+		return 'Upcoming';
+	}
+
+	// 8. Everything else (no scheduled/due date, no recurrence) → Wrapped (quiet backlog)
+	return 'Wrapped';
 }
 
 /**

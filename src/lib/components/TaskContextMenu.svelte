@@ -19,6 +19,7 @@
 	import IconUndo2 from '~icons/lucide/undo-2';
 	import IconClock from '~icons/lucide/clock';
 	import IconPencil from '~icons/lucide/pencil';
+	import IconTimer from '~icons/lucide/timer';
 
 	interface Props {
 		task: ViewTask;
@@ -28,6 +29,7 @@
 		onpickdate?: () => void;
 		ontracktime?: () => void;
 		onedit?: () => void;
+		ontimedsession?: () => void;
 	}
 
 	let {
@@ -37,16 +39,17 @@
 		onclose,
 		onpickdate,
 		ontracktime,
-		onedit
+		onedit,
+		ontimedsession
 	}: Props = $props();
 
 	// For recurring tasks with instanceDate, check if that instance is completed
-	// For non-recurring tasks, check status
+	// For non-recurring tasks, use dateGroup - 'Wrapped' means completed in this view's context
 	const isCompleted = $derived.by(() => {
 		if (task.instanceDate) {
 			return task.frontmatter.complete_instances.includes(task.instanceDate);
 		}
-		return task.frontmatter.status === 'done';
+		return task.dateGroup === 'Wrapped';
 	});
 
 	// Adjust position to stay within viewport
@@ -117,6 +120,11 @@
 
 	function handleEditTask() {
 		onedit?.();
+		onclose();
+	}
+
+	function handleTimedSession() {
+		ontimedsession?.();
 		onclose();
 	}
 
@@ -212,6 +220,13 @@
 					<IconClock width="16" height="16" />
 				</span>
 				<span>Track Time</span>
+			</button>
+
+			<button type="button" class="menu-option" onclick={handleTimedSession}>
+				<span class="menu-icon">
+					<IconTimer width="16" height="16" />
+				</span>
+				<span>Timed Session</span>
 			</button>
 
 			<button type="button" class="menu-option" onclick={handleEditTask}>

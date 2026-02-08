@@ -287,7 +287,9 @@
 									{#each dayTasks as task}
 										<div
 											class="preview-item preview-task truncate text-xs"
-											class:completed={task.frontmatter.status === 'done'}
+											class:completed={task.instanceDate
+												? task.frontmatter.complete_instances.includes(task.instanceDate)
+												: task.frontmatter.complete_instances.includes(day)}
 										>
 											{truncateTitle(task.title || 'Task', 10)}
 										</div>

@@ -1,5 +1,6 @@
 /* Generated from kitty config: Dawnfox.conf
    Theme: Dawnfox (light)
+   Primary: #D7827E (from color16)
 */
 
 [data-theme="dawnfox"] {
@@ -16,18 +17,18 @@
   --color-surface-900: 107 101 135; /* #6B6587 */
   --color-surface-950:  87  82 121; /* #575279 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 238 243 245;
-  --color-primary-100: 212 225 230;
-  --color-primary-200: 180 203 212;
-  --color-primary-300: 137 173 187;
-  --color-primary-400:  87 138 158;
-  --color-primary-500:  40 105 131;
-  --color-primary-600:  33  86 107;
-  --color-primary-700:  27  70  88;
-  --color-primary-800:  22  58  72;
-  --color-primary-900:  16  42  52;
-  --color-primary-950:  11  29  37;
+  /* --- Primary (color16: #D7827E) --- */
+  --color-primary-50: 252 245 245;
+  --color-primary-100: 247 230 229;
+  --color-primary-200: 241 211 210;
+  --color-primary-300: 233 186 184;
+  --color-primary-400: 224 158 154;
+  --color-primary-500: 215 130 126;
+  --color-primary-600: 176 107 103;
+  --color-primary-700: 144  87  84;
+  --color-primary-800: 118  72  69;
+  --color-primary-900:  86  52  50;
+  --color-primary-950:  60  36  35;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 246 244 248;
@@ -80,7 +81,7 @@
   --theme-selection-bg:    208 216 216;
   --theme-selection-fg:     87  82 121;
 
-  --color-on-primary:      255 255 255;
+  --color-on-primary:        0   0   0;
   --color-overlay:         0 0 0;
   --color-shadow:          0 0 0;
   --color-hover-bg:        var(--color-surface-200);

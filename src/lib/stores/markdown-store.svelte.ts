@@ -11,6 +11,7 @@ import {
 	saveTask,
 	deleteTask as deleteTaskFile,
 	generateUniqueFilename,
+	generateTaskFilename,
 	type LoadTasksResult
 } from '$lib/storage/markdown-storage';
 import {
@@ -41,7 +42,7 @@ import {
 } from '$lib/services/RecurringInstanceService';
 import { getTodayDate, formatLocalDate } from '$lib/domain/task';
 import { generateOccurrences, type Recurrence } from '$lib/domain/recurrence';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { writeTextFile, exists, remove } from '@tauri-apps/plugin-fs';
 import { join } from '@tauri-apps/api/path';
 import { getTasksDir } from '$lib/storage/markdown-storage';
 
@@ -157,7 +158,10 @@ function getGroupedView(): GroupedView {
 }
 
 /**
- * Add a new task
+ * Add a new task, or reschedule existing task with same title
+ *
+ * If a task with the same title already exists (non-recurring),
+ * we reschedule it instead of creating a duplicate.
  */
 export async function addTask(
 	title: string,
@@ -172,6 +176,37 @@ export async function addTask(
 		priority?: 'none' | 'low' | 'normal' | 'high';
 	} = {}
 ): Promise<string> {
+	// Check if task with this exact title already exists
+	const existingFilename = generateTaskFilename(title);
+	const existing = taskFiles.get(existingFilename);
+
+	if (existing && !existing.frontmatter.recurrence) {
+		// Task exists and is non-recurring - reschedule it
+		const updates: Partial<TaskFrontmatter> = {
+			scheduled: options.scheduled || null
+		};
+
+		// Optionally merge in new tags/projects if provided
+		if (options.tags && options.tags.length > 0) {
+			const existingTags = existing.frontmatter.tags;
+			const newTags = options.tags.filter(t => !existingTags.includes(t));
+			if (newTags.length > 0) {
+				updates.tags = [...existingTags, ...newTags];
+			}
+		}
+		if (options.projects && options.projects.length > 0) {
+			const existingProjects = existing.frontmatter.projects;
+			const newProjects = options.projects.filter(p => !existingProjects.includes(p));
+			if (newProjects.length > 0) {
+				updates.projects = [...existingProjects, ...newProjects];
+			}
+		}
+
+		await updateTask(existingFilename, updates);
+		return existingFilename;
+	}
+
+	// No existing task (or it's recurring) - create new
 	const now = new Date().toISOString();
 
 	const frontmatter: TaskFrontmatter = {
@@ -322,7 +357,56 @@ export async function deleteTask(filename: string): Promise<void> {
 }
 
 /**
+ * Rename a task (change its title/filename)
+ *
+ * @returns Object with success status and optional error message
+ */
+export async function renameTask(
+	oldFilename: string,
+	newTitle: string
+): Promise<{ success: boolean; error?: string; newFilename?: string }> {
+	const file = taskFiles.get(oldFilename);
+	if (!file) {
+		return { success: false, error: 'Task not found' };
+	}
+
+	const newFilename = generateTaskFilename(newTitle);
+
+	// If filename hasn't changed, nothing to do
+	if (newFilename === oldFilename) {
+		return { success: true, newFilename: oldFilename };
+	}
+
+	// Check if a task with the new filename already exists
+	const tasksDir = await getTasksDir();
+	const newFilePath = await join(tasksDir, newFilename);
+
+	if (await exists(newFilePath)) {
+		return { success: false, error: 'A task with that name already exists' };
+	}
+
+	// Write to new file
+	const content = serializeMarkdown(file.frontmatter, file.body);
+	await writeTextFile(newFilePath, content);
+
+	// Delete old file
+	const oldFilePath = await join(tasksDir, oldFilename);
+	await remove(oldFilePath);
+
+	// Update in-memory map
+	const newMap = new Map(taskFiles);
+	newMap.delete(oldFilename);
+	newMap.set(newFilename, file);
+	taskFiles = newMap;
+
+	return { success: true, newFilename };
+}
+
+/**
  * Mark a task as complete
+ *
+ * All tasks (recurring or not) add to complete_instances.
+ * Tasks are never marked 'done' - they're activity buckets that accumulate instances.
  */
 export async function markTaskComplete(
 	filename: string,
@@ -334,21 +418,25 @@ export async function markTaskComplete(
 	const fm = file.frontmatter;
 
 	if (fm.recurrence) {
-		// For recurring tasks, complete the instance
+		// For recurring tasks, use the instance service (handles active_instances too)
 		completeInstance(fm, date);
-		await saveTaskFile(filename, fm, file.body);
-		taskFiles = new Map(taskFiles).set(filename, { frontmatter: fm, body: file.body });
 	} else {
-		// For non-recurring tasks, mark as done
-		await updateTask(filename, {
-			status: 'done',
-			completedAt: new Date().toISOString()
-		});
+		// For non-recurring tasks, add to complete_instances and clear scheduled
+		if (!fm.complete_instances.includes(date)) {
+			fm.complete_instances = [...fm.complete_instances, date];
+		}
+		fm.scheduled = null;
+		fm.dateModified = new Date().toISOString();
 	}
+
+	await saveTaskFile(filename, fm, file.body);
+	taskFiles = new Map(taskFiles).set(filename, { frontmatter: fm, body: file.body });
 }
 
 /**
  * Mark a task as incomplete
+ *
+ * Removes the date from complete_instances.
  */
 export async function markTaskIncomplete(
 	filename: string,
@@ -360,17 +448,16 @@ export async function markTaskIncomplete(
 	const fm = file.frontmatter;
 
 	if (fm.recurrence) {
-		// For recurring tasks, uncomplete the instance
+		// For recurring tasks, use the instance service
 		uncompleteInstance(fm, date);
-		await saveTaskFile(filename, fm, file.body);
-		taskFiles = new Map(taskFiles).set(filename, { frontmatter: fm, body: file.body });
 	} else {
-		// For non-recurring tasks, mark as open
-		await updateTask(filename, {
-			status: 'open',
-			completedAt: null
-		});
+		// For non-recurring tasks, remove from complete_instances
+		fm.complete_instances = fm.complete_instances.filter(d => d !== date);
+		fm.dateModified = new Date().toISOString();
 	}
+
+	await saveTaskFile(filename, fm, file.body);
+	taskFiles = new Map(taskFiles).set(filename, { frontmatter: fm, body: file.body });
 }
 
 /**

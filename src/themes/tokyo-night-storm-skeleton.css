@@ -1,5 +1,6 @@
 /* Generated from kitty config: Tokyo Night Storm.conf
    Theme: Tokyo Night Storm (dark)
+   Primary: #7AA2F7 (from active_border_color)
 */
 
 [data-theme="tokyo-night-storm"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  41  45  65; /* #292D41 */
   --color-surface-950:  36  40  59; /* #24283B */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (active_border_color: #7AA2F7) --- */
   --color-primary-50: 244 248 254;
   --color-primary-100: 228 236 253;
   --color-primary-200: 208 222 252;

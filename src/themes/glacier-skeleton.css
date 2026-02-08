@@ -1,5 +1,6 @@
 /* Generated from kitty config: Glacier.conf
    Theme: Glacier (dark)
+   Primary: #BD2523 (from selection_background)
 */
 
 [data-theme="glacier"] {
@@ -16,18 +17,18 @@
   --color-surface-900:  19  24  28; /* #13181C */
   --color-surface-950:  12  17  21; /* #0C1115 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 238 246 250;
-  --color-primary-100: 212 232 243;
-  --color-primary-200: 180 214 233;
-  --color-primary-300: 138 191 221;
-  --color-primary-400:  89 165 207;
-  --color-primary-500:  42 139 193;
-  --color-primary-600:  34 114 158;
-  --color-primary-700:  28  93 129;
-  --color-primary-800:  23  76 106;
-  --color-primary-900:  17  56  77;
-  --color-primary-950:  12  39  54;
+  /* --- Primary (selection_background: #BD2523) --- */
+  --color-primary-50: 250 238 237;
+  --color-primary-100: 242 211 211;
+  --color-primary-200: 232 179 178;
+  --color-primary-300: 219 135 134;
+  --color-primary-400: 204  85  83;
+  --color-primary-500: 189  37  35;
+  --color-primary-600: 155  30  29;
+  --color-primary-700: 127  25  23;
+  --color-primary-800: 104  20  19;
+  --color-primary-900:  76  15  14;
+  --color-primary-950:  53  10  10;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 250 238 237;
@@ -80,7 +81,7 @@
   --theme-selection-bg:    189  37  35;
   --theme-selection-fg:     12  17  21;
 
-  --color-on-primary:        0   0   0;
+  --color-on-primary:      255 255 255;
   --color-overlay:         0 0 0;
   --color-shadow:          0 0 0;
   --color-hover-bg:        var(--color-surface-700);

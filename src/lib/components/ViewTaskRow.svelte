@@ -16,6 +16,7 @@
 	import ClockDrag from './ClockDrag.svelte';
 	import TaskContextMenu from './TaskContextMenu.svelte';
 	import TaskEditModal from './TaskEditModal.svelte';
+	import TimedSessionModal from './TimedSessionModal.svelte';
 
 	// Icons (compiled at build time via unplugin-icons)
 	import IconSun from '~icons/lucide/sun';
@@ -50,8 +51,8 @@
 		if (task.instanceDate) {
 			return task.frontmatter.complete_instances.includes(task.instanceDate);
 		}
-		// For non-recurring tasks, check status
-		return task.frontmatter.status === 'done';
+		// For non-recurring tasks, use dateGroup - 'Wrapped' means completed in this view's context
+		return task.dateGroup === 'Wrapped';
 	});
 	const timeSpentMinutes = $derived(task.totalTimeTracked);
 
@@ -61,6 +62,7 @@
 	let menuPosition = $state({ x: 0, y: 0 });
 	let sheetOpen = $state(false);
 	let editModalOpen = $state(false);
+	let timedSessionOpen = $state(false);
 	let timeToLog = $state(0);
 	let logDate = $state(getTodayDate());
 
@@ -125,6 +127,14 @@
 		editModalOpen = false;
 	}
 
+	function handleOpenTimedSession() {
+		timedSessionOpen = true;
+	}
+
+	function handleCloseTimedSession() {
+		timedSessionOpen = false;
+	}
+
 	async function handleCheckbox(e: MouseEvent) {
 		e.stopPropagation();
 		// Use instanceDate for recurring tasks, default to today for non-recurring
@@ -150,6 +160,17 @@
 		if (timeToLog > 0) {
 			await logTime(task.filename, logDate, timeToLog);
 			timeToLog = 0;
+		}
+	}
+
+	async function handleLogTimeAndFinish() {
+		if (timeToLog > 0) {
+			await logTime(task.filename, logDate, timeToLog);
+			// For recurring tasks, complete the specific instance; otherwise use logDate
+			const completionDate = task.instanceDate || logDate;
+			await markTaskComplete(task.filename, completionDate);
+			timeToLog = 0;
+			sheetOpen = false;
 		}
 	}
 
@@ -312,6 +333,7 @@
 		onpickdate={() => { sheetOpen = true; }}
 		ontracktime={() => { sheetOpen = true; }}
 		onedit={handleOpenEditModal}
+		ontimedsession={handleOpenTimedSession}
 	/>
 {/if}
 
@@ -320,6 +342,13 @@
 	{task}
 	open={editModalOpen}
 	onclose={handleCloseEditModal}
+/>
+
+<!-- Timed Session Modal -->
+<TimedSessionModal
+	{task}
+	open={timedSessionOpen}
+	onclose={handleCloseTimedSession}
 />
 
 <!-- Task Detail Sheet -->
@@ -359,19 +388,29 @@
 			<!-- Time Tracker (ClockDrag) -->
 			<ClockDrag bind:minutes={timeToLog} />
 
-			<!-- Log Time Button -->
-			<button
-				type="button"
-				class="log-time-btn w-full py-3 rounded-lg font-medium mt-4"
-				disabled={timeToLog === 0}
-				onclick={handleLogTime}
-			>
-				{#if timeToLog > 0}
-					Log {formatDuration(timeToLog)} for {formatShortDate(logDate)}
-				{:else}
-					Select time to log
-				{/if}
-			</button>
+			<!-- Log Time Buttons -->
+			<div class="log-time-buttons flex gap-2 mt-4">
+				<button
+					type="button"
+					class="log-time-btn flex-1 py-3 rounded-lg font-medium"
+					disabled={timeToLog === 0}
+					onclick={handleLogTime}
+				>
+					{#if timeToLog > 0}
+						Log {formatDuration(timeToLog)}
+					{:else}
+						Log time
+					{/if}
+				</button>
+				<button
+					type="button"
+					class="log-time-finish-btn flex-1 py-3 rounded-lg font-medium"
+					disabled={timeToLog === 0}
+					onclick={handleLogTimeAndFinish}
+				>
+					Log & Finish
+				</button>
+			</div>
 
 			<!-- Date Selector for Time Logging -->
 			<div class="log-date-section mt-4">
@@ -714,6 +753,27 @@
 	}
 
 	.log-time-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.log-time-finish-btn {
+		background-color: rgb(var(--color-tertiary-500));
+		color: rgb(var(--color-surface-50));
+		border: none;
+		cursor: pointer;
+		transition: background-color 0.15s, opacity 0.15s;
+	}
+
+	:global([data-mode='dark']) .log-time-finish-btn {
+		color: rgb(var(--color-surface-50));
+	}
+
+	.log-time-finish-btn:hover:not(:disabled) {
+		background-color: rgb(var(--color-tertiary-600));
+	}
+
+	.log-time-finish-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 	}

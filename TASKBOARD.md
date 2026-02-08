@@ -129,6 +129,8 @@
 | T12.6 | Remove ClockDrag preset buttons | Done | Pure drag interaction only |
 | T12.7 | Fix Tailwind v4 + Svelte integration | Done | @tailwindcss/vite |
 | T12.8 | completedForDay selector | Done | Filter tasks completed on day |
+| T12.9 | Split time log button | Done | "Log Time" + "Log & Finish" buttons |
+| T12.10 | Timed Session (pomodoro) | Done | TimedSessionModal with countdown, pause/resume, overtime |
 
 ---
 
@@ -163,10 +165,48 @@
 |---:|--------|--------|-------|-------|
 | T15.1 | Create tasks-default.base | Backlog | | Filters, formulas, taskDateGroup |
 | T15.2 | Create agenda-default.base | Backlog | | Calendar view configuration |
-| T15.3 | Implement taskDateGroup logic | Backlog | | Past/Now/Upcoming/Wrapped grouping |
+| T15.3 | Fix taskDateGroup logic | Done | | Attention-based grouping implemented |
 | T15.4 | Implement urgencyScore formula | Backlog | | Priority + days until next |
 | T15.5 | Today view uses Bases grouping | Backlog | | Render from taskDateGroup |
 | T15.6 | Calendar view uses agenda.base | Backlog | | Render from agenda-default.base |
+
+### T15.3-SPEC: Correct taskDateGroup Logic (Attention-Based View Filtering)
+
+**File**: `src/lib/services/RecurringInstanceService.ts` → `getTaskDateGroup()`
+
+**Current behavior (WRONG)**:
+- Upcoming = everything else (includes unscheduled tasks with no history)
+
+**Correct behavior** — filter by attention state, not just data state:
+
+| Group | Condition | Attention State |
+|-------|-----------|-----------------|
+| **Now** | `scheduled === today` OR has active recurring instance for today | Needs action now |
+| **Past** | Has `scheduled` or `due` in the past AND that date NOT in `complete_instances` | Overdue, needs action |
+| **Upcoming** | Has KNOWN future date: `scheduled > today` OR has future recurring instances | Will need attention on that date |
+| **Wrapped** | Everything else (no future date, regardless of history) | Not demanding attention |
+
+**Key insight**: Wrapped is the "quiet backlog" — both completed tasks AND unscheduled items go here because they're equivalent from an attention standpoint. The UI groups by "does this demand my attention?" not "what's the task's lifecycle state?"
+
+**Key changes needed**:
+
+1. `getTaskDateGroup()` must check if past dates were completed before marking as "Past"
+2. Unscheduled tasks without recurrence go to **Wrapped**, not Upcoming
+3. Upcoming is ONLY for tasks with known future dates
+4. No "Hidden" state needed — Wrapped catches everything not in other groups
+
+**Test cases**:
+- Task with `scheduled: null`, no recurrence, `complete_instances: []` → **Wrapped** (backlog, no attention needed)
+- Task with `scheduled: null`, no recurrence, `complete_instances: ['2026-02-01']` → **Wrapped** (done before, quiet)
+- Task with `scheduled: '2026-02-01'` (past), `complete_instances: ['2026-02-01']` → **Wrapped** (was due and done)
+- Task with `scheduled: '2026-02-01'` (past), `complete_instances: []` → **Past** (overdue)
+- Task with `scheduled: '2026-02-10'` (future) → **Upcoming**
+- Weekly recurring with next instance Feb 10 → **Upcoming**
+- Weekly recurring with instance today → **Now**
+
+**Convention for AI-created tasks**: Always set `scheduled: +7 days` so tasks appear in Upcoming and eventually surface. Unscheduled tasks get buried in Wrapped.
+
+---
 
 ## Phase 16: Bases Migration — Data Migration
 

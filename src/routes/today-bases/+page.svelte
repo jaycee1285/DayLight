@@ -49,18 +49,10 @@
 	}
 
 	function formatDate(dateStr: string): string {
-		const today = getTodayDate();
-		const tomorrow = getOffsetDate(1);
-		const yesterday = getOffsetDate(-1);
-
-		if (dateStr === today) return 'Today';
-		if (dateStr === tomorrow) return 'Tomorrow';
-		if (dateStr === yesterday) return 'Yesterday';
-
 		const d = new Date(dateStr + 'T00:00:00');
 		return d.toLocaleDateString('en-US', {
-			weekday: 'long',
-			month: 'long',
+			weekday: 'short',
+			month: 'short',
 			day: 'numeric'
 		});
 	}
@@ -78,14 +70,14 @@
 <main class="p-4">
 	<!-- Header with date selector -->
 	<header class="flex items-center justify-between mb-4">
-		<h1 class="text-2xl font-bold">{formatDate(markdownStore.selectedDate)}</h1>
-		{#if totalTimeToday > 0}
-			<span class="time-total">{formatDuration(totalTimeToday)}</span>
-		{/if}
 		<DatePill
 			date={new Date(markdownStore.selectedDate + 'T00:00:00')}
 			onselect={handleDateSelect}
 		/>
+		{#if totalTimeToday > 0}
+			<span class="time-total">{formatDuration(totalTimeToday)}</span>
+		{/if}
+		<span class="date-label">{formatDate(markdownStore.selectedDate)}</span>
 	</header>
 
 	<!-- Loading state -->
@@ -212,6 +204,12 @@
 
 <style>
 	.time-total {
+		font-size: 0.875rem;
+		font-weight: 500;
+		opacity: 0.7;
+	}
+
+	.date-label {
 		font-size: 0.875rem;
 		font-weight: 600;
 		opacity: 0.7;

@@ -1,5 +1,6 @@
 /* Generated from kitty config: Modus_Operandi.conf
    Theme: Modus Operandi (light)
+   Primary: #0031A9 (from selection_background)
 */
 
 [data-theme="modus-operandi"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  31  31  31; /* #1F1F1F */
   --color-surface-950:   0   0   0; /* #000000 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (selection_background: #0031A9) --- */
   --color-primary-50: 235 239 248;
   --color-primary-100: 204 214 238;
   --color-primary-200: 166 183 225;

@@ -1,5 +1,6 @@
 /* Generated from YAML theme: Bluloco Light.yml
    Theme: Bluloco Light (light)
+   Primary: #275FE4 (from color4 (blue))
 */
 
 [data-theme="bluloco-light"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  79  81  88; /* #4F5158 */
   --color-surface-950:  56  58  66; /* #383A42 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #275FE4) --- */
   --color-primary-50: 238 242 253;
   --color-primary-100: 212 223 250;
   --color-primary-200: 179 199 246;

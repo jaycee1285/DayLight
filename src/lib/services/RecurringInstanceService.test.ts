@@ -318,10 +318,44 @@ describe('getTaskDateGroup', () => {
 		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Upcoming');
 	});
 
-	it('returns Upcoming for task with no dates', () => {
+	it('returns Wrapped for task with no dates (unscheduled backlog)', () => {
 		const frontmatter = createTestFrontmatter({});
 
+		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Wrapped');
+	});
+
+	it('returns Wrapped for past scheduled task that was completed on that date', () => {
+		const frontmatter = createTestFrontmatter({
+			scheduled: '2026-01-20',
+			complete_instances: ['2026-01-20']
+		});
+
+		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Wrapped');
+	});
+
+	it('returns Wrapped for past due task that was completed on that date', () => {
+		const frontmatter = createTestFrontmatter({
+			due: '2026-01-20',
+			complete_instances: ['2026-01-20']
+		});
+
+		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Wrapped');
+	});
+
+	it('returns Upcoming for task due in future', () => {
+		const frontmatter = createTestFrontmatter({
+			due: '2026-01-30'
+		});
+
 		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Upcoming');
+	});
+
+	it('returns Wrapped for task with completion history but no scheduled date', () => {
+		const frontmatter = createTestFrontmatter({
+			complete_instances: ['2026-01-15', '2026-01-10']
+		});
+
+		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Wrapped');
 	});
 });
 

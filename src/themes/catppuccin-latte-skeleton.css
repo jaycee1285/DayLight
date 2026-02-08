@@ -1,5 +1,6 @@
 /* Generated from kitty config: Catppuccin-Latte.conf
    Theme: Catppuccin-Latte (light)
+   Primary: #DC8A78 (from cursor)
 */
 
 [data-theme="catppuccin-latte"] {
@@ -16,18 +17,18 @@
   --color-surface-900:  96  98 122; /* #60627A */
   --color-surface-950:  76  79 105; /* #4C4F69 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 237 243 254;
-  --color-primary-100: 210 224 253;
-  --color-primary-200: 176 201 252;
-  --color-primary-300: 131 171 250;
-  --color-primary-400:  80 136 247;
-  --color-primary-500:  30 102 245;
-  --color-primary-600:  25  84 201;
-  --color-primary-700:  20  68 164;
-  --color-primary-800:  17  56 135;
-  --color-primary-900:  12  41  98;
-  --color-primary-950:   8  29  69;
+  /* --- Primary (cursor: #DC8A78) --- */
+  --color-primary-50: 252 246 244;
+  --color-primary-100: 248 232 228;
+  --color-primary-200: 243 214 208;
+  --color-primary-300: 236 191 181;
+  --color-primary-400: 228 164 150;
+  --color-primary-500: 220 138 120;
+  --color-primary-600: 180 113  98;
+  --color-primary-700: 147  92  80;
+  --color-primary-800: 121  76  66;
+  --color-primary-900:  88  55  48;
+  --color-primary-950:  62  39  34;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 253 244 251;
@@ -80,7 +81,7 @@
   --theme-selection-bg:    220 138 120;
   --theme-selection-fg:    239 241 245;
 
-  --color-on-primary:      255 255 255;
+  --color-on-primary:        0   0   0;
   --color-overlay:         0 0 0;
   --color-shadow:          0 0 0;
   --color-hover-bg:        var(--color-surface-200);

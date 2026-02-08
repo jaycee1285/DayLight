@@ -1,5 +1,6 @@
 /* Generated from YAML theme: One Light.yml
    Theme: One Light (light)
+   Primary: #315EEE (from color4 (blue))
 */
 
 [data-theme="one-light"] {
@@ -16,7 +17,7 @@
   --color-surface-900:  67  68  74; /* #43444A */
   --color-surface-950:  42  43  50; /* #2A2B32 */
 
-  /* --- Primary (blue) --- */
+  /* --- Primary (color4 (blue): #315EEE) --- */
   --color-primary-50: 239 242 254;
   --color-primary-100: 214 223 252;
   --color-primary-200: 183 199 249;

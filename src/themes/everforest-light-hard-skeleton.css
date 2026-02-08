@@ -1,5 +1,6 @@
 /* Generated from kitty config: Everforest Light Hard.conf
    Theme: Everforest Light Hard (light)
+   Primary: #8DA101 (from active_border_color)
 */
 
 [data-theme="everforest-light-hard"] {
@@ -16,18 +17,18 @@
   --color-surface-900: 112 123 129; /* #707B81 */
   --color-surface-950:  92 106 114; /* #5C6A72 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 239 246 250;
-  --color-primary-100: 216 234 243;
-  --color-primary-200: 186 218 235;
-  --color-primary-300: 147 196 223;
-  --color-primary-400: 101 172 210;
-  --color-primary-500:  58 148 197;
-  --color-primary-600:  48 121 162;
-  --color-primary-700:  39  99 132;
-  --color-primary-800:  32  81 108;
-  --color-primary-900:  23  59  79;
-  --color-primary-950:  16  41  55;
+  /* --- Primary (active_border_color: #8DA101) --- */
+  --color-primary-50: 246 247 235;
+  --color-primary-100: 232 236 204;
+  --color-primary-200: 215 222 166;
+  --color-primary-300: 192 203 115;
+  --color-primary-400: 166 182  57;
+  --color-primary-500: 141 161   1;
+  --color-primary-600: 116 132   1;
+  --color-primary-700:  94 108   1;
+  --color-primary-800:  78  89   1;
+  --color-primary-900:  56  64   0;
+  --color-primary-950:  39  45   0;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 252 243 249;

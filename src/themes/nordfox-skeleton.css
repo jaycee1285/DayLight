@@ -1,5 +1,6 @@
 /* Generated from kitty config: nordfox.conf
    Theme: nordfox (dark)
+   Primary: #C9826B (from color16)
 */
 
 [data-theme="nordfox"] {
@@ -16,18 +17,18 @@
   --color-surface-900:  51  57  68; /* #333944 */
   --color-surface-950:  46  52  64; /* #2E3440 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 246 249 251;
-  --color-primary-100: 232 239 246;
-  --color-primary-200: 215 227 239;
-  --color-primary-300: 192 211 230;
-  --color-primary-400: 165 193 220;
-  --color-primary-500: 140 175 210;
-  --color-primary-600: 115 144 172;
-  --color-primary-700:  94 117 141;
-  --color-primary-800:  77  96 116;
-  --color-primary-900:  56  70  84;
-  --color-primary-950:  39  49  59;
+  /* --- Primary (color16: #C9826B) --- */
+  --color-primary-50: 251 245 243;
+  --color-primary-100: 244 230 225;
+  --color-primary-200: 236 211 203;
+  --color-primary-300: 225 186 174;
+  --color-primary-400: 213 158 140;
+  --color-primary-500: 201 130 107;
+  --color-primary-600: 165 107  88;
+  --color-primary-700: 135  87  72;
+  --color-primary-800: 111  72  59;
+  --color-primary-900:  80  52  43;
+  --color-primary-950:  56  36  30;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 249 246 248;

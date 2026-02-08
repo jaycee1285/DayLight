@@ -1,5 +1,6 @@
 /* Generated from kitty config: Solarized Light.conf
    Theme: Solarized Light (light)
+   Primary: #CB4B16 (from active_border_color)
 */
 
 [data-theme="solarized-light"] {
@@ -16,18 +17,18 @@
   --color-surface-900: 119 138 143; /* #778A8F */
   --color-surface-950: 101 123 131; /* #657B83 */
 
-  /* --- Primary (blue) --- */
-  --color-primary-50: 238 246 251;
-  --color-primary-100: 212 232 246;
-  --color-primary-200: 179 214 239;
-  --color-primary-300: 136 191 230;
-  --color-primary-400:  86 165 220;
-  --color-primary-500:  38 139 210;
-  --color-primary-600:  31 114 172;
-  --color-primary-700:  25  93 141;
-  --color-primary-800:  21  76 116;
-  --color-primary-900:  15  56  84;
-  --color-primary-950:  11  39  59;
+  /* --- Primary (active_border_color: #CB4B16) --- */
+  --color-primary-50: 251 241 236;
+  --color-primary-100: 245 219 208;
+  --color-primary-200: 237 192 173;
+  --color-primary-300: 226 156 127;
+  --color-primary-400: 214 115  73;
+  --color-primary-500: 203  75  22;
+  --color-primary-600: 166  62  18;
+  --color-primary-700: 136  50  15;
+  --color-primary-800: 112  41  12;
+  --color-primary-900:  81  30   9;
+  --color-primary-950:  57  21   6;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 251 239 245;
@@ -80,7 +81,7 @@
   --theme-selection-bg:    238 232 213;
   --theme-selection-fg:     88 110 117;
 
-  --color-on-primary:        0   0   0;
+  --color-on-primary:      255 255 255;
   --color-overlay:         0 0 0;
   --color-shadow:          0 0 0;
   --color-hover-bg:        var(--color-surface-200);
