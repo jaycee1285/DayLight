@@ -357,6 +357,26 @@ describe('getTaskDateGroup', () => {
 
 		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Wrapped');
 	});
+
+	it('returns Now for non-recurring task completed today but re-scheduled for today (activity ledger)', () => {
+		const frontmatter = createTestFrontmatter({
+			scheduled: TODAY,
+			complete_instances: [TODAY]
+		});
+
+		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Now');
+	});
+
+	it('returns Now for recurring task manually scheduled for today even without matching RRULE instance', () => {
+		const frontmatter = createTestFrontmatter({
+			recurrence: 'DTSTART:20260120;FREQ=WEEKLY;BYDAY=FR',
+			scheduled: TODAY, // TODAY is not a Friday
+			active_instances: ['2026-01-24', '2026-01-31'],
+			complete_instances: ['2026-01-24', '2026-01-31']
+		});
+
+		expect(getTaskDateGroup(frontmatter, TODAY)).toBe('Now');
+	});
 });
 
 describe('calculateUrgencyScore', () => {
@@ -445,7 +465,7 @@ describe('processRecurringInstances', () => {
 		expect(result.updated).toBe(0);
 	});
 
-	it('skips tasks without isSeriesTemplate flag', () => {
+	it('processes recurring tasks regardless of isSeriesTemplate flag', () => {
 		const tasks = new Map<string, TaskFrontmatter>();
 		const task = createTestFrontmatter({
 			isSeriesTemplate: false,
@@ -455,7 +475,8 @@ describe('processRecurringInstances', () => {
 
 		const result = processRecurringInstances(tasks, undefined, TODAY);
 
-		expect(result.updated).toBe(0);
+		expect(result.updated).toBe(1);
+		expect(task.active_instances.length).toBeGreaterThan(0);
 	});
 
 	it('does not duplicate existing active_instances', () => {

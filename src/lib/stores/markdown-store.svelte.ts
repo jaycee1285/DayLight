@@ -181,9 +181,10 @@ export async function addTask(
 	const existing = taskFiles.get(existingFilename);
 
 	if (existing && !existing.frontmatter.recurrence) {
-		// Task exists and is non-recurring - reschedule it
+		// Task exists and is non-recurring - reschedule it (reactivate)
 		const updates: Partial<TaskFrontmatter> = {
-			scheduled: options.scheduled || null
+			scheduled: options.scheduled || null,
+			status: 'open'
 		};
 
 		// Optionally merge in new tags/projects if provided

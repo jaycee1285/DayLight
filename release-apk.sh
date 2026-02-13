@@ -68,8 +68,10 @@ fi
 export ANDROID_HOME="$ANDROID_SDK"
 export NDK_HOME="$NDK_PATH"
 
-# Clean frontend build cache
-rm -rf .svelte-kit build
+# Clean frontend and Android build caches
+rm -rf .svelte-kit build node_modules/.vite src-tauri/gen/android/app/build src-tauri/gen/android/.gradle
+# Force Cargo to re-embed frontend assets (generate_context! doesn't track build/ changes)
+rm -rf src-tauri/target/aarch64-linux-android/release/build/
 
 # Build frontend
 bun run build

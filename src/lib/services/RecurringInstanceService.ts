@@ -64,8 +64,8 @@ export function processRecurringInstances(
 	const errors: Array<{ filename: string; message: string }> = [];
 
 	for (const [filename, frontmatter] of tasks) {
-		// Skip non-recurring tasks and non-template instances
-		if (!frontmatter.recurrence || !frontmatter.isSeriesTemplate) {
+		// Skip non-recurring tasks
+		if (!frontmatter.recurrence) {
 			continue;
 		}
 
@@ -271,9 +271,12 @@ export function getTaskDateGroup(frontmatter: TaskFrontmatter, today: string = g
 		return 'Wrapped';
 	}
 
-	// 2. Completed today → Wrapped (for both recurring and non-recurring)
+	// 2. Completed today → Wrapped
+	//    Exception: non-recurring task re-scheduled for today (activity ledger: "do it again")
 	if (frontmatter.complete_instances.includes(today)) {
-		return 'Wrapped';
+		if (frontmatter.recurrence || frontmatter.scheduled !== today) {
+			return 'Wrapped';
+		}
 	}
 
 	// 3. Recurring task logic
@@ -285,6 +288,11 @@ export function getTaskDateGroup(frontmatter: TaskFrontmatter, today: string = g
 
 		// Today is active and not completed/skipped → Now
 		if (isActiveToday(frontmatter, today)) {
+			return 'Now';
+		}
+
+		// Manually scheduled for today (overrides RRULE pattern) → Now
+		if (frontmatter.scheduled === today) {
 			return 'Now';
 		}
 
