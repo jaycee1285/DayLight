@@ -49,3 +49,19 @@ OAUTH.md
 
 # Test data that shouldn't be committed
 test-data/
+
+# Claude Code agent artifacts
+.claude/
+**/CLAUDE.md
+!CLAUDE.md
+
+# Nix
+result
+result-*
+.direnv/
+
+# Release artifacts
+*.tar.xz
+*.tar.gz
+*.xpi
+

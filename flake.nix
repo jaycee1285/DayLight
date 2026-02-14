@@ -203,6 +203,9 @@
 
             # Development utilities
             just
+
+            # release.sh strips Nix store paths for cross-machine portability
+            patchelf
           ];
 
           # Environment variables for building and running Tauri

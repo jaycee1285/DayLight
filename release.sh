@@ -36,6 +36,14 @@ else
 fi
 chmod +x "$STAGING/bin/${APP_NAME}"
 
+# Strip Nix store paths for cross-machine portability.
+# Building via `nix build` bakes this machine's /nix/store paths into the
+# binary's RPATH and ELF interpreter. Those are unique per machine.
+# autoPatchelfHook on the receiving machine will set correct paths at install.
+echo "==> Stripping Nix store paths for cross-machine portability"
+patchelf --remove-rpath "$STAGING/bin/${APP_NAME}"
+patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 "$STAGING/bin/${APP_NAME}"
+
 cp -r "$NIX_RESULT/lib" "$STAGING/"
 
 echo "==> Creating ${TARBALL}"
