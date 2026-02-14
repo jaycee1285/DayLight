@@ -27,10 +27,10 @@ trap "chmod -R u+w $STAGING && rm -rf $STAGING" EXIT
 
 # Copy the raw binary, stripping Nix wrapper scripts
 mkdir -p "$STAGING/bin"
-if [[ -f "$NIX_RESULT/bin/.${APP_NAME}-wrapped_" ]]; then
-  cp "$NIX_RESULT/bin/.${APP_NAME}-wrapped_" "$STAGING/bin/${APP_NAME}"
-elif [[ -f "$NIX_RESULT/bin/.${APP_NAME}-wrapped" ]]; then
+if [[ -f "$NIX_RESULT/bin/.${APP_NAME}-wrapped" ]]; then
   cp "$NIX_RESULT/bin/.${APP_NAME}-wrapped" "$STAGING/bin/${APP_NAME}"
+elif [[ -f "$NIX_RESULT/bin/.${APP_NAME}-wrapped_" ]]; then
+  cp "$NIX_RESULT/bin/.${APP_NAME}-wrapped_" "$STAGING/bin/${APP_NAME}"
 else
   cp "$NIX_RESULT/bin/${APP_NAME}" "$STAGING/bin/${APP_NAME}"
 fi
@@ -41,15 +41,19 @@ cp -r "$NIX_RESULT/lib" "$STAGING/"
 echo "==> Creating ${TARBALL}"
 tar -cJf "$REPO_ROOT/$TARBALL" -C "$STAGING" bin lib
 
-echo "==> Uploading to GitHub release ${TAG}"
-if gh release view "$TAG" --repo jaycee1285/SPRedux &>/dev/null; then
-  gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo jaycee1285/SPRedux --clobber
+if [[ "${SKIP_UPLOAD:-0}" == "1" ]]; then
+  echo "==> SKIP_UPLOAD=1, leaving tarball at ${REPO_ROOT}/${TARBALL}"
 else
-  gh release create "$TAG" "$REPO_ROOT/$TARBALL" \
-    --repo jaycee1285/SPRedux \
-    --title "${APP_NAME} ${TAG}" \
-    --notes "${APP_NAME} ${TAG}" \
-    --latest
+  echo "==> Uploading to GitHub release ${TAG}"
+  if gh release view "$TAG" --repo jaycee1285/SPRedux &>/dev/null; then
+    gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo jaycee1285/SPRedux --clobber
+  else
+    gh release create "$TAG" "$REPO_ROOT/$TARBALL" \
+      --repo jaycee1285/SPRedux \
+      --title "${APP_NAME} ${TAG}" \
+      --notes "${APP_NAME} ${TAG}" \
+      --latest
+  fi
 fi
 
 echo "==> Done! https://github.com/jaycee1285/SPRedux/releases/tag/${TAG}"
