@@ -19,7 +19,7 @@ export const DIR_CONFLICTS = 'conflicts';
 export const DIR_EXPORTS = 'exports';
 
 /** Default data folder name */
-export const DEFAULT_DATA_FOLDER = 'SPRedux';
+export const DEFAULT_DATA_FOLDER = 'DayLight';
 
 /** All canonical data filenames */
 export const CANONICAL_FILES = [FILE_TASKS, FILE_TIME_LOGS, FILE_META] as const;

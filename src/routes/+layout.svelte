@@ -47,7 +47,7 @@
 	// This fixes a race condition where markdown-store would initialize before the path was set
 	if (typeof window !== 'undefined') {
 		try {
-			const savedDataPath = localStorage.getItem('spredux-data-path');
+			const savedDataPath = localStorage.getItem('daylight-data-path');
 			if (savedDataPath) {
 				setDataPathOverride(savedDataPath);
 			}
@@ -148,7 +148,7 @@
 		}
 
 		try {
-			localStorage.setItem('spredux-theme', preference);
+			localStorage.setItem('daylight-theme', preference);
 		} catch {
 			// Ignore theme persistence errors.
 		}
@@ -296,7 +296,7 @@
 			setIsLoading(true);
 			try {
 				try {
-					const savedTheme = localStorage.getItem('spredux-theme');
+					const savedTheme = localStorage.getItem('daylight-theme');
 					if (savedTheme) {
 						applyTheme(savedTheme);
 					} else {

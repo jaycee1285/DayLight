@@ -1,25 +1,25 @@
-# Adding SPRedux to Your NixOS Config (ELI5)
+# Adding DayLight to Your NixOS Config (ELI5)
 
 Your config repo at `/home/john/repos/config` uses a modular setup with:
 - **System modules** in `modules/` (NixOS-level)
 - **User modules** in `home/` (Home Manager-level)
 - **External flakes** imported in `flake.nix` and passed down
 
-Here's how to wire up SPRedux.
+Here's how to wire up DayLight.
 
 ---
 
-## Step 1: Add a Package Output to SPRedux
+## Step 1: Add a Package Output to DayLight
 
-Right now, SPRedux's flake.nix only has a `devShell` (for development). It doesn't export a runnable package. You need to add one.
+Right now, DayLight's flake.nix only has a `devShell` (for development). It doesn't export a runnable package. You need to add one.
 
-In `/home/john/repos/SPRedux/flake.nix`, add a `packages` output alongside the existing `devShells`:
+In `/home/john/repos/DayLight/flake.nix`, add a `packages` output alongside the existing `devShells`:
 
 ```nix
 # Inside the 'in' block, after devShells.default = ...
 
 packages.default = pkgs.stdenv.mkDerivation {
-  pname = "spredux";
+  pname = "daylight";
   version = "0.1.0";
 
   src = ./.;
@@ -49,12 +49,12 @@ packages.default = pkgs.stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp src-tauri/target/release/spredux $out/bin/
+    cp src-tauri/target/release/daylight $out/bin/
   '';
 
   # Runtime library wrapping
   postFixup = ''
-    wrapProgram $out/bin/spredux \
+    wrapProgram $out/bin/daylight \
       --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath runtimeLibs}"
   '';
 };
@@ -64,18 +64,18 @@ packages.default = pkgs.stdenv.mkDerivation {
 
 ---
 
-## Step 2: Add SPRedux as a Flake Input
+## Step 2: Add DayLight as a Flake Input
 
-In `/home/john/repos/config/flake.nix`, add SPRedux to your inputs:
+In `/home/john/repos/config/flake.nix`, add DayLight to your inputs:
 
 ```nix
 inputs = {
   # ... your existing inputs ...
 
-  spredux = {
-    url = "path:/home/john/repos/SPRedux";
+  daylight = {
+    url = "path:/home/john/repos/DayLight";
     # Or if you push to GitHub later:
-    # url = "github:yourname/SPRedux";
+    # url = "github:yourname/DayLight";
   };
 };
 ```
@@ -84,7 +84,7 @@ inputs = {
 
 ## Step 3: Pass It Through to Home Manager
 
-In your `flake.nix` outputs, you already pass things via `extraSpecialArgs`. Add `spredux`:
+In your `flake.nix` outputs, you already pass things via `extraSpecialArgs`. Add `daylight`:
 
 ```nix
 # Find where you define home-manager.users.john
@@ -94,31 +94,31 @@ home-manager = {
   extraSpecialArgs = {
     inherit gtk-themes ob-themes walls zen-browser claude-desktop;
     # Add this:
-    inherit spredux;
+    inherit daylight;
   };
   users.john = import ./home/home.nix;
 };
 ```
 
-**What's happening?** `extraSpecialArgs` is how you pass custom stuff into Home Manager modules. Without this, your home modules can't "see" the spredux flake.
+**What's happening?** `extraSpecialArgs` is how you pass custom stuff into Home Manager modules. Without this, your home modules can't "see" the daylight flake.
 
 ---
 
 ## Step 4: Create a Home Manager Module
 
-Create `/home/john/repos/config/home/spredux.nix`:
+Create `/home/john/repos/config/home/daylight.nix`:
 
 ```nix
-{ pkgs, spredux, ... }:
+{ pkgs, daylight, ... }:
 
 {
   home.packages = [
-    spredux.packages.${pkgs.system}.default
+    daylight.packages.${pkgs.system}.default
   ];
 }
 ```
 
-That's it. This says "install the default package from the spredux flake."
+That's it. This says "install the default package from the daylight flake."
 
 ---
 
@@ -129,7 +129,7 @@ In `/home/john/repos/config/home/home.nix`, add the import:
 ```nix
 imports = [
   # ... your existing imports ...
-  ./spredux.nix
+  ./daylight.nix
 ];
 ```
 
@@ -154,22 +154,22 @@ SPRedux/flake.nix
               ▼
 config/flake.nix
     │
-    ├── inputs.spredux = "path:../SPRedux"
+    ├── inputs.daylight = "path:../SPRedux"
     │
-    └── extraSpecialArgs = { spredux = ...; }
+    └── extraSpecialArgs = { daylight = ...; }
               │
               ▼
 config/home/home.nix
     │
-    └── imports = [ ./spredux.nix ]
+    └── imports = [ ./daylight.nix ]
               │
               ▼
-config/home/spredux.nix
+config/home/daylight.nix
     │
-    └── home.packages = [ spredux.packages.x86_64-linux.default ]
+    └── home.packages = [ daylight.packages.x86_64-linux.default ]
               │
               ▼
-        ~/.nix-profile/bin/spredux  ✓
+        ~/.nix-profile/bin/daylight  ✓
 ```
 
 ---
@@ -185,17 +185,17 @@ Looking at your config, you already do this exact thing for:
 | `walls` | `home/walls.nix` | Home Manager file copy |
 | `gtk-themes` | `home/gtk-themes.nix` | Home Manager packages |
 
-SPRedux follows the `gtk-themes` pattern: user-level package via Home Manager.
+DayLight follows the `gtk-themes` pattern: user-level package via Home Manager.
 
 ---
 
 ## Troubleshooting
 
-**"attribute 'spredux' missing"**
+**"attribute 'daylight' missing"**
 You forgot Step 3 (extraSpecialArgs). The module can't see it.
 
 **"packages.x86_64-linux.default is undefined"**
-Step 1 isn't done—SPRedux doesn't export a package yet.
+Step 1 isn't done—DayLight doesn't export a package yet.
 
 **Build fails with missing deps**
 The package derivation in Step 1 might need tweaking. Tauri builds are finicky in Nix. You may need to add a `preBuild` phase to set up the cargo cache, or use `buildRustPackage` instead of `stdenv.mkDerivation`.
@@ -204,18 +204,18 @@ The package derivation in Step 1 might need tweaking. Tauri builds are finicky i
 
 ## Alternative: Quick & Dirty (Skip Package Output)
 
-If you just want to run SPRedux from the dev shell without packaging it properly:
+If you just want to run DayLight from the dev shell without packaging it properly:
 
 ```nix
-# In home/spredux.nix
+# In home/daylight.nix
 { pkgs, ... }:
 
 {
-  home.file.".local/bin/spredux-dev" = {
+  home.file.".local/bin/daylight-dev" = {
     executable = true;
     text = ''
       #!/usr/bin/env bash
-      cd /home/john/repos/SPRedux
+      cd /home/john/repos/DayLight
       nix develop --command bun run tauri:dev
     '';
   };

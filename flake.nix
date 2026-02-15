@@ -99,7 +99,7 @@
 
         # Fixed-output derivation to fetch bun dependencies with network access
         bunDeps = pkgs.stdenvNoCC.mkDerivation {
-          pname = "spredux-bun-deps";
+          pname = "daylight-bun-deps";
           version = "0.1.0";
 
           src = ./.;
@@ -124,7 +124,7 @@
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
-          pname = "spredux";
+          pname = "daylight";
           version = "0.1.0";
 
           src = ./.;
@@ -175,7 +175,7 @@
           # Let cargoInstallHook handle installation (it knows the --target path)
 
           postFixup = ''
-            wrapProgram $out/bin/spredux \
+            wrapProgram $out/bin/daylight \
               --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath runtimeLibs}" \
               --set GIO_MODULE_DIR "${pkgs.glib-networking}/lib/gio/modules" \
               --set WEBKIT_DISABLE_COMPOSITING_MODE "1" \
@@ -284,7 +284,7 @@
             fi
 
             echo "══════════════════════════════════════════════"
-            echo "  SPRedux dev environment ready"
+            echo "  DayLight dev environment ready"
             echo "══════════════════════════════════════════════"
             echo "  Node:  $(node --version)"
             echo "  Bun:   $(bun --version)"

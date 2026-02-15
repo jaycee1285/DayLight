@@ -1,4 +1,4 @@
-# SPRedux Nix Build Guide
+# DayLight Nix Build Guide
 
 ## Hardware Expectations
 
@@ -20,7 +20,7 @@ This is the flake to put at the repo root. Uses **nixos-24.11 stable** for maxim
 
 ```nix
 {
-  description = "SPRedux - Tasks + Calendar + Time Logging";
+  description = "DayLight - Tasks + Calendar + Time Logging";
 
   inputs = {
     # Pin to stable for binary cache hits
@@ -148,13 +148,13 @@ This is the flake to put at the repo root. Uses **nixos-24.11 stable** for maxim
             export WEBKIT_DISABLE_COMPOSITING_MODE=1
             export XDG_DATA_DIRS="${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:$XDG_DATA_DIRS"
 
-            echo "SPRedux dev ready | Node $(node -v) | Rust $(rustc -V | cut -d' ' -f2)"
+            echo "DayLight dev ready | Node $(node -v) | Rust $(rustc -V | cut -d' ' -f2)"
           '';
         };
 
         # Package for nix build
         packages.default = pkgs.stdenv.mkDerivation {
-          pname = "spredux";
+          pname = "daylight";
           version = "0.1.0";
           src = ./.;
 
@@ -182,14 +182,14 @@ This is the flake to put at the repo root. Uses **nixos-24.11 stable** for maxim
 
           installPhase = ''
             mkdir -p $out/bin
-            cp src-tauri/target/release/spredux $out/bin/
+            cp src-tauri/target/release/daylight $out/bin/
 
             # Desktop file
             mkdir -p $out/share/applications
-            cat > $out/share/applications/spredux.desktop << EOF
+            cat > $out/share/applications/daylight.desktop << EOF
             [Desktop Entry]
-            Name=SPRedux
-            Exec=$out/bin/spredux
+            Name=DayLight
+            Exec=$out/bin/daylight
             Type=Application
             Categories=Office;ProjectManagement;
             EOF
@@ -216,7 +216,7 @@ nix flake lock --update-input nixpkgs
 
 ## Option 2: Home Manager Module
 
-Add SPRedux to your existing NixOS/Home Manager config.
+Add DayLight to your existing NixOS/Home Manager config.
 
 ### In your flake inputs:
 
@@ -226,8 +226,8 @@ Add SPRedux to your existing NixOS/Home Manager config.
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     home-manager.url = "github:nix-community/home-manager/release-24.11";
 
-    spredux = {
-      url = "github:YOUR_USER/spredux";
+    daylight = {
+      url = "github:YOUR_USER/daylight";
       inputs.nixpkgs.follows = "nixpkgs";  # Share nixpkgs
     };
   };
@@ -242,13 +242,13 @@ Add SPRedux to your existing NixOS/Home Manager config.
 
 {
   home.packages = [
-    inputs.spredux.packages.${pkgs.system}.default
+    inputs.daylight.packages.${pkgs.system}.default
   ];
 
   # Optional: add to app menu
-  xdg.desktopEntries.spredux = {
-    name = "SPRedux";
-    exec = "${inputs.spredux.packages.${pkgs.system}.default}/bin/spredux";
+  xdg.desktopEntries.daylight = {
+    name = "DayLight";
+    exec = "${inputs.daylight.packages.${pkgs.system}.default}/bin/daylight";
     categories = [ "Office" "ProjectManagement" ];
     comment = "Tasks, Calendar, and Time Logging";
   };
@@ -311,7 +311,7 @@ bun run tauri:dev
 # Release build
 bun run tauri:build
 
-# Output at: src-tauri/target/release/spredux
+# Output at: src-tauri/target/release/daylight
 # Deb at: src-tauri/target/release/bundle/deb/
 ```
 
@@ -332,8 +332,8 @@ Cross-compiling Tauri is tricky due to WebKitGTK. Recommended approaches:
 **Option A: Build on native aarch64**
 ```bash
 # On your aarch64 machine or VM
-git clone https://github.com/YOUR_USER/spredux
-cd spredux
+git clone https://github.com/YOUR_USER/daylight
+cd daylight
 nix develop
 bun install
 bun run tauri:build
@@ -419,7 +419,7 @@ nix develop
 
 You're mixing nixpkgs versions. Ensure all flake inputs use the same nixpkgs:
 ```nix
-inputs.spredux.inputs.nixpkgs.follows = "nixpkgs";
+inputs.daylight.inputs.nixpkgs.follows = "nixpkgs";
 ```
 
 ### Slow first build

@@ -6,7 +6,7 @@ TAURI_CONF="$REPO_ROOT/src-tauri/tauri.conf.json"
 
 VERSION=$(grep -oP '"version"\s*:\s*"\K[^"]+' "$TAURI_CONF" | head -1)
 TAG="v${VERSION}"
-APP_NAME="spredux"
+APP_NAME="daylight"
 ARCH="$(uname -m)"
 PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
 TARBALL="${APP_NAME}-${TAG}-${PLATFORM}-${ARCH}.tar.xz"
@@ -53,15 +53,15 @@ if [[ "${SKIP_UPLOAD:-0}" == "1" ]]; then
   echo "==> SKIP_UPLOAD=1, leaving tarball at ${REPO_ROOT}/${TARBALL}"
 else
   echo "==> Uploading to GitHub release ${TAG}"
-  if gh release view "$TAG" --repo jaycee1285/SPRedux &>/dev/null; then
-    gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo jaycee1285/SPRedux --clobber
+  if gh release view "$TAG" --repo jaycee1285/DayLight &>/dev/null; then
+    gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo jaycee1285/DayLight --clobber
   else
     gh release create "$TAG" "$REPO_ROOT/$TARBALL" \
-      --repo jaycee1285/SPRedux \
+      --repo jaycee1285/DayLight \
       --title "${APP_NAME} ${TAG}" \
       --notes "${APP_NAME} ${TAG}" \
       --latest
   fi
 fi
 
-echo "==> Done! https://github.com/jaycee1285/SPRedux/releases/tag/${TAG}"
+echo "==> Done! https://github.com/jaycee1285/DayLight/releases/tag/${TAG}"

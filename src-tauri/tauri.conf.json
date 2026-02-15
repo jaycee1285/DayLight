@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "SPRedux",
+  "productName": "DayLight",
   "version": "0.1.0",
-  "identifier": "com.spredux.app",
+  "identifier": "com.daylight.app",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:43181",
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "SPRedux",
+        "title": "DayLight",
         "width": 420,
         "height": 800,
         "resizable": true,

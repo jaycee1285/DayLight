@@ -1,4 +1,4 @@
-# SPRedux Development Journey - January 25, 2026
+# DayLight Development Journey - January 25, 2026
 
 A chronicle of bugs squashed, features added, and lessons learned.
 
@@ -143,7 +143,7 @@ Created `docs/NIX-BUILD.md` with:
 
 1. **Standalone repo flake** - Pinned to nixos-24.11 stable for binary cache hits, minimal inputs (just nixpkgs + flake-utils)
 
-2. **Home Manager module example** - For integrating SPRedux into existing NixOS configs
+2. **Home Manager module example** - For integrating DayLight into existing NixOS configs
 
 3. **Build steps** for Linux x86_64 and aarch64
 

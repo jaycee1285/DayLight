@@ -1,14 +1,14 @@
-# SPRedux — Personal Task Management with Markdown at the Core
+# DayLight — Personal Task Management with Markdown at the Core
 
 A privacy-first, cross-platform task manager that stores your tasks as plain markdown files you own forever.
 
 ---
 
-## What is SPRedux?
+## What is DayLight?
 
-SPRedux is a personal productivity app for **Android and Linux** that combines task management, recurring schedules, and manual time tracking—all stored as **markdown files with YAML frontmatter**. Unlike cloud-locked productivity apps, your data lives on your filesystem and syncs via tools you control (like Syncthing).
+DayLight is a personal productivity app for **Android and Linux** that combines task management, recurring schedules, and manual time tracking—all stored as **markdown files with YAML frontmatter**. Unlike cloud-locked productivity apps, your data lives on your filesystem and syncs via tools you control (like Syncthing).
 
-Built with **Svelte 5** and **Tauri 2**, SPRedux delivers native performance with a web-tech foundation.
+Built with **Svelte 5** and **Tauri 2**, DayLight delivers native performance with a web-tech foundation.
 
 ---
 
@@ -147,8 +147,8 @@ Desktop is secondary; the app is designed **mobile-first** for phone use.
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/spredux.git
-cd spredux
+git clone https://github.com/your-org/daylight.git
+cd daylight
 
 # Enter the dev environment (if using Nix)
 nix develop
@@ -173,7 +173,7 @@ bun run tauri:android
 ### Setting Up Your Data Folder
 
 1. Create a folder for tasks: `~/Sync/JMC/TaskNotes/Tasks/`
-2. Open SPRedux Settings and set the data path
+2. Open DayLight Settings and set the data path
 3. (Optional) Configure Syncthing to sync this folder across devices
 
 ---
@@ -182,7 +182,7 @@ bun run tauri:android
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    SPRedux (Tauri 2)                    │
+│                    DayLight (Tauri 2)                    │
 ├───────────────────────┬─────────────────────────────────┤
 │   Frontend (Svelte 5) │      Backend (Rust + Tauri)     │
 │   - Reactive UI       │      - Filesystem access        │
@@ -212,18 +212,18 @@ bun run tauri:android
 
 ## Obsidian Compatibility
 
-SPRedux tasks are designed to work with **Obsidian Bases**, a plugin for formula-driven views:
+DayLight tasks are designed to work with **Obsidian Bases**, a plugin for formula-driven views:
 
 - **`tasks-default.base`** — List view with Past/Now/Upcoming/Wrapped grouping
 - **`agenda-default.base`** — Calendar view of scheduled tasks
 
-Edit tasks in SPRedux or Obsidian interchangeably. The frontmatter schema is shared.
+Edit tasks in DayLight or Obsidian interchangeably. The frontmatter schema is shared.
 
 ---
 
 ## Contributing
 
-SPRedux is a personal project, but contributions are welcome:
+DayLight is a personal project, but contributions are welcome:
 
 1. Fork the repository
 2. Create a feature branch
@@ -242,4 +242,4 @@ See LICENSE file in repository.
 
 ---
 
-*SPRedux: Tasks you own. Sync you control. Focus you keep.*
+*DayLight: Tasks you own. Sync you control. Focus you keep.*

@@ -8,10 +8,10 @@
 			// Synchronous theme application to prevent FOUC (flash of unstyled content).
 			// Runs before paint so the correct theme is visible immediately.
 			try {
-				var saved = localStorage.getItem('spredux-theme');
+				var saved = localStorage.getItem('daylight-theme');
 				if (saved === 'gtk') {
 					// GTK colors applied async after Tauri init; use stored dark preference for base
-					var gtkDark = localStorage.getItem('spredux-gtk-dark');
+					var gtkDark = localStorage.getItem('daylight-gtk-dark');
 					document.documentElement.setAttribute('data-theme', gtkDark === 'true' ? 'flexoki-dark' : 'flexoki-light');
 				} else if (saved && saved !== 'system') {
 					document.documentElement.setAttribute('data-theme', saved);

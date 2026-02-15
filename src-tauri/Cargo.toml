@@ -1,12 +1,12 @@
 [package]
-name = "spredux"
+name = "daylight"
 version = "0.1.0"
 description = "Wayland-Ready Tasks + Calendar + Manual Time Logging"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "spredux_lib"
+name = "daylight_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

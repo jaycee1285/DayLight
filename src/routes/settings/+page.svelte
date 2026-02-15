@@ -126,7 +126,7 @@
 
 		// Read the stored preference (may be 'system'), not the resolved DOM attribute
 		try {
-			const storedPref = localStorage.getItem('spredux-theme');
+			const storedPref = localStorage.getItem('daylight-theme');
 			if (storedPref) {
 				selectedTheme = storedPref;
 			} else {
@@ -142,7 +142,7 @@
 
 		// Load saved data path
 		try {
-			const savedPath = localStorage.getItem('spredux-data-path');
+			const savedPath = localStorage.getItem('daylight-data-path');
 			if (savedPath) {
 				dataPathInput = savedPath;
 				// Apply the saved path override on load
@@ -160,7 +160,7 @@
 				dataPath = isMobile ? '/storage/emulated/0/Download/TaskNotes' : null;
 			});
 		} else {
-			dataPath = isMobile ? '/storage/emulated/0/Download/TaskNotes' : '~/.local/share/SPRedux';
+			dataPath = isMobile ? '/storage/emulated/0/Download/TaskNotes' : '~/.local/share/DayLight';
 		}
 	});
 
@@ -212,7 +212,7 @@
 		}
 
 		try {
-			localStorage.setItem('spredux-theme', preference);
+			localStorage.setItem('daylight-theme', preference);
 		} catch {
 			// Ignore theme persistence errors.
 		}
@@ -417,7 +417,7 @@
 
 		setDataPathOverride(trimmed);
 		try {
-			localStorage.setItem('spredux-data-path', trimmed);
+			localStorage.setItem('daylight-data-path', trimmed);
 		} catch {
 			// Ignore storage errors.
 		}
@@ -446,7 +446,7 @@
 		await copyDataToFolder(trimmed);
 		setDataPathOverride(trimmed);
 		try {
-			localStorage.setItem('spredux-data-path', trimmed);
+			localStorage.setItem('daylight-data-path', trimmed);
 		} catch {
 			// Ignore storage errors.
 		}
@@ -462,7 +462,7 @@
 	async function handleResetDataFolder() {
 		setDataPathOverride(null);
 		try {
-			localStorage.removeItem('spredux-data-path');
+			localStorage.removeItem('daylight-data-path');
 		} catch {
 			// Ignore storage errors.
 		}
@@ -572,7 +572,7 @@
 			</p>
 			<p class="text-sm mb-2">
 				Location:
-				<code class="code-inline">{dataPath ?? '~/.local/share/SPRedux'}</code>
+				<code class="code-inline">{dataPath ?? '~/.local/share/DayLight'}</code>
 			</p>
 			<p class="text-xs opacity-60 mb-3">
 				Expected structure: <code class="code-inline">[folder]/Tasks/*.md</code>
@@ -876,7 +876,7 @@
 	<section class="settings-section">
 		<h2 class="text-lg font-semibold mb-3">About</h2>
 		<div class="settings-card p-4 rounded-lg">
-			<p class="font-semibold">SPRedux</p>
+			<p class="font-semibold">DayLight</p>
 			<p class="text-sm opacity-70">Tasks + Calendar + Time Logging</p>
 			<p class="text-sm opacity-70 mt-2">Version 0.1.0</p>
 		</div>

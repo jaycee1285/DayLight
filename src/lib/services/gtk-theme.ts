@@ -475,7 +475,7 @@ export function applyGtkTheme(data: GtkThemeColors): void {
 	const { colors, prefer_dark: preferDark } = data;
 	const debugGtk = (() => {
 		try {
-			return localStorage.getItem('spredux-gtk-debug') === '1';
+			return localStorage.getItem('daylight-gtk-debug') === '1';
 		} catch {
 			return false;
 		}
@@ -623,7 +623,7 @@ export function applyGtkTheme(data: GtkThemeColors): void {
 
 	// 7. Store dark preference for anti-FOUC on next load
 	try {
-		localStorage.setItem('spredux-gtk-dark', String(isDark));
+		localStorage.setItem('daylight-gtk-dark', String(isDark));
 	} catch {
 		// Ignore
 	}

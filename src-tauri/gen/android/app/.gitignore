@@ -1,4 +1,4 @@
-/src/main/java/com/spredux/app/generated
+/src/main/java/com/daylight/app/generated
 /src/main/jniLibs/**/*.so
 /src/main/assets/tauri.conf.json
 /tauri.build.gradle.kts

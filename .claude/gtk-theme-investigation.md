@@ -85,7 +85,7 @@ These were attempts to work around the black-on-black issue. They may or may not
 All of these use the standard surface step pattern (700 for hover, 800 for bg, 600 for badges). All should be fixed by correcting the scale generation direction.
 
 ## Debug mode:
-`localStorage.setItem('spredux-gtk-debug', '1')` — logs resolved GTK colors to console.
+`localStorage.setItem('daylight-gtk-debug', '1')` — logs resolved GTK colors to console.
 
 ## Key file:
 `src/lib/services/gtk-theme.ts` — the ONLY file that needs a code change. Lines 382-402.

@@ -1,4 +1,4 @@
-# StackBuild - SPRedux
+# StackBuild - DayLight
 
 ## Dev Stack
 - **Frontend:** SvelteKit 2.0 + Svelte 5 (runes) + TypeScript 5
@@ -80,13 +80,13 @@ keytool -genkey -v -keystore debug.keystore -alias androiddebugkey \
 BUILD_TOOLS=$(ls ~/.local/share/android-sdk/build-tools/ | sort -V | tail -1)
 ~/.local/share/android-sdk/build-tools/$BUILD_TOOLS/apksigner sign \
   --ks debug.keystore --ks-pass pass:android \
-  --out SPRedux.apk \
+  --out DayLight.apk \
   src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
 ```
 
 **Install:**
 ```bash
-adb install -r spredux-signed.apk
+adb install -r daylight-signed.apk
 ```
 
 - **Last Android build:** Not recorded (signing doc exists, builds confirmed working)
@@ -98,7 +98,7 @@ bun run tauri:build            # Release binary
 
 - **Release script?** Yes — `release.sh` at repo root
   - Runs `nix build` for reproducible release binary
-  - Creates tarball: `spredux-v{VERSION}-{PLATFORM}-{ARCH}.tar.xz`
+  - Creates tarball: `daylight-v{VERSION}-{PLATFORM}-{ARCH}.tar.xz`
   - Uploads to GitHub releases via `gh release`
 - **Last build:** 2026-02-04 (last commit: "Major Theme Changes")
 

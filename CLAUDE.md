@@ -1,4 +1,4 @@
-# Claude Code Notes for SPRedux
+# Claude Code Notes for DayLight
 
 ## Before Diving In
 
@@ -76,7 +76,7 @@ Tasks are markdown files with YAML frontmatter:
 
 ### Activity Ledger Model (Feb 2026)
 
-SPRedux treats tasks as **reusable activity buckets**, not one-shot checkboxes.
+DayLight treats tasks as **reusable activity buckets**, not one-shot checkboxes.
 
 **Core principle:** The app is 90% self-accountability (seeing where time goes) and 10% not forgetting things. This inverts how most task managers work.
 
@@ -156,7 +156,7 @@ For scrollable containers that get cut off:
 ### Android Support
 - **All 4 Android targets** configured in `flake.nix`: aarch64, armv7, i686, x86_64
 - **MANAGE_EXTERNAL_STORAGE permission** required for Syncthing folder access on Android 11+
-- **Custom Kotlin plugins** in `src-tauri/gen/android/app/src/main/java/com/spredux/app/`:
+- **Custom Kotlin plugins** in `src-tauri/gen/android/app/src/main/java/com/daylight/app/`:
   - `StoragePermissionPlugin.kt` - Handles runtime permission requests
   - `DirectoryPicker.kt` - SAF directory picker integration
 - **Default Android path**: `/storage/emulated/0/syncthing/syncthing/JMC/TaskNotes`
@@ -164,7 +164,7 @@ For scrollable containers that get cut off:
 ### Data Path Override
 The app supports custom data paths (for Syncthing sync):
 - Set synchronously in `+layout.svelte` BEFORE child components mount
-- Stored in `localStorage` as `spredux-data-path`
+- Stored in `localStorage` as `daylight-data-path`
 - Critical for Android where Tauri's default app data location won't sync
 
 ---
@@ -288,6 +288,6 @@ bun run tauri:android
 
 **Read the Obsidian project file before starting work:**
 
-`~/Sync/JMC/SideProjects/SPRedux/SPRedux.md`
+`~/Sync/JMC/SideProjects/DayLight/DayLight.md`
 
 That file has the canonical task list, known issues, blockers, and PORTFOLIO-tagged features. Do not duplicate state here.

@@ -1,6 +1,6 @@
 # Linux Release Guide
 
-Quick reference for building SPRedux releases and consuming them on NixOS without recompilation.
+Quick reference for building DayLight releases and consuming them on NixOS without recompilation.
 
 ## Building a Release
 
@@ -16,25 +16,25 @@ bun run tauri:build
 ```
 
 Outputs land in `src-tauri/target/release/`:
-- `spredux` - standalone binary (~17MB)
-- `bundle/deb/SPRedux_0.1.0_amd64.deb`
-- `bundle/rpm/SPRedux-0.1.0-1.x86_64.rpm`
+- `daylight` - standalone binary (~17MB)
+- `bundle/deb/DayLight_0.1.0_amd64.deb`
+- `bundle/rpm/DayLight-0.1.0-1.x86_64.rpm`
 
 ## Release Artifacts
 
 For a GitHub release, upload:
 
 ```
-SPRedux-0.1.0-linux-x86_64.tar.gz   # Recommended for NixOS
-SPRedux_0.1.0_amd64.deb             # Debian/Ubuntu
-SPRedux-0.1.0-1.x86_64.rpm          # Fedora/RHEL
+DayLight-0.1.0-linux-x86_64.tar.gz   # Recommended for NixOS
+DayLight_0.1.0_amd64.deb             # Debian/Ubuntu
+DayLight-0.1.0-1.x86_64.rpm          # Fedora/RHEL
 ```
 
 Create the tarball:
 
 ```bash
 cd src-tauri/target/release
-tar -czvf SPRedux-0.1.0-linux-x86_64.tar.gz spredux
+tar -czvf DayLight-0.1.0-linux-x86_64.tar.gz daylight
 ```
 
 ## NixOS Flake (Pre-built Binary)
@@ -78,11 +78,11 @@ Replace the `packages.default` in `flake.nix` with this to skip compilation:
       in
       {
         packages.default = pkgs.stdenv.mkDerivation rec {
-          pname = "spredux";
+          pname = "daylight";
           version = "0.1.0";
 
           src = pkgs.fetchurl {
-            url = "https://github.com/YOURUSER/SPRedux/releases/download/v${version}/SPRedux-${version}-linux-x86_64.tar.gz";
+            url = "https://github.com/YOURUSER/DayLight/releases/download/v${version}/DayLight-${version}-linux-x86_64.tar.gz";
             sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
           };
 
@@ -97,12 +97,12 @@ Replace the `packages.default` in `flake.nix` with this to skip compilation:
 
           installPhase = ''
             mkdir -p $out/bin
-            cp spredux $out/bin/
-            chmod +x $out/bin/spredux
+            cp daylight $out/bin/
+            chmod +x $out/bin/daylight
           '';
 
           postFixup = ''
-            wrapProgram $out/bin/spredux \
+            wrapProgram $out/bin/daylight \
               --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath runtimeLibs}" \
               --set GIO_MODULE_DIR "${pkgs.glib-networking}/lib/gio/modules"
           '';
@@ -122,7 +122,7 @@ Replace the `packages.default` in `flake.nix` with this to skip compilation:
 After uploading your release:
 
 ```bash
-nix-prefetch-url https://github.com/YOURUSER/SPRedux/releases/download/v0.1.0/SPRedux-0.1.0-linux-x86_64.tar.gz
+nix-prefetch-url https://github.com/YOURUSER/DayLight/releases/download/v0.1.0/DayLight-0.1.0-linux-x86_64.tar.gz
 ```
 
 This prints the hash to plug into `sha256`.

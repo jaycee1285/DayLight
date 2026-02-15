@@ -2,7 +2,7 @@
 	import type { ViewTask } from '$lib/services/ViewService';
 	import type { Recurrence } from '$lib/domain/recurrence';
 	import { rruleToRecurrence, recurrenceToRRule } from '$lib/storage/frontmatter';
-	import { formatLocalDate } from '$lib/domain/task';
+	import { formatLocalDate, getTodayDate } from '$lib/domain/task';
 	import { formatRecurrenceShort } from '$lib/domain/recurrence';
 	import { updateTaskWithBody, renameTask } from '$lib/stores/markdown-store.svelte';
 	import RecurrenceEditor from './RecurrenceEditor.svelte';
@@ -10,6 +10,7 @@
 
 	import IconX from '~icons/lucide/x';
 	import IconPlus from '~icons/lucide/plus';
+	import IconTrash from '~icons/lucide/trash-2';
 
 	interface Props {
 		task: ViewTask;
@@ -37,6 +38,7 @@
 		return rruleToRecurrence(task.frontmatter.recurrence);
 	});
 	let editedRecurrence = $state<Recurrence | null>(null);
+	let recurrenceRemoved = $state(false);
 
 	// Reset state when modal opens or task changes
 	$effect(() => {
@@ -46,6 +48,7 @@
 			tags = [...task.frontmatter.tags.filter(t => t !== 'task')];
 			projects = [...task.frontmatter.projects];
 			editedRecurrence = null;
+			recurrenceRemoved = false;
 			showRecurrenceEditor = false;
 			newTagInput = '';
 			newProjectInput = '';
@@ -56,6 +59,7 @@
 	});
 
 	const recurrenceLabel = $derived.by(() => {
+		if (recurrenceRemoved) return 'Not repeating';
 		const rec = editedRecurrence || existingRecurrence;
 		return rec ? formatRecurrenceShort(rec) : 'Not repeating';
 	});
@@ -88,6 +92,13 @@
 
 	function handleRecurrenceChange(rec: Recurrence) {
 		editedRecurrence = rec;
+		recurrenceRemoved = false;
+	}
+
+	function removeRecurrence() {
+		recurrenceRemoved = true;
+		editedRecurrence = null;
+		showRecurrenceEditor = false;
 	}
 
 	async function handleSave() {
@@ -111,8 +122,14 @@
 			projects
 		};
 
-		// If recurrence was edited, update it
-		if (editedRecurrence) {
+		// If recurrence was removed, clear recurrence fields and future active_instances
+		if (recurrenceRemoved) {
+			updates.recurrence = null;
+			updates.recurrence_anchor = 'scheduled';
+			const today = getTodayDate();
+			updates.active_instances = task.frontmatter.active_instances.filter(d => d <= today);
+			updates.scheduled = today;
+		} else if (editedRecurrence) {
 			updates.recurrence = recurrenceToRRule(editedRecurrence);
 			updates.recurrence_anchor = 'scheduled';
 		}
@@ -238,15 +255,32 @@
 		<div class="section mb-4">
 			<div class="section-header">
 				<span class="section-label">Recurrence</span>
-				<button
-					type="button"
-					class="recurrence-toggle"
-					onclick={() => showRecurrenceEditor = !showRecurrenceEditor}
-				>
-					{recurrenceLabel}
-				</button>
+				<div class="recurrence-actions">
+					<button
+						type="button"
+						class="recurrence-toggle"
+						onclick={() => {
+							if (recurrenceRemoved) {
+								recurrenceRemoved = false;
+							}
+							showRecurrenceEditor = !showRecurrenceEditor;
+						}}
+					>
+						{recurrenceLabel}
+					</button>
+					{#if (existingRecurrence || editedRecurrence) && !recurrenceRemoved}
+						<button
+							type="button"
+							class="recurrence-remove-btn"
+							onclick={removeRecurrence}
+							title="Remove recurrence"
+						>
+							<IconTrash width="14" height="14" />
+						</button>
+					{/if}
+				</div>
 			</div>
-			{#if showRecurrenceEditor}
+			{#if showRecurrenceEditor && !recurrenceRemoved}
 				<div class="recurrence-editor-wrapper">
 					<RecurrenceEditor
 						startDate={task.frontmatter.scheduled || formatLocalDate(new Date())}
@@ -434,6 +468,32 @@
 
 	.chip-input:focus {
 		outline: none;
+	}
+
+	.recurrence-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.recurrence-remove-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.75rem;
+		height: 1.75rem;
+		border-radius: 0.375rem;
+		border: none;
+		background-color: transparent;
+		color: rgb(var(--color-error-500));
+		cursor: pointer;
+		opacity: 0.6;
+		transition: opacity 0.15s, background-color 0.15s;
+	}
+
+	.recurrence-remove-btn:hover {
+		opacity: 1;
+		background-color: rgb(var(--color-error-500) / 0.1);
 	}
 
 	.recurrence-toggle {

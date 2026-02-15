@@ -1,7 +1,7 @@
 # Tailwind 4 + SvelteKit 2 + Svelte 5 + Skeleton Integration Lessons
 
 **Date**: 2026-01-26
-**Context**: CoverPro project, referencing SPRedux as working baseline
+**Context**: CoverPro project, referencing DayLight as working baseline
 **Stack**: Tauri v2, SvelteKit 2, Svelte 5, Tailwind 4, Skeleton UI v4
 
 ---
@@ -10,7 +10,7 @@
 
 ### 1. PostCSS Approach (NOT Vite Plugin)
 
-SPRedux uses PostCSS for Tailwind, and this is the correct approach for SvelteKit 2.
+DayLight uses PostCSS for Tailwind, and this is the correct approach for SvelteKit 2.
 
 **vite.config.ts** - Only SvelteKit plugin, NO Tailwind:
 ```typescript
@@ -155,7 +155,7 @@ toast, toggle-group, tooltip, tree-view
 
 **Attempted**: `bun add lucide-svelte`
 
-**Issue**: Works but unplugin-icons is more flexible and already used in SPRedux.
+**Issue**: Works but unplugin-icons is more flexible and already used in DayLight.
 
 **Fix**: Use unplugin-icons with @iconify-json/lucide instead.
 
@@ -224,7 +224,7 @@ wayland-protocols
 libxkbcommon
 ```
 
-See SPRedux's flake.nix for complete dependency list.
+See DayLight's flake.nix for complete dependency list.
 
 ---
 
