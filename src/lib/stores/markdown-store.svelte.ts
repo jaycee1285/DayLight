@@ -14,6 +14,7 @@ import {
 	generateTaskFilename,
 	type LoadTasksResult
 } from '$lib/storage/markdown-storage';
+import { waitForTauriReady } from '$lib/platform/tauri';
 import {
 	serializeMarkdown,
 	rruleToRecurrence,
@@ -76,6 +77,13 @@ const derivedAllProjects = $derived(getAllProjects(derivedViewTasks));
  * Initialize the store by loading all task files
  */
 export async function initializeMarkdownStore(): Promise<void> {
+	if (!(await waitForTauriReady({ maxAttempts: 0, delayMs: 200 }))) {
+		taskFiles = new Map();
+		loadErrors = [];
+		isLoading = false;
+		return;
+	}
+
 	isLoading = true;
 	loadErrors = [];
 
@@ -113,7 +121,7 @@ export async function initializeMarkdownStore(): Promise<void> {
 	} catch (error) {
 		loadErrors = [{
 			filename: 'store',
-			message: error instanceof Error ? error.message : 'Failed to load tasks'
+			message: error instanceof Error ? error.message : String(error)
 		}];
 	} finally {
 		isLoading = false;
@@ -226,6 +234,11 @@ export async function addTask(
 		complete_instances: [],
 		skipped_instances: [],
 		rescheduled_instances: {},
+		habit_type: null,
+		habit_goal: null,
+		habit_unit: null,
+		habit_target_days: null,
+		habit_entries: {},
 		seriesId: null,
 		isSeriesTemplate: false,
 		parentId: null,
@@ -280,6 +293,80 @@ export async function addRecurringTask(
 		complete_instances: [],
 		skipped_instances: [],
 		rescheduled_instances: {},
+		habit_type: null,
+		habit_goal: null,
+		habit_unit: null,
+		habit_target_days: null,
+		habit_entries: {},
+		seriesId: null,
+		isSeriesTemplate: true,
+		parentId: null,
+		timeEntries: [],
+		dateCreated: now,
+		dateModified: now,
+		completedAt: null
+	};
+
+	const filename = await generateUniqueFilename(title);
+	await saveTaskFile(filename, frontmatter, '');
+
+	taskFiles = new Map(taskFiles).set(filename, { frontmatter, body: '' });
+	hasUnsavedChanges = false;
+
+	return filename;
+}
+
+/**
+ * Add a new habit (daily recurring by default, or weekly with target days)
+ */
+export async function addHabit(
+	title: string,
+	options: {
+		habit_type: 'check' | 'target' | 'limit';
+		habit_goal?: number;
+		habit_unit?: string;
+		times_per_week?: number; // 1-7, creates weekly recurrence with that many days
+	}
+): Promise<string> {
+	const now = new Date().toISOString();
+	const today = getTodayDate();
+
+	// Build recurrence: daily if 7 days/week (or not specified), weekly otherwise
+	const timesPerWeek = options.times_per_week || 7;
+	let recurrence: Recurrence;
+
+	if (timesPerWeek >= 7) {
+		recurrence = { frequency: 'daily', interval: 1, startDate: today };
+	} else {
+		// Weekly recurrence — doesn't specify which days, just frequency
+		// interval = 1 means every week; actual tracking is by completion count
+		recurrence = { frequency: 'daily', interval: 1, startDate: today };
+	}
+
+	const windowEnd = formatLocalDate(new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000));
+	const instances = generateOccurrences(recurrence, today, windowEnd);
+
+	const frontmatter: TaskFrontmatter = {
+		status: 'open',
+		priority: 'none',
+		scheduled: today,
+		due: null,
+		startTime: null,
+		plannedDuration: null,
+		tags: ['habit'],
+		contexts: [],
+		projects: [],
+		recurrence: recurrenceToRRule(recurrence),
+		recurrence_anchor: 'scheduled',
+		active_instances: instances,
+		complete_instances: [],
+		skipped_instances: [],
+		rescheduled_instances: {},
+		habit_type: options.habit_type,
+		habit_goal: options.habit_goal ?? null,
+		habit_unit: options.habit_unit ?? null,
+		habit_target_days: (options.times_per_week && options.times_per_week < 7) ? options.times_per_week : null,
+		habit_entries: {},
 		seriesId: null,
 		isSeriesTemplate: true,
 		parentId: null,
@@ -541,6 +628,43 @@ export async function logTime(
 
 	const updatedEntries = [...file.frontmatter.timeEntries, entry];
 	await updateTask(filename, { timeEntries: updatedEntries });
+}
+
+/**
+ * Log a habit entry value and auto-complete/uncomplete based on goal
+ */
+export async function logHabitEntry(
+	filename: string,
+	date: string,
+	value: number
+): Promise<void> {
+	const file = taskFiles.get(filename);
+	if (!file) return;
+
+	const fm = file.frontmatter;
+	const updatedEntries = { ...fm.habit_entries, [date]: value };
+
+	// Determine if this value meets the goal
+	let shouldBeComplete = false;
+	if (fm.habit_type === 'target' && fm.habit_goal !== null) {
+		shouldBeComplete = value >= fm.habit_goal;
+	} else if (fm.habit_type === 'limit' && fm.habit_goal !== null) {
+		shouldBeComplete = value <= fm.habit_goal;
+	}
+
+	const isCurrentlyComplete = fm.complete_instances.includes(date);
+	let updatedCompleteInstances = fm.complete_instances;
+
+	if (shouldBeComplete && !isCurrentlyComplete) {
+		updatedCompleteInstances = [...fm.complete_instances, date];
+	} else if (!shouldBeComplete && isCurrentlyComplete) {
+		updatedCompleteInstances = fm.complete_instances.filter(d => d !== date);
+	}
+
+	await updateTask(filename, {
+		habit_entries: updatedEntries,
+		complete_instances: updatedCompleteInstances
+	});
 }
 
 /**

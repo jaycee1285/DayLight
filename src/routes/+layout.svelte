@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import '../app.css';
 	import Sheet from '$lib/components/Sheet.svelte';
@@ -12,12 +13,12 @@
 	import IconMenu from '~icons/lucide/menu';
 	import IconCalendar from '~icons/lucide/calendar';
 	import IconBarChart2 from '~icons/lucide/bar-chart-2';
+	import IconTarget from '~icons/lucide/target';
 	import IconSettings from '~icons/lucide/settings';
+	import AddHabitSheet from '$lib/components/AddHabitSheet.svelte';
 	import IconPlus from '~icons/lucide/plus';
 	import { createCalendarCache } from '$lib/domain/calendar';
 	import {
-		store,
-		addTimeLog,
 		initializeStore,
 		setCalendarCache,
 		setIsLoading,
@@ -29,7 +30,8 @@
 		markdownStore,
 		initializeMarkdownStore,
 		addTask as addMarkdownTask,
-		addRecurringTask as addMarkdownRecurringTask
+		addRecurringTask as addMarkdownRecurringTask,
+		logTime as logMarkdownTime
 	} from '$lib/stores/markdown-store.svelte';
 	import { setDataPathOverride } from '$lib/storage/storage';
 	import { parseShortcodes } from '$lib/shortcode/parser';
@@ -42,6 +44,15 @@
 		type Recurrence
 	} from '$lib/domain/recurrence';
 	import IconGear from '~icons/lucide/settings';
+	import {
+		resolveShortcutCommand,
+		eventMatchesKey,
+		isEditableTarget,
+		formatAriaKeyShortcuts,
+		type ShortcutCommand,
+		type ShortcutScope
+	} from '$lib/shortcuts/registry';
+	import { waitForTauriReady } from '$lib/platform/tauri';
 
 	// CRITICAL: Set data path override synchronously BEFORE any child components initialize
 	// This fixes a race condition where markdown-store would initialize before the path was set
@@ -57,18 +68,80 @@
 	}
 
 	let { children }: { children?: Snippet | null } = $props();
+	const devBuildMarker = '2026-02-18T15:09Z-shortcut-diag';
 
 	// Sidebar state
 	let sidebarOpen = $state(false);
 
+		const shortcutCombos = {
+			newTask: { key: 'n', ctrlOrMeta: true },
+			newTaskAlt: { key: 'n', alt: true, shift: true },
+			logTime: { key: 't', ctrlOrMeta: true, shift: true },
+			goToday: { key: '1', ctrlOrMeta: true },
+			goCalendar: { key: '2', ctrlOrMeta: true },
+			goReports: { key: '3', ctrlOrMeta: true },
+			goHabits: { key: '4', ctrlOrMeta: true },
+		goSettings: { key: '5', ctrlOrMeta: true },
+			openCommandPalette: { key: 'k', ctrlOrMeta: true },
+			openCommandPaletteAlt: { key: 'k', alt: true, shift: true },
+			openCommandPaletteAltSecondary: { key: 'p', alt: true, shift: true },
+			showShortcutHelp: { key: '?', shift: true },
+			showShortcutHelpAlt: { key: 'h', alt: true, shift: true },
+			closeOverlay: { key: 'Escape' }
+		};
+
 	const navItems = [
-		{ href: '/calendar', label: 'Calendar', icon: IconCalendar },
-		{ href: '/reports', label: 'Reports', icon: IconBarChart2 },
-		{ href: '/settings', label: 'Settings', icon: IconSettings }
+		{
+			href: '/calendar',
+			label: 'Calendar',
+			icon: IconCalendar,
+			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goCalendar)
+		},
+		{
+			href: '/reports',
+			label: 'Reports',
+			icon: IconBarChart2,
+			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goReports)
+		},
+		{
+			href: '/habits',
+			label: 'Habits',
+			icon: IconTarget,
+			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goHabits)
+		},
+		{
+			href: '/settings',
+			label: 'Settings',
+			icon: IconSettings,
+			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goSettings)
+		}
 	];
 
-	type ModalMode = 'task' | 'time' | null;
+	type ModalMode = 'task' | 'time' | 'command' | 'shortcuts' | null;
+	type ShortcutDebugEntry = {
+		id: number;
+		time: string;
+		stage: string;
+		key: string;
+		code: string;
+		mods: string;
+		scope: string;
+		target: string;
+		editableTarget: boolean;
+		commandId: string;
+	};
 	let modalMode = $state<ModalMode>(null);
+	let showAddHabit = $state(false);
+	let commandQuery = $state('');
+	let commandInput: HTMLInputElement | null = $state(null);
+	let shortcutIsMac = false;
+	let shortcutDebugEnabled = $state(import.meta.env.DEV);
+	let tauriInvokeAvailable = $state(false);
+	let shortcutDebugEntries = $state<ShortcutDebugEntry[]>([]);
+	let shortcutDebugNextId = 1;
+	const newTaskAriaShortcuts = `${formatAriaKeyShortcuts(shortcutCombos.newTask)} ${formatAriaKeyShortcuts(shortcutCombos.newTaskAlt)}`;
+	const logTimeAriaShortcuts = formatAriaKeyShortcuts(shortcutCombos.logTime);
+	const commandPaletteAriaShortcuts = `${formatAriaKeyShortcuts(shortcutCombos.openCommandPalette)} ${formatAriaKeyShortcuts(shortcutCombos.openCommandPaletteAlt)} ${formatAriaKeyShortcuts(shortcutCombos.openCommandPaletteAltSecondary)}`;
 
 	// Add Task state
 	let taskInput = $state('');
@@ -93,8 +166,17 @@
 
 	// Log Time state
 	let timeTaskId = $state<string | null>(null);
+	let lastLogTimeTaskId = $state<string | null>(null);
 	let timeMinutes = $state(30);
 	let timeDate = $state<Date>(new Date());
+	const logTimeTaskOptions = $derived.by(() => {
+		const seen = new Set<string>();
+		return markdownStore.groupedView.now.filter((task) => {
+			if (seen.has(task.filename)) return false;
+			seen.add(task.filename);
+			return true;
+		});
+	});
 	let currentTheme = $state('flexoki-light');
 	let themePreference = $state('flexoki-light');
 
@@ -164,7 +246,19 @@
 		}
 	}
 
+	function navigateTo(href: string) {
+		handleNavClick(href);
+		if (!isActive(href, $page.url.pathname)) {
+			void goto(href);
+		}
+	}
+
 	function openAddTask() {
+		// On /habits route, open the add habit sheet instead
+		if ($page.url.pathname === '/habits') {
+			showAddHabit = true;
+			return;
+		}
 		modalMode = 'task';
 		taskInput = '';
 		taskScheduledDate = new Date();
@@ -175,15 +269,435 @@
 	}
 
 	function openLogTime() {
+		openLogTimeForTask(null);
+	}
+
+	function openLogTimeForTask(taskId: string | null) {
 		modalMode = 'time';
-		timeTaskId = null;
+		const hasRequestedTask =
+			typeof taskId === 'string' && logTimeTaskOptions.some((task) => task.filename === taskId);
+		const hasRememberedTask =
+			typeof lastLogTimeTaskId === 'string' &&
+			logTimeTaskOptions.some((task) => task.filename === lastLogTimeTaskId);
+		if (hasRequestedTask) {
+			timeTaskId = taskId;
+		} else if (hasRememberedTask) {
+			timeTaskId = lastLogTimeTaskId;
+		} else {
+			timeTaskId = logTimeTaskOptions[0]?.filename ?? null;
+		}
 		timeMinutes = 30;
 		timeDate = new Date();
+	}
+
+	function openCommandPalette() {
+		commandQuery = '';
+		modalMode = 'command';
+	}
+
+	function openShortcutsHelp() {
+		modalMode = 'shortcuts';
 	}
 
 	function closeModal() {
 		modalMode = null;
 	}
+
+	function hasOpenMenuOrPopover(): boolean {
+		const activeElement = document.activeElement;
+		if (!(activeElement instanceof HTMLElement)) return false;
+		return !!activeElement.closest(
+			'.context-menu, .reschedule-dropdown, .date-picker-dropdown, .picker-sheet'
+		);
+	}
+
+	function hasOpenModalLayer(): boolean {
+		if (modalMode !== null || sidebarOpen) return true;
+		const activeElement = document.activeElement;
+		if (!(activeElement instanceof HTMLElement)) return false;
+		return !!activeElement.closest('[role="dialog"], .session-modal, .sidebar');
+	}
+
+	function getCurrentShortcutScope(): ShortcutScope {
+		if (hasOpenModalLayer()) return 'modal';
+		if (hasOpenMenuOrPopover()) return 'menu';
+		if (document.activeElement instanceof HTMLElement && document.activeElement.closest('.task-row')) {
+			return 'task-row';
+		}
+		return 'page';
+	}
+
+	function closeLayoutLayer(): boolean {
+		if (modalMode !== null) {
+			closeModal();
+			return true;
+		}
+		if (sidebarOpen) {
+			sidebarOpen = false;
+			return true;
+		}
+		return false;
+	}
+
+	interface CommandPaletteAction {
+		id: string;
+		label: string;
+		hint: string;
+		run: () => void;
+	}
+
+	const commandPaletteActions: CommandPaletteAction[] = [
+		{
+			id: 'new-task',
+			label: 'New task',
+			hint: 'Ctrl/Cmd+N or Alt+Shift+N',
+			run: openAddTask
+		},
+		{
+			id: 'log-time',
+			label: 'Log time',
+			hint: 'Ctrl/Cmd+Shift+T',
+			run: openLogTime
+		},
+			{
+				id: 'go-today',
+				label: 'Go to Today',
+				hint: 'Ctrl/Cmd+1',
+				run: () => navigateTo('/today-bases')
+			},
+			{
+				id: 'go-calendar',
+				label: 'Go to Calendar',
+				hint: 'Ctrl/Cmd+2',
+				run: () => navigateTo('/calendar')
+			},
+			{
+				id: 'go-reports',
+				label: 'Go to Reports',
+				hint: 'Ctrl/Cmd+3',
+				run: () => navigateTo('/reports')
+			},
+			{
+				id: 'go-settings',
+				label: 'Go to Settings',
+				hint: 'Ctrl/Cmd+4',
+				run: () => navigateTo('/settings')
+			},
+			{
+				id: 'show-shortcuts',
+				label: 'Keyboard shortcuts',
+				hint: '?',
+				run: openShortcutsHelp
+			}
+		];
+
+	const filteredCommandPaletteActions = $derived.by(() => {
+		const query = commandQuery.trim().toLowerCase();
+		if (!query) return commandPaletteActions;
+		return commandPaletteActions.filter((action) =>
+			action.label.toLowerCase().includes(query)
+		);
+	});
+
+	function runCommandPaletteAction(action: CommandPaletteAction) {
+		if (action.id === 'show-shortcuts') {
+			openShortcutsHelp();
+			return;
+		}
+		modalMode = null;
+		action.run();
+	}
+
+	const shortcutCommands: ShortcutCommand[] = [
+		{
+			id: 'new-task',
+			description: 'Open add task',
+			combo: shortcutCombos.newTask,
+			scope: 'page',
+			run: openAddTask
+		},
+		{
+			id: 'new-task-alt',
+			description: 'Open add task (alternate)',
+			combo: shortcutCombos.newTaskAlt,
+			scope: 'page',
+			run: openAddTask
+		},
+		{
+			id: 'log-time',
+			description: 'Open log time',
+			combo: shortcutCombos.logTime,
+			scope: 'page',
+			run: openLogTime
+		},
+		{
+			id: 'go-today',
+			description: 'Go to Today',
+			combo: shortcutCombos.goToday,
+			scope: 'page',
+			run: () => navigateTo('/today-bases')
+		},
+		{
+			id: 'go-calendar',
+			description: 'Go to Calendar',
+			combo: shortcutCombos.goCalendar,
+			scope: 'page',
+			run: () => navigateTo('/calendar')
+		},
+		{
+			id: 'go-reports',
+			description: 'Go to Reports',
+			combo: shortcutCombos.goReports,
+			scope: 'page',
+			run: () => navigateTo('/reports')
+		},
+		{
+			id: 'go-habits',
+			description: 'Go to Habits',
+			combo: shortcutCombos.goHabits,
+			scope: 'page',
+			run: () => navigateTo('/habits')
+		},
+		{
+			id: 'go-settings',
+			description: 'Go to Settings',
+			combo: shortcutCombos.goSettings,
+			scope: 'page',
+			run: () => navigateTo('/settings')
+		},
+		{
+			id: 'open-command-palette',
+			description: 'Open command palette',
+			combo: shortcutCombos.openCommandPalette,
+			scope: 'page',
+			run: openCommandPalette
+		},
+		{
+			id: 'open-command-palette-alt',
+			description: 'Open command palette (alternate)',
+			combo: shortcutCombos.openCommandPaletteAlt,
+			scope: 'page',
+			run: openCommandPalette
+		},
+		{
+			id: 'open-command-palette-alt-secondary',
+			description: 'Open command palette (alternate)',
+			combo: shortcutCombos.openCommandPaletteAltSecondary,
+			scope: 'page',
+			run: openCommandPalette
+		},
+		{
+			id: 'show-shortcuts-help',
+			description: 'Show keyboard shortcuts',
+			combo: shortcutCombos.showShortcutHelp,
+			scope: 'page',
+			run: openShortcutsHelp
+		},
+		{
+			id: 'show-shortcuts-help-alt',
+			description: 'Show keyboard shortcuts (alternate)',
+			combo: shortcutCombos.showShortcutHelpAlt,
+			scope: 'page',
+			run: openShortcutsHelp
+		},
+		{
+			id: 'close-overlay',
+			description: 'Close overlay',
+			combo: shortcutCombos.closeOverlay,
+			scope: 'global',
+			allowInInput: true,
+			run: closeLayoutLayer
+		}
+	];
+
+	function getShortcutTargetSummary(target: EventTarget | null): string {
+		if (!(target instanceof HTMLElement)) return String(target);
+		const parts = [target.tagName.toLowerCase()];
+		if (target.id) parts.push(`#${target.id}`);
+		if (target.classList.length > 0) parts.push(`.${Array.from(target.classList).join('.')}`);
+		return parts.join('');
+	}
+
+	function logShortcutDebug(
+		event: KeyboardEvent,
+		stage: string,
+		extra: Record<string, unknown> = {}
+	) {
+		if (!shortcutDebugEnabled) return;
+		const mods = [
+			event.ctrlKey ? 'Ctrl' : null,
+			event.metaKey ? 'Meta' : null,
+			event.altKey ? 'Alt' : null,
+			event.shiftKey ? 'Shift' : null
+		]
+			.filter(Boolean)
+			.join('+');
+		const commandIdValue =
+			typeof extra.commandId === 'string' ? extra.commandId : '';
+		const scopeValue = typeof extra.scope === 'string' ? extra.scope : '';
+		const targetSummary = getShortcutTargetSummary(event.target);
+		const editableTarget = isEditableTarget(event.target);
+		const time = new Date().toLocaleTimeString();
+
+		console.debug('[shortcut-debug]', {
+			stage,
+			key: event.key,
+			code: event.code,
+			ctrl: event.ctrlKey,
+			meta: event.metaKey,
+			alt: event.altKey,
+			shift: event.shiftKey,
+			repeat: event.repeat,
+			target: targetSummary,
+			editableTarget,
+			...extra
+		});
+
+		const entry: ShortcutDebugEntry = {
+			id: shortcutDebugNextId++,
+			time,
+			stage,
+			key: event.key,
+			code: event.code,
+			mods: mods || '-',
+			scope: scopeValue || '-',
+			target: targetSummary,
+			editableTarget,
+			commandId: commandIdValue || '-'
+		};
+		const nextEntries = [...shortcutDebugEntries, entry];
+		shortcutDebugEntries = nextEntries.length > 80 ? nextEntries.slice(-80) : nextEntries;
+	}
+
+	function logShortcutSystemEvent(stage: string, commandId: string) {
+		if (!shortcutDebugEnabled) return;
+		const entry: ShortcutDebugEntry = {
+			id: shortcutDebugNextId++,
+			time: new Date().toLocaleTimeString(),
+			stage,
+			key: '-',
+			code: '-',
+			mods: 'native',
+			scope: getCurrentShortcutScope(),
+			target: 'tauri-event',
+			editableTarget: false,
+			commandId
+		};
+		const nextEntries = [...shortcutDebugEntries, entry];
+		shortcutDebugEntries = nextEntries.length > 80 ? nextEntries.slice(-80) : nextEntries;
+	}
+
+	function onGlobalShortcutKeydown(event: KeyboardEvent) {
+		logShortcutDebug(event, 'raw-keydown');
+	}
+
+	function onGlobalShortcutKeyup(event: KeyboardEvent) {
+		logShortcutDebug(event, 'raw-keyup');
+		try {
+			if (event.repeat) {
+				logShortcutDebug(event, 'ignored-repeat');
+				return;
+			}
+			if (isEditableTarget(event.target)) {
+				logShortcutDebug(event, 'ignored-editable');
+				return;
+			}
+
+			const normalizedKey = event.key.toLowerCase();
+			const modifierOnlyKey =
+				normalizedKey === 'control' ||
+				normalizedKey === 'meta' ||
+				normalizedKey === 'alt' ||
+				normalizedKey === 'shift';
+			if (modifierOnlyKey) {
+				logShortcutDebug(event, 'ignored-modifier-keyup');
+				return;
+			}
+
+			const currentScope = getCurrentShortcutScope();
+			logShortcutDebug(event, 'received', {
+				scope: currentScope,
+				modalMode,
+				sidebarOpen,
+				pathname: $page.url.pathname
+			});
+
+			const command = resolveShortcutCommand(
+				shortcutCommands,
+				event,
+				currentScope,
+				shortcutIsMac
+			);
+			if (!command) {
+				logShortcutDebug(event, 'no-command', { scope: currentScope });
+				return;
+			}
+
+			logShortcutDebug(event, 'matched', {
+				commandId: command.id,
+				commandScope: command.scope
+			});
+
+			const handled = command.run();
+			if (command.id === 'close-overlay') {
+				if (handled === true) {
+					event.preventDefault();
+				}
+				logShortcutDebug(event, 'close-overlay', { handled: handled === true });
+				return;
+			}
+
+			event.preventDefault();
+			logShortcutDebug(event, 'prevented-default', { commandId: command.id });
+		} catch (error) {
+			console.error('[shortcut-debug] keyup handler error', error);
+		}
+	}
+
+	function onShortcutAddTaskEvent(_event: Event) {
+		logShortcutSystemEvent('native-event', 'open-add-task');
+		openAddTask();
+	}
+
+	function onShortcutLogTimeEvent(event: Event) {
+		logShortcutSystemEvent('native-event', 'open-log-time');
+		const shortcutEvent = event as CustomEvent<{ taskId?: string | null }>;
+		openLogTimeForTask(shortcutEvent.detail?.taskId ?? null);
+	}
+
+	function runShortcutSelfTest() {
+		const syntheticEvent = new KeyboardEvent('keyup', {
+			key: 'x',
+			code: 'KeyX',
+			ctrlKey: true,
+			bubbles: true,
+			cancelable: true
+		});
+		window.dispatchEvent(syntheticEvent);
+	}
+
+	function bindMediaQueryChange(
+		mediaQuery: MediaQueryList,
+		handler: (event: MediaQueryListEvent) => void
+	): () => void {
+		if (
+			typeof mediaQuery.addEventListener === 'function' &&
+			typeof mediaQuery.removeEventListener === 'function'
+		) {
+			mediaQuery.addEventListener('change', handler);
+			return () => mediaQuery.removeEventListener('change', handler);
+		}
+
+		const legacyHandler = handler as (this: MediaQueryList, ev: MediaQueryListEvent) => void;
+		mediaQuery.addListener(legacyHandler);
+		return () => mediaQuery.removeListener(legacyHandler);
+	}
+
+	$effect(() => {
+		if (modalMode === 'command' && typeof window !== 'undefined') {
+			window.requestAnimationFrame(() => commandInput?.focus());
+		}
+	});
 
 	async function handleAddTask() {
 		if (!taskInput.trim()) return;
@@ -244,11 +758,12 @@
 		}
 	}
 
-	function handleLogTime() {
+	async function handleLogTime() {
 		if (!timeTaskId || timeMinutes <= 0) return;
 
 		const dateStr = formatLocalDate(timeDate);
-		addTimeLog(timeTaskId, dateStr, timeMinutes);
+		await logMarkdownTime(timeTaskId, dateStr, timeMinutes);
+		lastLogTimeTaskId = timeTaskId;
 
 		closeModal();
 	}
@@ -281,6 +796,57 @@
 	}
 
 	onMount(() => {
+		const cleanupMediaListeners: Array<() => void> = [];
+		let unlistenTauriAddTask: null | (() => void) = null;
+		let unlistenTauriLogTime: null | (() => void) = null;
+		shortcutIsMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+		tauriInvokeAvailable = false;
+		const tauriReadyPromise = waitForTauriReady({ maxAttempts: 0, delayMs: 200 }).then((ready) => {
+			if (!ready) return false;
+			tauriInvokeAvailable = true;
+			logShortcutSystemEvent('tauri-ready', 'invoke-ok');
+			void import('@tauri-apps/api/event')
+				.then(async ({ listen }) => {
+					const unlistenAddTask = await listen('daylight:shortcut:add-task', () =>
+						onShortcutAddTaskEvent(new Event('daylight:shortcut:add-task'))
+					);
+					const unlistenLogTime = await listen('daylight:shortcut:log-time', () =>
+						onShortcutLogTimeEvent(new CustomEvent('daylight:shortcut:log-time'))
+					);
+					unlistenTauriAddTask = unlistenAddTask;
+					unlistenTauriLogTime = unlistenLogTime;
+					logShortcutSystemEvent('tauri-listener', 'attached');
+				})
+				.catch(() => {});
+			return true;
+		});
+
+			try {
+				const params = new URLSearchParams(window.location.search);
+				const queryDebug = params.get('debugShortcuts');
+				if (queryDebug === '1') {
+					localStorage.setItem('daylight-shortcuts-debug', '1');
+				} else if (queryDebug === '0') {
+					localStorage.removeItem('daylight-shortcuts-debug');
+				}
+				const storedShortcutDebug = localStorage.getItem('daylight-shortcuts-debug');
+				if (storedShortcutDebug === '1') {
+					shortcutDebugEnabled = true;
+				} else if (storedShortcutDebug === '0') {
+					shortcutDebugEnabled = false;
+				}
+			} catch {
+				shortcutDebugEnabled = import.meta.env.DEV;
+			}
+
+		window.addEventListener('daylight:shortcut:add-task', onShortcutAddTaskEvent);
+		window.addEventListener('daylight:shortcut:log-time', onShortcutLogTimeEvent as EventListener);
+		if (shortcutDebugEnabled) {
+			console.info(
+				'[shortcut-debug] enabled (disable with localStorage.removeItem("daylight-shortcuts-debug"))'
+			);
+		}
+
 		// Listen for OS theme changes so "system" preference stays current
 		const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
 		function onSystemThemeChange() {
@@ -290,11 +856,11 @@
 				setThemeAttributes(resolved);
 			}
 		}
-		darkMq.addEventListener('change', onSystemThemeChange);
+		cleanupMediaListeners.push(bindMediaQueryChange(darkMq, onSystemThemeChange));
 
-		(async () => {
-			setIsLoading(true);
-			try {
+			(async () => {
+				setIsLoading(true);
+				try {
 				try {
 					const savedTheme = localStorage.getItem('daylight-theme');
 					if (savedTheme) {
@@ -310,12 +876,8 @@
 					themePreference = 'system';
 					setThemeAttributes(resolved);
 				}
-				const tauriGlobal = window as unknown as { __TAURI__?: { invoke?: unknown } };
-				const isTauri =
-					typeof window !== 'undefined' &&
-					'__TAURI__' in window &&
-					!!tauriGlobal.__TAURI__?.invoke;
-				const calendarEnabled = true;
+					const isTauri = await tauriReadyPromise;
+					const calendarEnabled = true;
 
 				if (!isTauri) {
 					setLoadErrors([]);
@@ -357,8 +919,18 @@
 		})();
 		scheduleNextMidnight();
 
-		return () => {
-			darkMq.removeEventListener('change', onSystemThemeChange);
+			return () => {
+				for (const cleanupMediaListener of cleanupMediaListeners) {
+					cleanupMediaListener();
+				}
+				window.removeEventListener('daylight:shortcut:add-task', onShortcutAddTaskEvent);
+				window.removeEventListener('daylight:shortcut:log-time', onShortcutLogTimeEvent as EventListener);
+				if (unlistenTauriAddTask) {
+					unlistenTauriAddTask();
+				}
+			if (unlistenTauriLogTime) {
+				unlistenTauriLogTime();
+			}
 			if (midnightTimer) {
 				clearTimeout(midnightTimer);
 			}
@@ -367,7 +939,9 @@
 				.catch(() => {});
 		};
 	});
-</script>
+	</script>
+
+<svelte:window onkeydown={onGlobalShortcutKeydown} onkeyup={onGlobalShortcutKeyup} />
 
 	<!-- Sidebar -->
 	<Sidebar
@@ -386,16 +960,17 @@
 	</div>
 
 	<!-- FAB (Floating Action Button) -->
-	<div class="fab-container fixed right-4 z-50">
-		<button
-			type="button"
-			onclick={openAddTask}
-			class="fab w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-			aria-label="Add task"
-		>
-			<IconPlus width="24" height="24" />
-		</button>
-	</div>
+		<div class="fab-container fixed right-4 z-50">
+			<button
+				type="button"
+				onclick={openAddTask}
+				class="fab w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+				aria-label={$page.url.pathname === '/habits' ? 'Add habit' : 'Add task'}
+				aria-keyshortcuts={newTaskAriaShortcuts}
+			>
+				<IconPlus width="24" height="24" />
+			</button>
+		</div>
 
 	<!-- Navigation bar (bottom on mobile, top on desktop) -->
 	<nav class="nav-bar fixed left-0 right-0 z-40 flex items-center justify-between px-2">
@@ -410,18 +985,22 @@
 
 		{#each navItems as item}
 			{@const Icon = item.icon}
-			<a
-				href={item.href}
-				class="nav-btn"
-				class:active={isActive(item.href, $page.url.pathname)}
-				onclick={() => handleNavClick(item.href)}
-				aria-label={item.label}
-			>
-				<Icon width="20" height="20" />
-			</a>
-		{/each}
+				<a
+					href={item.href}
+					class="nav-btn"
+					class:active={isActive(item.href, $page.url.pathname)}
+					onclick={() => handleNavClick(item.href)}
+					aria-label={item.label}
+					aria-keyshortcuts={item.ariaKeyShortcuts}
+				>
+					<Icon width="20" height="20" />
+				</a>
+			{/each}
 	</nav>
 </div>
+
+<!-- Add Habit Sheet (shown on /habits route) -->
+<AddHabitSheet open={showAddHabit} onclose={() => showAddHabit = false} />
 
 <!-- Add Task Sheet -->
 <Sheet open={modalMode === 'task'} onclose={closeModal} title="Add Task">
@@ -531,13 +1110,14 @@
 		</div>
 
 		<div class="flex justify-between items-center pt-4">
-			<button
-				type="button"
-				class="text-sm opacity-70"
-				onclick={openLogTime}
-			>
-				Log time instead
-			</button>
+				<button
+					type="button"
+					class="text-sm opacity-70"
+					onclick={openLogTime}
+					aria-keyshortcuts={logTimeAriaShortcuts}
+				>
+					Log time instead
+				</button>
 			<div class="flex gap-2">
 				<button
 					type="button"
@@ -565,17 +1145,20 @@
 		<!-- Task selector -->
 		<div>
 			<label for="time-task-select" class="block text-sm opacity-70 mb-2">Task</label>
-			<select
-				id="time-task-select"
-				class="w-full p-3 rounded-lg border select-input"
-				bind:value={timeTaskId}
-			>
-				<option value={null}>Select a task...</option>
-				{#each store.tasks.filter(t => !t.completed && !t.isSeriesTemplate) as task}
-					<option value={task.id}>{task.title || 'Untitled'}</option>
-				{/each}
-			</select>
-		</div>
+				<select
+					id="time-task-select"
+					class="w-full p-3 rounded-lg border select-input"
+					bind:value={timeTaskId}
+				>
+					<option value="">Select a task...</option>
+					{#if logTimeTaskOptions.length === 0}
+						<option value="" disabled>No tasks in Now</option>
+					{/if}
+					{#each logTimeTaskOptions as task}
+						<option value={task.filename}>{task.title || 'Untitled task'}</option>
+					{/each}
+				</select>
+			</div>
 
 		<!-- Date selector with quick options -->
 		<div>
@@ -629,7 +1212,96 @@
 			</button>
 		</div>
 	</div>
+	</Sheet>
+
+<!-- Command Palette Sheet -->
+<Sheet open={modalMode === 'command'} onclose={closeModal} title="Command Palette">
+	<div class="space-y-3">
+		<input
+			bind:this={commandInput}
+			bind:value={commandQuery}
+			type="text"
+			class="command-search w-full p-3 rounded-lg border"
+			placeholder="Type to filter commands..."
+			aria-label="Filter commands"
+			aria-keyshortcuts={commandPaletteAriaShortcuts}
+		/>
+		{#if filteredCommandPaletteActions.length > 0}
+			<div class="command-list">
+				{#each filteredCommandPaletteActions as action}
+					<button
+						type="button"
+						class="command-item w-full"
+						onclick={() => runCommandPaletteAction(action)}
+					>
+						<span>{action.label}</span>
+						<kbd class="command-hint">{action.hint}</kbd>
+					</button>
+				{/each}
+			</div>
+		{:else}
+			<p class="text-sm opacity-70">No matching commands.</p>
+		{/if}
+	</div>
 </Sheet>
+
+<!-- Keyboard Shortcut Help Sheet -->
+<Sheet open={modalMode === 'shortcuts'} onclose={closeModal} title="Keyboard Shortcuts">
+	<div class="space-y-3">
+		<p class="text-sm opacity-70">Desktop shortcuts are available when no text field is focused.</p>
+				<ul class="shortcut-list">
+					<li><span>New task</span><kbd>Ctrl/Cmd+N or Alt+Shift+N</kbd></li>
+					<li><span>Log time</span><kbd>Ctrl/Cmd+Shift+T</kbd></li>
+					<li><span>Go to Today</span><kbd>Ctrl/Cmd+1</kbd></li>
+					<li><span>Go to Calendar</span><kbd>Ctrl/Cmd+2</kbd></li>
+					<li><span>Go to Reports</span><kbd>Ctrl/Cmd+3</kbd></li>
+				<li><span>Go to Settings</span><kbd>Ctrl/Cmd+4</kbd></li>
+					<li><span>Command palette</span><kbd>Ctrl/Cmd+K, Alt+Shift+K, or Alt+Shift+P</kbd></li>
+				<li><span>Shortcuts help</span><kbd>? or Alt+Shift+H</kbd></li>
+					<li><span>Close overlay</span><kbd>Esc</kbd></li>
+				</ul>
+		</div>
+</Sheet>
+
+	{#if false && shortcutDebugEnabled}
+		<div class="shortcut-build-marker">BUILD {devBuildMarker} | tauriInvoke:{tauriInvokeAvailable ? 'yes' : 'no'}</div>
+		<div
+			class="shortcut-debug-badge"
+			class:ready={tauriInvokeAvailable}
+			class:not-ready={!tauriInvokeAvailable}
+		>
+			DEBUG {tauriInvokeAvailable ? 'ON • TAURI READY' : 'ON • TAURI PENDING'}
+		</div>
+		<section class="shortcut-debug-panel" aria-label="Shortcut debug panel">
+		<div class="shortcut-debug-header">
+			<strong>Shortcut Debug</strong>
+			<div class="shortcut-debug-actions">
+				<button type="button" class="shortcut-debug-clear" onclick={runShortcutSelfTest}>
+					Self test
+				</button>
+				<button type="button" class="shortcut-debug-clear" onclick={() => (shortcutDebugEntries = [])}>
+					Clear
+				</button>
+			</div>
+		</div>
+		<div class="shortcut-debug-body">
+			{#if shortcutDebugEntries.length === 0}
+				<div class="shortcut-debug-empty">No events yet.</div>
+			{:else}
+				{#each shortcutDebugEntries as entry (entry.id)}
+					<div class="shortcut-debug-row">
+						<code>{entry.time}</code>
+						<code>{entry.stage}</code>
+						<code>{entry.mods} {entry.key} ({entry.code})</code>
+						<code>scope:{entry.scope}</code>
+						<code>cmd:{entry.commandId}</code>
+						<code>{entry.editableTarget ? 'editable' : 'non-editable'}</code>
+					</div>
+				{/each}
+			{/if}
+		</div>
+	</section>
+{/if}
 
 <style>
 	.fab {
@@ -869,5 +1541,187 @@
 	:global([data-mode='dark']) .monthly-day-select {
 		background-color: rgb(var(--color-hover-bg-strong));
 		border-color: rgb(var(--color-surface-600));
+	}
+
+	.command-search {
+		background-color: rgb(var(--color-surface-100));
+		border-color: rgb(var(--color-surface-300));
+		color: rgb(var(--body-text-color));
+	}
+
+	:global([data-mode='dark']) .command-search {
+		background-color: rgb(var(--color-hover-bg-strong));
+		border-color: rgb(var(--color-surface-600));
+	}
+
+	.command-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.command-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.625rem 0.75rem;
+		border: none;
+		border-radius: 0.5rem;
+		background-color: rgb(var(--color-hover-bg));
+		color: rgb(var(--body-text-color));
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.command-item:hover {
+		background-color: rgb(var(--color-surface-300));
+	}
+
+	:global([data-mode='dark']) .command-item {
+		background-color: rgb(var(--color-hover-bg-strong));
+	}
+
+	:global([data-mode='dark']) .command-item:hover {
+		background-color: rgb(var(--color-surface-600));
+	}
+
+	.command-hint {
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 0.75rem;
+		padding: 0.125rem 0.375rem;
+		border-radius: 0.375rem;
+		background-color: rgb(var(--color-surface-200));
+		color: rgb(var(--color-surface-700));
+	}
+
+	:global([data-mode='dark']) .command-hint {
+		background-color: rgb(var(--color-surface-600));
+		color: rgb(var(--color-surface-100));
+	}
+
+	.shortcut-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.shortcut-list li {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.5rem 0.625rem;
+		border-radius: 0.5rem;
+		background-color: rgb(var(--color-hover-bg));
+	}
+
+	:global([data-mode='dark']) .shortcut-list li {
+		background-color: rgb(var(--color-hover-bg-strong));
+	}
+
+	.shortcut-debug-panel {
+		position: fixed;
+		left: 0.75rem;
+		right: 0.75rem;
+		bottom: 2.5rem;
+		z-index: 1000;
+		max-height: min(42vh, 360px);
+		border-radius: 0.5rem;
+		background-color: rgb(var(--color-surface-100));
+		border: 1px solid rgb(var(--color-surface-300));
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	:global([data-mode='dark']) .shortcut-debug-panel {
+		background-color: rgb(var(--color-surface-700));
+		border-color: rgb(var(--color-surface-600));
+	}
+
+	.shortcut-debug-badge {
+		position: fixed;
+		top: 0.75rem;
+		right: 0.75rem;
+		z-index: 1001;
+		padding: 0.2rem 0.4rem;
+		border-radius: 0.25rem;
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		color: white;
+	}
+
+	.shortcut-debug-badge.not-ready {
+		background: #dc2626;
+	}
+
+	.shortcut-debug-badge.ready {
+		background: #16a34a;
+	}
+
+	.shortcut-build-marker {
+		position: fixed;
+		top: 0.75rem;
+		left: 0.75rem;
+		z-index: 1001;
+		padding: 0.2rem 0.4rem;
+		border-radius: 0.25rem;
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		color: #111827;
+		background: #f59e0b;
+	}
+
+	.shortcut-debug-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.375rem 0.5rem;
+		border-bottom: 1px solid rgb(var(--color-surface-300));
+		font-size: 0.75rem;
+	}
+
+	:global([data-mode='dark']) .shortcut-debug-header {
+		border-bottom-color: rgb(var(--color-surface-600));
+	}
+
+	.shortcut-debug-clear {
+		border: none;
+		background: transparent;
+		color: inherit;
+		font-size: 0.75rem;
+		cursor: pointer;
+		opacity: 0.8;
+	}
+
+	.shortcut-debug-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.shortcut-debug-body {
+		overflow: auto;
+		padding: 0.375rem 0.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.shortcut-debug-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		font-size: 0.7rem;
+		line-height: 1.2;
+	}
+
+	.shortcut-debug-empty {
+		font-size: 0.75rem;
+		opacity: 0.7;
 	}
 </style>

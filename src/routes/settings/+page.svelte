@@ -12,6 +12,7 @@
 	import { createGoogleCalendarSettings } from '$lib/domain/meta';
 	import { refreshCalendarCache } from '$lib/calendar/refresh';
 	import { buildAuthUrl, exchangeCodeForToken } from '$lib/calendar/google';
+	import { hasTauriInvoke, isTauriRuntime } from '$lib/platform/tauri';
 
 	function handleScanConflicts() {
 		goto('/conflicts');
@@ -121,7 +122,7 @@
 		initialized = true;
 
 		// Detect Tauri environment
-		isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
+		isTauri = isTauriRuntime();
 		isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 		// Read the stored preference (may be 'system'), not the resolved DOM attribute
@@ -301,8 +302,10 @@
 
 	async function runTauriDiagnostics() {
 		const results: string[] = [];
-		const hasTauri = typeof window !== 'undefined' && '__TAURI__' in window;
-		results.push(`__TAURI__ in window: ${hasTauri}`);
+		const runtimeTauri = isTauriRuntime();
+		const hasTauri = hasTauriInvoke();
+		results.push(`Tauri runtime: ${runtimeTauri}`);
+		results.push(`Tauri invoke available: ${hasTauri}`);
 
 		if (hasTauri) {
 			try {

@@ -50,6 +50,13 @@ export interface TaskFrontmatter {
 	// Hierarchy
 	parentId: string | null;
 
+	// Habit tracking
+	habit_type: 'check' | 'target' | 'limit' | null;
+	habit_goal: number | null;
+	habit_unit: string | null;
+	habit_target_days: number | null; // target completions per week (1-7, null = daily/7)
+	habit_entries: Record<string, number>; // date → numerical value
+
 	// Time tracking (embedded)
 	timeEntries: TimeEntry[];
 
@@ -147,6 +154,11 @@ function normalizeFrontmatter(raw: Record<string, unknown>): TaskFrontmatter {
 		complete_instances: normalizeStringArray(raw.complete_instances),
 		skipped_instances: normalizeStringArray(raw.skipped_instances),
 		rescheduled_instances: normalizeRescheduledInstances(raw.rescheduled_instances),
+		habit_type: normalizeHabitType(raw.habit_type),
+		habit_goal: normalizePositiveNumber(raw.habit_goal),
+		habit_unit: normalizeString(raw.habit_unit),
+		habit_target_days: normalizePositiveNumber(raw.habit_target_days),
+		habit_entries: normalizeHabitEntries(raw.habit_entries),
 		seriesId: normalizeString(raw.seriesId),
 		isSeriesTemplate: Boolean(raw.isSeriesTemplate),
 		parentId: normalizeString(raw.parentId),
@@ -191,6 +203,13 @@ function cleanFrontmatterForSerialization(fm: TaskFrontmatter): Record<string, u
 	if (fm.complete_instances.length > 0) result.complete_instances = fm.complete_instances;
 	if (fm.skipped_instances.length > 0) result.skipped_instances = fm.skipped_instances;
 	if (Object.keys(fm.rescheduled_instances).length > 0) result.rescheduled_instances = fm.rescheduled_instances;
+
+	// Habit tracking
+	if (fm.habit_type) result.habit_type = fm.habit_type;
+	if (fm.habit_goal) result.habit_goal = fm.habit_goal;
+	if (fm.habit_unit) result.habit_unit = fm.habit_unit;
+	if (fm.habit_target_days) result.habit_target_days = fm.habit_target_days;
+	if (Object.keys(fm.habit_entries).length > 0) result.habit_entries = fm.habit_entries;
 
 	// Series relationship
 	if (fm.seriesId) result.seriesId = fm.seriesId;
@@ -264,6 +283,25 @@ function normalizeRescheduledInstances(value: unknown): Record<string, string> {
 			const normalizedVal = normalizeDate(val);
 			if (normalizedKey && normalizedVal) {
 				result[normalizedKey] = normalizedVal;
+			}
+		}
+		return result;
+	}
+	return {};
+}
+
+function normalizeHabitType(value: unknown): 'check' | 'target' | 'limit' | null {
+	if (value === 'check' || value === 'target' || value === 'limit') return value;
+	return null;
+}
+
+function normalizeHabitEntries(value: unknown): Record<string, number> {
+	if (value && typeof value === 'object' && !Array.isArray(value)) {
+		const result: Record<string, number> = {};
+		for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+			const normalizedKey = normalizeDate(key);
+			if (normalizedKey && typeof val === 'number') {
+				result[normalizedKey] = val;
 			}
 		}
 		return result;
@@ -349,6 +387,11 @@ export function taskToFrontmatter(task: Task): TaskFrontmatter {
 		complete_instances: [],
 		skipped_instances: [],
 		rescheduled_instances: {},
+		habit_type: null,
+		habit_goal: null,
+		habit_unit: null,
+		habit_target_days: null,
+		habit_entries: {},
 		seriesId: task.seriesId,
 		isSeriesTemplate: task.isSeriesTemplate,
 		parentId: task.parentId,

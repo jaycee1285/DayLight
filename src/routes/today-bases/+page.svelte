@@ -8,8 +8,9 @@
 		setSelectedDate
 	} from '$lib/stores/markdown-store.svelte';
 	import { getTodayDate, getOffsetDate, formatLocalDate } from '$lib/domain/task';
-	import { filterByProject, type ViewTask } from '$lib/services/ViewService';
+	import { filterByProject, filterNonHabits, type ViewTask } from '$lib/services/ViewService';
 	import { formatDuration } from '$lib/domain/timeLog';
+	import { eventMatchesKey, isEditableTarget } from '$lib/shortcuts/registry';
 
 	// Project filter state
 	let selectedProject = $state<string | null>(null);
@@ -26,11 +27,11 @@
 		return filterByProject(tasks, proj);
 	}
 
-	// Filtered grouped view
-	const pastTasks = $derived(filterTasksByProject(markdownStore.groupedView.past));
-	const nowTasks = $derived(filterTasksByProject(markdownStore.groupedView.now));
-	const upcomingTasks = $derived(filterTasksByProject(markdownStore.groupedView.upcoming));
-	const wrappedTasks = $derived(filterTasksByProject(markdownStore.groupedView.wrapped));
+	// Filtered grouped view (exclude habits)
+	const pastTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.past)));
+	const nowTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.now)));
+	const upcomingTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.upcoming)));
+	const wrappedTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.wrapped)));
 
 	// Total time logged on the selected date (deduplicated by filename for recurring tasks)
 	const totalTimeToday = $derived.by(() => {
@@ -57,6 +58,15 @@
 		});
 	}
 
+	function handleRouteShortcutKeydown(event: KeyboardEvent) {
+		if (event.repeat || event.altKey || event.shiftKey) return;
+		if (isEditableTarget(event.target)) return;
+		if (!(event.ctrlKey || event.metaKey)) return;
+		if (!eventMatchesKey(event, 'n')) return;
+		event.preventDefault();
+		window.dispatchEvent(new CustomEvent('daylight:shortcut:add-task'));
+	}
+
 	let initialized = $state(false);
 
 	$effect(() => {
@@ -66,6 +76,8 @@
 		initializeMarkdownStore();
 	});
 </script>
+
+<svelte:window onkeydown={handleRouteShortcutKeydown} />
 
 <main class="p-4">
 	<!-- Header with date selector -->

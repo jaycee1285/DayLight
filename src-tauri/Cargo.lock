@@ -497,6 +497,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "daylight"
+version = "0.1.0"
+dependencies = [
+ "dirs 5.0.1",
+ "gtk",
+ "notify",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-shell",
+ "tiny_http",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "deranged"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3419,25 +3439,6 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
-]
-
-[[package]]
-name = "spredux"
-version = "0.1.0"
-dependencies = [
- "dirs 5.0.1",
- "notify",
- "reqwest",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-shell",
- "tiny_http",
- "tokio",
- "url",
 ]
 
 [[package]]

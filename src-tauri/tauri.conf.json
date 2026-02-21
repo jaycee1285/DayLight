@@ -5,7 +5,7 @@
   "identifier": "com.daylight.app",
   "build": {
     "beforeDevCommand": "bun run dev",
-    "devUrl": "http://localhost:43181",
+    "devUrl": "http://127.0.0.1:43181",
     "beforeBuildCommand": "bun run build",
     "frontendDist": "../build"
   },

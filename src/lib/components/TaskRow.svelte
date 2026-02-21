@@ -24,6 +24,7 @@
 	import Sheet from './Sheet.svelte';
 	import ClockDrag from './ClockDrag.svelte';
 	import DatePill from './DatePill.svelte';
+	import { eventMatchesKey, isEditableTarget } from '$lib/shortcuts/registry';
 
 	interface Props {
 		task: Task;
@@ -278,6 +279,27 @@
 		}
 	}
 
+	function handleRowKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			closeContextMenu();
+			return;
+		}
+
+		if (isEditableTarget(event.target)) return;
+
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			handleRowClick();
+			return;
+		}
+
+		if (event.repeat || event.altKey || event.shiftKey) return;
+		if (!(event.ctrlKey || event.metaKey)) return;
+		if (!eventMatchesKey(event, 't')) return;
+		event.preventDefault();
+		window.dispatchEvent(new CustomEvent('daylight:shortcut:log-time', { detail: { taskId: task.id } }));
+	}
+
 	// Adjust menu position to stay within viewport
 	let menuElement: HTMLDivElement | null = $state(null);
 	let adjustedMenuX = $derived.by(() => {
@@ -308,7 +330,11 @@
 <div
 	class="task-row flex items-start gap-3 p-3 rounded-lg cursor-pointer"
 	class:completed={task.completed}
+	role="button"
+	tabindex="0"
+	aria-label={`Open task details for ${task.title || 'Untitled task'}`}
 	onclick={handleRowClick}
+	onkeydown={handleRowKeydown}
 	oncontextmenu={handleContextMenu}
 	ontouchstart={handleTouchStart}
 	ontouchend={handleTouchEnd}

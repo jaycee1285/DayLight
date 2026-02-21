@@ -13,6 +13,7 @@
 	import {
 		getTasksForDate,
 		getTasksInDateRange,
+		filterNonHabits,
 		type ViewTask
 	} from '$lib/services/ViewService';
 
@@ -20,8 +21,9 @@
 	type ViewMode = 'week' | 'month' | 'planner';
 	let viewMode = $state<ViewMode>('week');
 
-	// Get tasks for the selected date
-	const tasksForDay = $derived(getTasksForDate(markdownStore.viewTasks, markdownStore.selectedDate));
+	// Get tasks for the selected date (exclude habits)
+	const allViewTasks = $derived(filterNonHabits(markdownStore.viewTasks));
+	const tasksForDay = $derived(getTasksForDate(allViewTasks, markdownStore.selectedDate));
 
 	// Collapsible state for each day in week view
 	let expandedDays = $state<Set<string>>(new Set([getTodayDate()]));
@@ -35,7 +37,7 @@
 	}
 
 	function getTasksForDateHelper(date: string): ViewTask[] {
-		return getTasksForDate(markdownStore.viewTasks, date);
+		return getTasksForDate(allViewTasks, date);
 	}
 
 	// Truncate text to roughly 10 characters for month view
@@ -100,7 +102,7 @@
 
 	// Count tasks for a given date
 	function getTaskCount(dateStr: string): number {
-		return getTasksForDate(markdownStore.viewTasks, dateStr).length;
+		return getTasksForDate(allViewTasks, dateStr).length;
 	}
 
 	// Navigate week or month
@@ -313,13 +315,13 @@
 		{#if viewMode === 'planner'}
 			{#if isDesktop}
 				<div class="planner-layout">
-					<WeeklyTimeGrid {weekDays} viewTasks={markdownStore.viewTasks} />
-					<PlannerSidebar {weekDays} viewTasks={markdownStore.viewTasks} />
+					<WeeklyTimeGrid {weekDays} viewTasks={allViewTasks} />
+					<PlannerSidebar {weekDays} viewTasks={allViewTasks} />
 				</div>
 			{:else}
 				<DailyScheduleView
 					selectedDate={markdownStore.selectedDate}
-					viewTasks={markdownStore.viewTasks}
+					viewTasks={allViewTasks}
 					{weekDays}
 				/>
 			{/if}

@@ -112,8 +112,8 @@ export function createViewTasks(
 	const tasks: ViewTask[] = [];
 
 	for (const [filename, { frontmatter, body }] of files) {
-		// Skip files without 'task' tag
-		if (!frontmatter.tags.includes('task')) {
+		// Skip files without 'task' or 'habit' tag
+		if (!frontmatter.tags.includes('task') && !frontmatter.tags.includes('habit')) {
 			continue;
 		}
 
@@ -729,6 +729,98 @@ export function filterScheduledForDate(tasks: ViewTask[], date: string): ViewTas
 
 		return false;
 	});
+}
+
+// =============================================================================
+// Habit Functions
+// =============================================================================
+
+/**
+ * Filter to only habit-tagged tasks
+ */
+export function filterHabits(tasks: ViewTask[]): ViewTask[] {
+	return tasks.filter((task) => task.frontmatter.tags.includes('habit'));
+}
+
+/**
+ * Filter out habit-tagged tasks (keep only non-habits)
+ */
+export function filterNonHabits(tasks: ViewTask[]): ViewTask[] {
+	return tasks.filter((task) => !task.frontmatter.tags.includes('habit'));
+}
+
+/**
+ * Check if a habit is completed on a specific date based on its type
+ */
+export function isHabitCompletedOnDate(fm: TaskFrontmatter, date: string): boolean {
+	if (!fm.habit_type) return fm.complete_instances.includes(date);
+
+	switch (fm.habit_type) {
+		case 'check':
+			return fm.complete_instances.includes(date);
+		case 'target':
+			return fm.habit_goal !== null && (fm.habit_entries[date] ?? 0) >= fm.habit_goal;
+		case 'limit':
+			return fm.habit_goal !== null && date in fm.habit_entries && fm.habit_entries[date] <= fm.habit_goal;
+		default:
+			return false;
+	}
+}
+
+/**
+ * Calculate habit completion rate over a date range (0-1).
+ * Only counts days where the habit was active (on or after DTSTART).
+ */
+export function getHabitCompletionRate(
+	fm: TaskFrontmatter,
+	startDate: string,
+	endDate: string
+): number {
+	if (!fm.recurrence) return 0;
+
+	// Parse DTSTART from recurrence
+	const dtStartMatch = fm.recurrence.match(/DTSTART:(\d{4})(\d{2})(\d{2})/);
+	const habitStart = dtStartMatch
+		? `${dtStartMatch[1]}-${dtStartMatch[2]}-${dtStartMatch[3]}`
+		: startDate;
+
+	// Effective start is the later of range start and habit start
+	const effectiveStart = habitStart > startDate ? habitStart : startDate;
+	if (effectiveStart > endDate) return 0;
+
+	// Count days in effective range and completions
+	let totalDays = 0;
+	let completedDays = 0;
+	const current = new Date(effectiveStart + 'T00:00:00');
+	const end = new Date(endDate + 'T00:00:00');
+
+	while (current <= end) {
+		const dateStr = formatLocalDate(current);
+		totalDays++;
+		if (isHabitCompletedOnDate(fm, dateStr)) {
+			completedDays++;
+		}
+		current.setDate(current.getDate() + 1);
+	}
+
+	// If habit_target_days is set (e.g. 3x/week), scale expected days
+	// Expected = totalDays * (target_days / 7)
+	if (fm.habit_target_days && fm.habit_target_days < 7) {
+		const expectedDays = totalDays * (fm.habit_target_days / 7);
+		return expectedDays > 0 ? Math.min(1, completedDays / expectedDays) : 0;
+	}
+
+	return totalDays > 0 ? completedDays / totalDays : 0;
+}
+
+/**
+ * Get CSS color token based on completion rate
+ * >= 85% → success (green), >= 70% → warning (yellow), < 70% → error (red)
+ */
+export function getCompletionColor(rate: number): 'success' | 'warning' | 'error' {
+	if (rate >= 0.85) return 'success';
+	if (rate >= 0.70) return 'warning';
+	return 'error';
 }
 
 // =============================================================================

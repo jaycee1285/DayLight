@@ -3,7 +3,7 @@ mod theme;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use tauri::State;
+use tauri::{Emitter, Manager, State};
 use tokio::time::timeout;
 use tokio::sync::oneshot;
 use tiny_http::{ListenAddr, Response, Server};
@@ -27,6 +27,73 @@ fn listen_addr_port(addr: ListenAddr) -> Result<u16, String> {
         ListenAddr::IP(address) => Ok(address.port()),
         _ => Err("Unsupported listener address".to_string()),
     }
+}
+
+#[cfg(target_os = "linux")]
+fn setup_linux_shortcut_bridge(window: &tauri::WebviewWindow) {
+    use gtk::gdk::ModifierType;
+    use gtk::prelude::*;
+
+    let Ok(gtk_window) = window.gtk_window() else {
+        eprintln!("[daylight-dev] linux-shortcuts: failed to get gtk window");
+        return;
+    };
+
+    #[cfg(debug_assertions)]
+    eprintln!("[daylight-dev] linux-shortcuts: bridge installed");
+
+    let window_for_handler = window.clone();
+    gtk_window.connect_key_press_event(move |_widget, event| {
+        let state = event.state();
+        let ctrl_or_meta = state.contains(ModifierType::CONTROL_MASK)
+            || state.contains(ModifierType::META_MASK)
+            || state.contains(ModifierType::SUPER_MASK);
+
+        #[cfg(debug_assertions)]
+        if ctrl_or_meta {
+            eprintln!(
+                "[daylight-dev] linux-shortcuts: raw key={:?} unicode={:?} state={:?}",
+                event.keyval(),
+                event.keyval().to_unicode(),
+                state
+            );
+        }
+
+        if !ctrl_or_meta || state.contains(ModifierType::MOD1_MASK) {
+            return gtk::glib::Propagation::Proceed;
+        }
+
+        let key = event.keyval().to_unicode().map(|c| c.to_ascii_lowercase());
+        match key {
+            Some('n') => {
+                #[cfg(debug_assertions)]
+                eprintln!("[daylight-dev] linux-shortcuts: Ctrl/Cmd+N");
+                if let Err(error) = window_for_handler.emit("daylight:shortcut:add-task", ()) {
+                    eprintln!("[daylight-dev] linux-shortcuts: emit add-task failed: {error}");
+                }
+                if let Err(error) = window_for_handler
+                    .eval("window.dispatchEvent(new CustomEvent('daylight:shortcut:add-task'));")
+                {
+                    eprintln!("[daylight-dev] linux-shortcuts: eval add-task failed: {error}");
+                }
+                gtk::glib::Propagation::Stop
+            }
+            Some('t') => {
+                #[cfg(debug_assertions)]
+                eprintln!("[daylight-dev] linux-shortcuts: Ctrl/Cmd+T");
+                if let Err(error) = window_for_handler.emit("daylight:shortcut:log-time", ()) {
+                    eprintln!("[daylight-dev] linux-shortcuts: emit log-time failed: {error}");
+                }
+                if let Err(error) = window_for_handler
+                    .eval("window.dispatchEvent(new CustomEvent('daylight:shortcut:log-time'));")
+                {
+                    eprintln!("[daylight-dev] linux-shortcuts: eval log-time failed: {error}");
+                }
+                gtk::glib::Propagation::Stop
+            }
+            _ => gtk::glib::Propagation::Proceed,
+        }
+    });
 }
 
 #[tauri::command]
@@ -89,9 +156,24 @@ async fn fetch_url(url: String) -> Result<String, String> {
     response.text().await.map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn tauri_ready() -> bool {
+    true
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .on_page_load(|_webview, payload| {
+            #[cfg(debug_assertions)]
+            {
+                eprintln!(
+                    "[daylight-dev] page-load {:?} {}",
+                    payload.event(),
+                    payload.url()
+                );
+            }
+        })
         .manage(OAuthListenerState {
             receiver: Mutex::new(None),
         })
@@ -99,6 +181,7 @@ pub fn run() {
             start_oauth_listener,
             await_oauth_code,
             fetch_url,
+            tauri_ready,
             theme::get_gtk_colors
         ])
         .plugin(tauri_plugin_shell::init())
@@ -107,6 +190,16 @@ pub fn run() {
         .setup(|app| {
             #[cfg(target_os = "linux")]
             theme::setup_gtk_watcher(app.handle());
+
+            #[cfg(debug_assertions)]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    #[cfg(target_os = "linux")]
+                    setup_linux_shortcut_bridge(&window);
+                    let _ = window.set_title("DayLight (dev)");
+                }
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())

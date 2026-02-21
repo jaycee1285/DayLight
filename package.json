@@ -12,7 +12,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "mkdir -p build && cp static/dev-fallback.html build/index.html && tauri dev",
     "tauri:build": "tauri build",
     "tauri:android": "tauri android build --target aarch64",
     "tauri:android:debug": "tauri android dev --target aarch64"

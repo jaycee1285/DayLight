@@ -3,6 +3,7 @@
 	import IconSun from '~icons/lucide/sun';
 	import IconCalendar from '~icons/lucide/calendar';
 	import IconRepeat from '~icons/lucide/repeat';
+	import IconTarget from '~icons/lucide/target';
 	import IconBarChart2 from '~icons/lucide/bar-chart-2';
 	import IconSettings from '~icons/lucide/settings';
 	import IconChevronRight from '~icons/lucide/chevron-right';
@@ -101,6 +102,16 @@
 			>
 				<span class="nav-icon"><IconRepeat width="18" height="18" /></span>
 				<span>Recurring</span>
+			</a>
+
+			<a
+				href="/habits"
+				class="nav-item"
+				class:active={isActive('/habits')}
+				onclick={onclose}
+			>
+				<span class="nav-icon"><IconTarget width="18" height="18" /></span>
+				<span>Habits</span>
 			</a>
 
 			<hr class="nav-divider" />
