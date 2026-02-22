@@ -1,6 +1,6 @@
 /* Generated from kitty config: Rosé Pine Dawn.conf
    Theme: Rosé Pine Dawn (light)
-   Primary: #56949F (from color4 (blue))
+   Primary: #EA9D34 (from cursor)
 */
 
 [data-theme="rose-pine-dawn"] {
@@ -17,18 +17,18 @@
   --color-surface-900: 107 101 135; /* #6B6587 */
   --color-surface-950:  87  82 121; /* #575279 */
 
-  /* --- Primary (color4 (blue): #56949F) --- */
-  --color-primary-50: 241 246 247;
-  --color-primary-100: 221 234 236;
-  --color-primary-200: 196 218 221;
-  --color-primary-300: 162 196 202;
-  --color-primary-400: 123 172 180;
-  --color-primary-500:  86 148 159;
-  --color-primary-600:  71 121 130;
-  --color-primary-700:  58  99 107;
-  --color-primary-800:  47  81  87;
-  --color-primary-900:  34  59  64;
-  --color-primary-950:  24  41  45;
+  /* --- Primary (cursor: #EA9D34) --- */
+  --color-primary-50: 253 247 239;
+  --color-primary-100: 251 235 214;
+  --color-primary-200: 248 221 184;
+  --color-primary-300: 243 201 143;
+  --color-primary-400: 239 179  97;
+  --color-primary-500: 234 157  52;
+  --color-primary-600: 192 129  43;
+  --color-primary-700: 157 105  35;
+  --color-primary-800: 129  86  29;
+  --color-primary-900:  94  63  21;
+  --color-primary-950:  66  44  15;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 246 244 248;

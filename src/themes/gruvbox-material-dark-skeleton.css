@@ -1,0 +1,89 @@
+/* Generated from YAML theme: Gruvbox Material Dark.yml
+   Theme: Gruvbox Material Dark (dark)
+   Primary: #D8A657 (from cursor)
+*/
+
+[data-theme="gruvbox-material-dark"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 212 190 152; /* #D4BE98 */
+  --color-surface-100: 203 183 146; /* #CBB792 */
+  --color-surface-200: 135 123 102; /* #877B66 */
+  --color-surface-300: 100  93  79; /* #645D4F */
+  --color-surface-400:  88  82  71; /* #585247 */
+  --color-surface-500:  78  73  65; /* #4E4941 */
+  --color-surface-600:  71  67  60; /* #47433C */
+  --color-surface-700:  62  60  55; /* #3E3C37 */
+  --color-surface-800:  52  51  48; /* #343330 */
+  --color-surface-900:  45  45  43; /* #2D2D2B */
+  --color-surface-950:  40  40  40; /* #282828 */
+
+  /* --- Primary (cursor: #D8A657) --- */
+  --color-primary-50: 252 248 242;
+  --color-primary-100: 247 237 221;
+  --color-primary-200: 241 224 196;
+  --color-primary-300: 234 206 163;
+  --color-primary-400: 225 186 124;
+  --color-primary-500: 216 166  87;
+  --color-primary-600: 177 136  71;
+  --color-primary-700: 145 111  58;
+  --color-primary-800: 119  91  48;
+  --color-primary-900:  86  66  35;
+  --color-primary-950:  60  46  24;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 251 245 247;
+  --color-secondary-100: 246 231 235;
+  --color-secondary-200: 240 213 220;
+  --color-secondary-300: 231 188 200;
+  --color-secondary-400: 221 161 177;
+  --color-secondary-500: 211 134 155;
+  --color-secondary-600: 173 110 127;
+  --color-secondary-700: 141  90 104;
+  --color-secondary-800: 116  74  85;
+  --color-secondary-900:  84  54  62;
+  --color-secondary-950:  59  38  43;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 248 249 243;
+  --color-tertiary-100: 238 240 224;
+  --color-tertiary-200: 225 229 201;
+  --color-tertiary-300: 208 215 170;
+  --color-tertiary-400: 188 198 135;
+  --color-tertiary-500: 169 182 101;
+  --color-tertiary-600: 139 149  83;
+  --color-tertiary-700: 113 122  68;
+  --color-tertiary-800:  93 100  56;
+  --color-tertiary-900:  68  73  40;
+  --color-tertiary-950:  47  51  28;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 246 249 245;
+  --color-accent-100: 231 240 230;
+  --color-accent-200: 214 229 211;
+  --color-accent-300: 190 214 186;
+  --color-accent-400: 163 197 158;
+  --color-accent-500: 137 180 130;
+  --color-accent-600: 112 148 107;
+  --color-accent-700:  92 121  87;
+  --color-accent-800:  75  99  72;
+  --color-accent-900:  55  72  52;
+  --color-accent-950:  38  50  36;
+
+  /* --- Semantic --- */
+  --color-success-500: 169 182 101;
+  --color-warning-500: 216 166  87;
+  --color-error-500:   234 105  98;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-950));
+  --body-text-color:       212 190 152;
+
+  --theme-selection-bg:    100  93  79;
+  --theme-selection-fg:    212 190 152;
+
+  --color-on-primary:        0   0   0;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-700);
+  --color-hover-bg-strong: var(--color-surface-600);
+}

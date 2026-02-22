@@ -377,7 +377,7 @@ function generateThemeCssWithInfo(
 // ── main ─────────────────────────────────────────────────────────────
 
 const THEMES_DIR = join(import.meta.dir, 'themes');
-const OUTPUT_DIR = '/home/john/repos/skeleton-themes';
+const OUTPUT_DIR = join(import.meta.dir, 'src', 'themes');
 
 // Skip list
 const SKIP = new Set([
@@ -385,7 +385,7 @@ const SKIP = new Set([
 	'current-theme.conf',
 	'set-colors'
 ]);
-const SKIP_PATTERNS = [/flexoki/i, /ayu/i, /gruvbox.material/i];
+const SKIP_PATTERNS = [/flexoki/i, /ayu/i];
 
 // Dedup: prefer files without underscores (space versions)
 const seen = new Map<string, string>(); // normalized name → path

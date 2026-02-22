@@ -11,7 +11,9 @@
 @import './themes/everforest-light-hard-skeleton.css';
 @import './themes/glacier-skeleton.css';
 @import './themes/gruvbox-dark-hard-skeleton.css';
-@import './themes/gruvbox-material-skeleton.css';
+@import './themes/gruvbox-material-dark-skeleton.css';
+@import './themes/gruvbox-material-light-skeleton.css';
+@import './themes/gruvbox-material-light-hard-skeleton.css';
 @import './themes/kanagawa-skeleton.css';
 @import './themes/kanagawa-lotus-skeleton.css';
 @import './themes/liquidcarbon-skeleton.css';
@@ -30,6 +32,11 @@
 @import './themes/tempus-dawn-skeleton.css';
 @import './themes/tokyo-night-storm-skeleton.css';
 @import './themes/tomorrow-skeleton.css';
+@import './themes/tomorrow-night-blue-skeleton.css';
+@import './themes/monokai-pro-light-skeleton.css';
+@import './themes/paper-skeleton.css';
+@import './themes/rose-pine-moon-skeleton.css';
+@import './themes/solarized-dark-higher-contrast-skeleton.css';
 
 /* Base styles */
 html {

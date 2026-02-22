@@ -1,6 +1,6 @@
 /* Generated from YAML theme: Selenized Light.yml
    Theme: Selenized Light (light)
-   Primary: #0072D4 (from color4 (blue))
+   Primary: #489100 (from cursor)
 */
 
 [data-theme="selenized-light"] {
@@ -17,18 +17,18 @@
   --color-surface-900: 103 120 122; /* #67787A */
   --color-surface-950:  83 103 109; /* #53676D */
 
-  /* --- Primary (color4 (blue): #0072D4) --- */
-  --color-primary-50: 235 244 252;
-  --color-primary-100: 204 227 246;
-  --color-primary-200: 166 206 240;
-  --color-primary-300: 115 177 231;
-  --color-primary-400:  56 145 221;
-  --color-primary-500:   0 114 212;
-  --color-primary-600:   0  93 174;
-  --color-primary-700:   0  76 142;
-  --color-primary-800:   0  63 117;
-  --color-primary-900:   0  46  85;
-  --color-primary-950:   0  32  59;
+  /* --- Primary (cursor: #489100) --- */
+  --color-primary-50: 240 246 235;
+  --color-primary-100: 218 233 204;
+  --color-primary-200: 191 217 166;
+  --color-primary-300: 154 195 115;
+  --color-primary-400: 112 169  56;
+  --color-primary-500:  72 145   0;
+  --color-primary-600:  59 119   0;
+  --color-primary-700:  48  97   0;
+  --color-primary-800:  40  80   0;
+  --color-primary-900:  29  58   0;
+  --color-primary-950:  20  41   0;
 
   /* --- Secondary (magenta) --- */
   --color-secondary-50: 251 240 247;
@@ -81,7 +81,7 @@
   --theme-selection-bg:    227 223 204;
   --theme-selection-fg:     83 103 109;
 
-  --color-on-primary:      255 255 255;
+  --color-on-primary:        0   0   0;
   --color-overlay:         0 0 0;
   --color-shadow:          0 0 0;
   --color-hover-bg:        var(--color-surface-200);

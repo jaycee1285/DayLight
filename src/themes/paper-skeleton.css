@@ -1,0 +1,89 @@
+/* Generated from YAML theme: Paper.yml
+   Theme: Paper (light)
+   Primary: #B58900 (from cursor)
+*/
+
+[data-theme="paper"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 242 238 222; /* #F2EEDE */
+  --color-surface-100: 232 228 213; /* #E8E4D5 */
+  --color-surface-200: 223 219 204; /* #DFDBCC */
+  --color-surface-300: 208 205 191; /* #D0CDBF */
+  --color-surface-400: 182 179 167; /* #B6B3A7 */
+  --color-surface-500: 145 143 133; /* #918F85 */
+  --color-surface-600: 109 107 100; /* #6D6B64 */
+  --color-surface-700:  85  83  78; /* #55534E */
+  --color-surface-800:  53  52  49; /* #353431 */
+  --color-surface-900:  29  29  27; /* #1D1D1B */
+  --color-surface-950:   0   0   0; /* #000000 */
+
+  /* --- Primary (cursor: #B58900) --- */
+  --color-primary-50: 249 246 235;
+  --color-primary-100: 240 231 204;
+  --color-primary-200: 229 214 166;
+  --color-primary-300: 214 190 115;
+  --color-primary-400: 197 163  56;
+  --color-primary-500: 181 137   0;
+  --color-primary-600: 148 112   0;
+  --color-primary-700: 121  92   0;
+  --color-primary-800: 100  75   0;
+  --color-primary-900:  72  55   0;
+  --color-primary-950:  51  38   0;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 242 237 248;
+  --color-secondary-100: 222 211 237;
+  --color-secondary-200: 198 177 224;
+  --color-secondary-300: 165 133 206;
+  --color-secondary-400: 128  82 185;
+  --color-secondary-500:  92  33 165;
+  --color-secondary-600:  75  27 135;
+  --color-secondary-700:  62  22 111;
+  --color-secondary-800:  51  18  91;
+  --color-secondary-900:  37  13  66;
+  --color-secondary-950:  26   9  46;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 237 243 235;
+  --color-tertiary-100: 211 224 206;
+  --color-tertiary-200: 177 201 169;
+  --color-tertiary-300: 133 171 120;
+  --color-tertiary-400:  82 136  63;
+  --color-tertiary-500:  33 102   9;
+  --color-tertiary-600:  27  84   7;
+  --color-tertiary-700:  22  68   6;
+  --color-tertiary-800:  18  56   5;
+  --color-tertiary-900:  13  41   4;
+  --color-tertiary-950:   9  29   3;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 236 246 245;
+  --color-accent-100: 208 232 231;
+  --color-accent-200: 173 215 213;
+  --color-accent-300: 126 192 188;
+  --color-accent-400:  72 165 161;
+  --color-accent-500:  21 140 134;
+  --color-accent-600:  17 115 110;
+  --color-accent-700:  14  94  90;
+  --color-accent-800:  12  77  74;
+  --color-accent-900:   8  56  54;
+  --color-accent-950:   6  39  38;
+
+  /* --- Semantic --- */
+  --color-success-500:  33 102   9;
+  --color-warning-500: 181 137   0;
+  --color-error-500:   204  62  40;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-50));
+  --body-text-color:         0   0   0;
+
+  --theme-selection-bg:    208 205 191;
+  --theme-selection-fg:      0   0   0;
+
+  --color-on-primary:        0   0   0;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-200);
+  --color-hover-bg-strong: var(--color-surface-300);
+}

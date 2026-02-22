@@ -1,0 +1,89 @@
+/* Generated from YAML theme: Tomorrow Night Blue.yml
+   Theme: Tomorrow Night Blue (dark)
+   Primary: #99FFFF (from cursor)
+*/
+
+[data-theme="tomorrow-night-blue"] {
+  /* --- Surfaces --- */
+  --color-surface-50: 255 255 255; /* #FFFFFF */
+  --color-surface-100: 242 244 246; /* #F2F4F6 */
+  --color-surface-200: 140 156 177; /* #8C9CB1 */
+  --color-surface-300:  89 113 142; /* #59718E */
+  --color-surface-400:  71  97 130; /* #476182 */
+  --color-surface-500:  56  84 119; /* #385477 */
+  --color-surface-600:  46  75 112; /* #2E4B70 */
+  --color-surface-700:  33  64 104; /* #214068 */
+  --color-surface-800:  18  51  93; /* #12335D */
+  --color-surface-900:   8  43  86; /* #082B56 */
+  --color-surface-950:   0  36  81; /* #002451 */
+
+  /* --- Primary (cursor: #99FFFF) --- */
+  --color-primary-50: 247 255 255;
+  --color-primary-100: 235 255 255;
+  --color-primary-200: 219 255 255;
+  --color-primary-300: 199 255 255;
+  --color-primary-400: 175 255 255;
+  --color-primary-500: 153 255 255;
+  --color-primary-600: 125 209 209;
+  --color-primary-700: 103 171 171;
+  --color-primary-800:  84 140 140;
+  --color-primary-900:  61 102 102;
+  --color-primary-950:  43  71  71;
+
+  /* --- Secondary (magenta) --- */
+  --color-secondary-50: 253 250 255;
+  --color-secondary-100: 251 241 255;
+  --color-secondary-200: 248 231 255;
+  --color-secondary-300: 244 218 255;
+  --color-secondary-400: 239 202 255;
+  --color-secondary-500: 235 187 255;
+  --color-secondary-600: 193 153 209;
+  --color-secondary-700: 157 125 171;
+  --color-secondary-800: 129 103 140;
+  --color-secondary-900:  94  75 102;
+  --color-secondary-950:  66  52  71;
+
+  /* --- Tertiary (green) --- */
+  --color-tertiary-50: 251 254 248;
+  --color-tertiary-100: 246 252 238;
+  --color-tertiary-200: 239 250 225;
+  --color-tertiary-300: 230 247 208;
+  --color-tertiary-400: 219 244 188;
+  --color-tertiary-500: 209 241 169;
+  --color-tertiary-600: 171 198 139;
+  --color-tertiary-700: 140 161 113;
+  --color-tertiary-800: 115 133  93;
+  --color-tertiary-900:  84  96  68;
+  --color-tertiary-950:  59  67  47;
+
+  /* --- Accent (cyan) --- */
+  --color-accent-50: 247 255 255;
+  --color-accent-100: 235 255 255;
+  --color-accent-200: 219 255 255;
+  --color-accent-300: 199 255 255;
+  --color-accent-400: 175 255 255;
+  --color-accent-500: 153 255 255;
+  --color-accent-600: 125 209 209;
+  --color-accent-700: 103 171 171;
+  --color-accent-800:  84 140 140;
+  --color-accent-900:  61 102 102;
+  --color-accent-950:  43  71  71;
+
+  /* --- Semantic --- */
+  --color-success-500: 209 241 169;
+  --color-warning-500: 255 238 173;
+  --color-error-500:   255 157 164;
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-950));
+  --body-text-color:       255 255 255;
+
+  --theme-selection-bg:     89 113 142;
+  --theme-selection-fg:    255 255 255;
+
+  --color-on-primary:        0   0   0;
+  --color-overlay:         0 0 0;
+  --color-shadow:          0 0 0;
+  --color-hover-bg:        var(--color-surface-700);
+  --color-hover-bg-strong: var(--color-surface-600);
+}

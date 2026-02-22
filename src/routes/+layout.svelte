@@ -182,9 +182,10 @@
 
 	const darkThemes = new Set([
 		'flexoki-dark', 'ayu-dark',
-		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard',
+		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard', 'gruvbox-material-dark',
 		'kanagawa', 'liquidcarbon', 'modus-vivendi', 'modus-vivendi-tinted',
-		'nordfox', 'pencildark', 'tokyo-night-storm'
+		'nordfox', 'pencildark', 'rose-pine-moon', 'solarized-dark-higher-contrast',
+		'tokyo-night-storm', 'tomorrow-night-blue'
 	]);
 
 	function setThemeAttributes(theme: string) {

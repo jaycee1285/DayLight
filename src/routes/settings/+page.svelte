@@ -49,26 +49,32 @@
 		{ value: 'everforest-light-hard', label: 'Everforest Light' },
 		{ value: 'glacier', label: 'Glacier' },
 		{ value: 'gruvbox-dark-hard', label: 'Gruvbox Dark' },
+		{ value: 'gruvbox-material-dark', label: 'Gruvbox Material Dark' },
 		{ value: 'gruvbox-material-light', label: 'Gruvbox Material Light' },
 		{ value: 'gruvbox-material-light-hard', label: 'Gruvbox Material Light Hard' },
 		{ value: 'kanagawa', label: 'Kanagawa' },
 		{ value: 'kanagawa-lotus', label: 'Kanagawa Lotus' },
 		{ value: 'liquidcarbon', label: 'Liquid Carbon' },
+		{ value: 'monokai-pro-light', label: 'Monokai Pro Light' },
 		{ value: 'modus-operandi', label: 'Modus Operandi' },
 		{ value: 'modus-vivendi', label: 'Modus Vivendi' },
 		{ value: 'modus-vivendi-tinted', label: 'Modus Vivendi Tinted' },
 		{ value: 'nordfox', label: 'Nordfox' },
 		{ value: 'one-light', label: 'One Light' },
+		{ value: 'paper', label: 'Paper' },
 		{ value: 'pencil-light', label: 'Pencil Light' },
 		{ value: 'pencildark', label: 'Pencil Dark' },
 		{ value: 'polar', label: 'Polar' },
 		{ value: 'rose-pine-dawn', label: 'Rosé Pine Dawn' },
+		{ value: 'rose-pine-moon', label: 'Rosé Pine Moon' },
 		{ value: 'selenized-light', label: 'Selenized Light' },
 		{ value: 'selenized-white', label: 'Selenized White' },
+		{ value: 'solarized-dark-higher-contrast', label: 'Solarized Dark HC' },
 		{ value: 'solarized-light', label: 'Solarized Light' },
 		{ value: 'tempus-dawn', label: 'Tempus Dawn' },
 		{ value: 'tokyo-night-storm', label: 'Tokyo Night Storm' },
-		{ value: 'tomorrow', label: 'Tomorrow' }
+		{ value: 'tomorrow', label: 'Tomorrow' },
+		{ value: 'tomorrow-night-blue', label: 'Tomorrow Night Blue' }
 	];
 	let themeOptions = $derived(
 		isTauri && !isMobile
@@ -167,9 +173,10 @@
 
 	const darkThemes = new Set([
 		'flexoki-dark', 'ayu-dark',
-		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard',
+		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard', 'gruvbox-material-dark',
 		'kanagawa', 'liquidcarbon', 'modus-vivendi', 'modus-vivendi-tinted',
-		'nordfox', 'pencildark', 'tokyo-night-storm'
+		'nordfox', 'pencildark', 'rose-pine-moon', 'solarized-dark-higher-contrast',
+		'tokyo-night-storm', 'tomorrow-night-blue'
 	]);
 
 	function setThemeAttributes(theme: string) {
