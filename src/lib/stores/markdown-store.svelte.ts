@@ -8,14 +8,17 @@
 import type { TaskFrontmatter, TimeEntry } from '$lib/storage/frontmatter';
 import {
 	loadAllTasks,
+	loadGroupedTasks,
 	saveTask,
 	deleteTask as deleteTaskFile,
 	generateUniqueFilename,
 	generateTaskFilename,
-	type LoadTasksResult
+	type LoadTasksResult,
+	type GroupedTaskFilesResult
 } from '$lib/storage/markdown-storage';
 import { waitForTauriReady } from '$lib/platform/tauri';
 import {
+	parseMarkdown,
 	serializeMarkdown,
 	rruleToRecurrence,
 	recurrenceToRRule
@@ -74,7 +77,30 @@ const derivedAllContexts = $derived(getAllContexts(derivedViewTasks));
 const derivedAllProjects = $derived(getAllProjects(derivedViewTasks));
 
 /**
- * Initialize the store by loading all task files
+ * Parse a batch of raw {filename, content} files into the taskFiles map,
+ * merging into the existing map and yielding to the renderer.
+ */
+async function parseAndMergeGroup(
+	group: Array<{ filename: string; content: string }>,
+	files: Map<string, { frontmatter: TaskFrontmatter; body: string }>,
+	errors: Array<{ filename: string; message: string }>
+): Promise<Map<string, { frontmatter: TaskFrontmatter; body: string }>> {
+	for (const { filename, content } of group) {
+		const parsed = parseMarkdown(content);
+		if (!parsed) {
+			errors.push({ filename, message: 'Invalid markdown frontmatter' });
+			continue;
+		}
+		files.set(filename, { frontmatter: parsed.frontmatter, body: parsed.body });
+	}
+	return files;
+}
+
+/**
+ * Initialize the store by loading all task files.
+ *
+ * Uses a single Rust IPC call to read + categorize all .md files,
+ * then parses and renders groups incrementally (Now first).
  */
 export async function initializeMarkdownStore(): Promise<void> {
 	if (!(await waitForTauriReady({ maxAttempts: 0, delayMs: 200 }))) {
@@ -88,36 +114,59 @@ export async function initializeMarkdownStore(): Promise<void> {
 	loadErrors = [];
 
 	try {
-		const result = await loadAllTasks();
+		const tasksDir = await getTasksDir();
+		const today = getTodayDate();
 
-		// Use parsed files directly - no need to re-read!
-		const files = new Map<string, { frontmatter: TaskFrontmatter; body: string }>();
-		for (const parsed of result.parsedFiles) {
-			files.set(parsed.filename, {
-				frontmatter: parsed.frontmatter,
-				body: parsed.body
-			});
+		let result: GroupedTaskFilesResult;
+		try {
+			result = await loadGroupedTasks(tasksDir, today);
+		} catch {
+			// Rust command not available (e.g. dev mismatch) — fall back to JS loading
+			const jsResult = await loadAllTasks();
+			const files = new Map<string, { frontmatter: TaskFrontmatter; body: string }>();
+			for (const parsed of jsResult.parsedFiles) {
+				files.set(parsed.filename, {
+					frontmatter: parsed.frontmatter,
+					body: parsed.body
+				});
+			}
+			taskFiles = files;
+			loadErrors = jsResult.errors;
+			await processAndSaveRecurring();
+			isLoading = false;
+			return;
 		}
 
-		taskFiles = files;
-		loadErrors = result.errors;
+		const errors: Array<{ filename: string; message: string }> = [...result.errors];
+		let files = new Map<string, { frontmatter: TaskFrontmatter; body: string }>();
+
+		// Parse and render Now group first (highest priority)
+		files = await parseAndMergeGroup(result.now, files, errors);
+		taskFiles = new Map(files);
+		loadErrors = errors;
+
+		// Yield to let Now tasks render
+		await new Promise(resolve => setTimeout(resolve, 0));
+
+		// Parse Past group
+		files = await parseAndMergeGroup(result.past, files, errors);
+		taskFiles = new Map(files);
+
+		await new Promise(resolve => setTimeout(resolve, 0));
+
+		// Parse Upcoming group
+		files = await parseAndMergeGroup(result.upcoming, files, errors);
+		taskFiles = new Map(files);
+
+		await new Promise(resolve => setTimeout(resolve, 0));
+
+		// Parse Wrapped group (largest, lowest priority)
+		files = await parseAndMergeGroup(result.wrapped, files, errors);
+		taskFiles = new Map(files);
+		loadErrors = errors;
 
 		// Process recurring instances
-		const frontmatterMap = new Map<string, TaskFrontmatter>();
-		for (const [filename, { frontmatter }] of taskFiles) {
-			frontmatterMap.set(filename, frontmatter);
-		}
-		const processResult = processRecurringInstances(frontmatterMap);
-
-		// Save any tasks that were updated by recurring instance processing
-		if (processResult.updated > 0) {
-			for (const filename of processResult.updatedFiles) {
-				const file = taskFiles.get(filename);
-				if (file) {
-					await saveTaskFile(filename, file.frontmatter, file.body);
-				}
-			}
-		}
+		await processAndSaveRecurring();
 	} catch (error) {
 		loadErrors = [{
 			filename: 'store',
@@ -125,6 +174,26 @@ export async function initializeMarkdownStore(): Promise<void> {
 		}];
 	} finally {
 		isLoading = false;
+	}
+}
+
+/**
+ * Process recurring instances and save updated tasks to disk.
+ */
+async function processAndSaveRecurring(): Promise<void> {
+	const frontmatterMap = new Map<string, TaskFrontmatter>();
+	for (const [filename, { frontmatter }] of taskFiles) {
+		frontmatterMap.set(filename, frontmatter);
+	}
+	const processResult = processRecurringInstances(frontmatterMap);
+
+	if (processResult.updated > 0) {
+		for (const filename of processResult.updatedFiles) {
+			const file = taskFiles.get(filename);
+			if (file) {
+				await saveTaskFile(filename, file.frontmatter, file.body);
+			}
+		}
 	}
 }
 
@@ -277,10 +346,14 @@ export async function addRecurringTask(
 	const windowEnd = formatLocalDate(new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000));
 	const instances = generateOccurrences(recurrence, today, windowEnd);
 
+	// Use first actual instance as scheduled date (may differ from startDate
+	// when today isn't an occurrence day, e.g. MWF created on Thursday)
+	const firstInstance = instances.length > 0 ? instances[0] : recurrence.startDate;
+
 	const frontmatter: TaskFrontmatter = {
 		status: 'open',
 		priority: options.priority || 'none',
-		scheduled: recurrence.startDate,
+		scheduled: firstInstance,
 		due: null,
 		startTime: null,
 		plannedDuration: null,

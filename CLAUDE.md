@@ -74,6 +74,33 @@ Tasks are markdown files with YAML frontmatter:
 - Synced via Syncthing
 - Format: See `src/lib/storage/frontmatter.ts` for the `TaskFrontmatter` type
 
+### Shortcode Syntax (Feb 2026)
+
+Task input supports inline shortcodes parsed by `src/lib/shortcode/parser.ts`. The parser strips recognized tokens from the title and feeds structured data into the AddTask UI controls live via `$effect`.
+
+| Shortcode | Meaning | Example |
+|-----------|---------|---------|
+| `#tag` | Add tag | `#errand` |
+| `+project` | Set project (first wins) | `+household` |
+| `@tom` | Schedule for tomorrow | |
+| `@d22` | Schedule for 22nd of this month | |
+| `@d3-15` | Schedule for March 15th this year | |
+| `@d` | Daily recurrence | |
+| `@w` | Weekly recurrence | |
+| `@wMWF` | Weekly on Mon/Wed/Fri | Day letters: M/T/W/R/F/S/U |
+| `@m` | Monthly (today's day-of-month) | |
+| `@m15` | Monthly on the 15th | |
+| `@3d` | Every 3 days | |
+| `@2w` | Every 2 weeks | |
+
+**Disambiguation:** `@d` (bare) = daily recurrence. `@d` + digits = date. `@` + digits + `d` = interval recurrence. No ambiguity in practice.
+
+**UI sync:** Shortcodes drive the AddTask UI controls live — date picker, recurrence buttons, weekly day toggles, and monthly day selector all update as you type. The UI controls are the final source of truth at submit time, so the user can override after shortcode entry.
+
+**Date picker for recurrence:** When a recurrence shortcode is entered without an explicit date, the date picker jumps to the first actual occurrence (e.g. `@wMWF` on Thursday → Friday, `@m1` on Feb 26 → March 1).
+
+**Contexts (`@context`) were removed** — the `@` prefix is now used for dates/recurrence. The `contexts` field remains in `TaskFrontmatter` for backwards compatibility but is no longer written to by new code.
+
 ### Activity Ledger Model (Feb 2026)
 
 DayLight treats tasks as **reusable activity buckets**, not one-shot checkboxes.
@@ -202,6 +229,8 @@ bun run tauri:android
 | `src/lib/components/TaskContextMenu.svelte` | Context menu (reschedule, delete, edit) |
 | `src/lib/components/TaskEditModal.svelte` | Full task editor (tags, projects, notes, recurrence) |
 | `src/lib/components/RecurrenceEditor.svelte` | Recurrence configuration UI |
+| `src/lib/shortcode/parser.ts` | Shortcode parser (#tag, +project, @date, @recurrence) |
+| `src/lib/components/ChipInput.svelte` | Input with live shortcode chip preview |
 | `src/routes/today-bases/+page.svelte` | Main daily view (uses markdown store) |
 | `src-tauri/capabilities/default.json` | Tauri permissions and fs:scope |
 | `generate-skeleton-themes.ts` | Converts kitty/YAML themes → skeleton CSS |
@@ -268,6 +297,18 @@ bun run tauri:android
 - RecurringInstanceService's `isActiveToday()` and `hasPastUncompletedInstances()` are rescheduled-aware
 - Compatible with TaskNotes Obsidian plugin (unknown fields preserved as customProperties)
 - Re-rescheduling overwrites the map entry; completing uses the original instanceDate
+
+### Shortcode Date & Recurrence Parsing
+- `@` prefix reclaimed from contexts (unused) for dates and recurrence
+- Date shortcuts: `@tom`, `@d22` (day of month), `@d3-15` (month-day)
+- Recurrence shortcuts: `@d`, `@w`, `@wMWF`, `@m`, `@m15`, `@3d`, `@2w`
+- Day letters: M=Mon, T=Tue, W=Wed, R=Thu, F=Fri, S=Sat, U=Sun
+- Parser feeds `$effect` that syncs AddTask UI controls (date picker, recurrence buttons, day toggles) live
+- UI controls are final source of truth — user can override shortcode-set values
+- Date picker auto-advances to first occurrence for recurrence (e.g. `@m1` on Feb 26 → Mar 1)
+- `addRecurringTask` now sets `scheduled` to first occurrence, not `startDate`
+- Contexts field kept in schema for backwards compat but no longer written by new code
+- Key files: `src/lib/shortcode/parser.ts`, `src/lib/components/ChipInput.svelte`
 
 ### Stale Build Cache
 - When CSS imports or structural changes are made, clear caches before dev: `rm -rf .svelte-kit node_modules/.vite build`

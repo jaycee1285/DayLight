@@ -1,10 +1,8 @@
 <script lang="ts">
+	import { slide } from 'svelte/transition';
 	import {
 		markdownStore,
 		initializeMarkdownStore,
-		markTaskComplete,
-		markTaskIncomplete,
-		logHabitEntry
 	} from '$lib/stores/markdown-store.svelte';
 	import {
 		filterHabits,
@@ -15,9 +13,12 @@
 		type ViewTask
 	} from '$lib/services/ViewService';
 	import { getTodayDate, formatLocalDate } from '$lib/domain/task';
+	import HabitRow from '$lib/components/HabitRow.svelte';
+	import IconChevronRight from '~icons/lucide/chevron-right';
 
 	type RangeType = 'week' | 'month' | 'alltime';
 	let rangeType = $state<RangeType>('week');
+	let statsOpen = $state(false);
 
 	let initialized = $state(false);
 
@@ -35,29 +36,6 @@
 	// Today's completion status per habit
 	function isCompletedToday(task: ViewTask): boolean {
 		return isHabitCompletedOnDate(task.frontmatter, today);
-	}
-
-	function getTodayValue(task: ViewTask): number | null {
-		const val = task.frontmatter.habit_entries[today];
-		return val !== undefined ? val : null;
-	}
-
-	// Handle check-type toggle
-	function toggleCheck(task: ViewTask) {
-		if (isCompletedToday(task)) {
-			markTaskIncomplete(task.filename, today);
-		} else {
-			markTaskComplete(task.filename, today);
-		}
-	}
-
-	// Handle numerical input change
-	function handleValueChange(task: ViewTask, event: Event) {
-		const input = event.target as HTMLInputElement;
-		const value = parseFloat(input.value);
-		if (!isNaN(value) && value >= 0) {
-			logHabitEntry(task.filename, today, value);
-		}
 	}
 
 	// Date range calculation (mirrors reports pattern)
@@ -158,65 +136,7 @@
 			{#if allHabits.length > 0}
 				<div class="flex flex-col gap-2">
 					{#each allHabits as habit (habit.filename)}
-						{@const completed = isCompletedToday(habit)}
-						{@const habitType = habit.frontmatter.habit_type || 'check'}
-						<div class="habit-row p-3 rounded-lg flex items-center gap-3" class:completed>
-							{#if habitType === 'check'}
-								<!-- Checkbox for check-type habits -->
-								<button
-									type="button"
-									class="habit-check w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0"
-									class:checked={completed}
-									onclick={() => toggleCheck(habit)}
-									aria-label={completed ? 'Mark incomplete' : 'Mark complete'}
-								>
-									{#if completed}
-										<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-											<path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-										</svg>
-									{/if}
-								</button>
-							{:else}
-								<!-- Status indicator for numerical types -->
-								<div
-									class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-									class:indicator-success={completed}
-									class:indicator-pending={!completed}
-								>
-									{#if completed}
-										<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-											<path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-										</svg>
-									{/if}
-								</div>
-							{/if}
-
-							<span class="habit-title flex-1" class:line-through={completed} class:opacity-60={completed}>
-								{habit.title}
-							</span>
-
-							{#if habitType === 'target' || habitType === 'limit'}
-								<div class="flex items-center gap-1.5">
-									<input
-										type="number"
-										class="value-input"
-										value={getTodayValue(habit) ?? ''}
-										min="0"
-										step="1"
-										placeholder="0"
-										onchange={(e) => handleValueChange(habit, e)}
-									/>
-									{#if habit.frontmatter.habit_goal !== null}
-										<span class="text-xs opacity-50">
-											/ {habit.frontmatter.habit_goal}
-										</span>
-									{/if}
-									{#if habit.frontmatter.habit_unit}
-										<span class="text-xs opacity-50">{habit.frontmatter.habit_unit}</span>
-									{/if}
-								</div>
-							{/if}
-						</div>
+						<HabitRow {habit} />
 					{/each}
 				</div>
 			{:else}
@@ -228,72 +148,88 @@
 
 		<!-- Stats section -->
 		<section>
-			<h2 class="section-header text-lg font-semibold mb-3 flex items-center gap-2">
-				<span class="w-2 h-2 rounded-full" style="background-color: rgb(var(--color-secondary-500))"></span>
-				Stats
-			</h2>
+			<button
+				type="button"
+				class="stats-toggle w-full text-left mb-2"
+				class:open={statsOpen}
+				aria-expanded={statsOpen}
+				aria-controls="habit-stats-panel"
+				onclick={() => (statsOpen = !statsOpen)}
+			>
+				<span class="section-header text-lg font-semibold flex items-center gap-2">
+					<span class="w-2 h-2 rounded-full" style="background-color: rgb(var(--color-secondary-500))"></span>
+					Stats
+				</span>
+				<span class="stats-chevron" class:open={statsOpen} aria-hidden="true">
+					<IconChevronRight width="18" height="18" />
+				</span>
+			</button>
 
-			<!-- Range selector -->
-			<div class="range-selector flex gap-2 mb-4 overflow-x-auto pb-2">
-				<button
-					type="button"
-					class="range-btn"
-					class:active={rangeType === 'week'}
-					onclick={() => rangeType = 'week'}
-				>
-					Week
-				</button>
-				<button
-					type="button"
-					class="range-btn"
-					class:active={rangeType === 'month'}
-					onclick={() => rangeType = 'month'}
-				>
-					Month
-				</button>
-				<button
-					type="button"
-					class="range-btn"
-					class:active={rangeType === 'alltime'}
-					onclick={() => rangeType = 'alltime'}
-				>
-					All Time
-				</button>
-			</div>
-
-			<!-- Overall summary -->
-			{#if allHabits.length > 0}
-				<div class="summary-card p-4 rounded-lg mb-4">
-					<div class="text-sm opacity-70">{formatRangeLabel()}</div>
-					<div class="text-3xl font-bold" style="color: rgb(var(--color-{getCompletionColor(overallRate)}-500))">
-						{formatPercent(overallRate)}
+			{#if statsOpen}
+				<div id="habit-stats-panel" class="stats-panel" transition:slide={{ duration: 180 }}>
+					<!-- Range selector -->
+					<div class="range-selector flex gap-2 mb-4 overflow-x-auto pb-2">
+						<button
+							type="button"
+							class="range-btn"
+							class:active={rangeType === 'week'}
+							onclick={() => rangeType = 'week'}
+						>
+							Week
+						</button>
+						<button
+							type="button"
+							class="range-btn"
+							class:active={rangeType === 'month'}
+							onclick={() => rangeType = 'month'}
+						>
+							Month
+						</button>
+						<button
+							type="button"
+							class="range-btn"
+							class:active={rangeType === 'alltime'}
+							onclick={() => rangeType = 'alltime'}
+						>
+							All Time
+						</button>
 					</div>
-					<div class="text-sm opacity-70">Overall completion</div>
-				</div>
 
-				<!-- Per-habit breakdown -->
-				<div class="space-y-3">
-					{#each habitStats as { habit, rate, color } (habit.filename)}
-						<div class="report-row p-3 rounded-lg">
-							<div class="flex justify-between items-center mb-1">
-								<span class="font-medium">{habit.title}</span>
-								<span class="text-sm font-semibold" style="color: rgb(var(--color-{color}-500))">
-									{formatPercent(rate)}
-								</span>
+					<!-- Overall summary -->
+					{#if allHabits.length > 0}
+						<div class="summary-card p-4 rounded-lg mb-4">
+							<div class="text-sm opacity-70">{formatRangeLabel()}</div>
+							<div class="text-3xl font-bold" style="color: rgb(var(--color-{getCompletionColor(overallRate)}-500))">
+								{formatPercent(overallRate)}
 							</div>
-							<div class="progress-bar">
-								<div
-									class="progress-fill"
-									style="width: {Math.round(rate * 100)}%; background-color: rgb(var(--color-{color}-500))"
-								></div>
-							</div>
+							<div class="text-sm opacity-70">Overall completion</div>
 						</div>
-					{/each}
+
+						<!-- Per-habit breakdown -->
+						<div class="space-y-3">
+							{#each habitStats as { habit, rate, color } (habit.filename)}
+								<div class="report-row p-3 rounded-lg">
+									<div class="flex justify-between items-center mb-1">
+										<span class="font-medium">{habit.title}</span>
+										<span class="text-sm font-semibold" style="color: rgb(var(--color-{color}-500))">
+											{formatPercent(rate)}
+										</span>
+									</div>
+									<div class="progress-bar">
+										<div
+											class="progress-fill"
+											style="width: {Math.round(rate * 100)}%; background-color: rgb(var(--color-{color}-500))"
+										></div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="empty-state text-center py-8 opacity-60">
+							No habit data for this period
+						</p>
+					{/if}
 				</div>
-			{:else}
-				<p class="empty-state text-center py-8 opacity-60">
-					No habit data for this period
-				</p>
 			{/if}
 		</section>
 	</main>
@@ -301,70 +237,39 @@
 
 
 <style>
-	.habit-row {
-		background-color: rgb(var(--color-surface-100));
-	}
-
-	:global([data-mode='dark']) .habit-row {
-		background-color: rgb(var(--color-surface-800));
-	}
-
-	.habit-row.completed {
-		opacity: 0.8;
-	}
-
-	.habit-check {
-		border-color: rgb(var(--color-surface-400));
+	.stats-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.25rem 0;
+		border: none;
 		background: transparent;
-		color: transparent;
-		cursor: pointer;
-		transition: all 0.15s;
-	}
-
-	.habit-check.checked {
-		border-color: rgb(var(--color-success-500));
-		background-color: rgb(var(--color-success-500));
-		color: white;
-	}
-
-	.indicator-success {
-		background-color: rgb(var(--color-success-500));
-		color: white;
-	}
-
-	.indicator-pending {
-		background-color: rgb(var(--color-surface-300));
-	}
-
-	:global([data-mode='dark']) .indicator-pending {
-		background-color: rgb(var(--color-surface-600));
-	}
-
-	.habit-title {
-		font-size: 0.9375rem;
-	}
-
-	.value-input {
-		width: 3.5rem;
-		padding: 0.25rem 0.375rem;
-		border-radius: 0.375rem;
-		border: 1px solid rgb(var(--color-surface-300));
-		background-color: rgb(var(--color-surface-50));
 		color: rgb(var(--body-text-color));
-		text-align: center;
-		font-size: 0.875rem;
-		-moz-appearance: textfield;
+		cursor: pointer;
 	}
 
-	.value-input::-webkit-inner-spin-button,
-	.value-input::-webkit-outer-spin-button {
-		-webkit-appearance: none;
-		margin: 0;
+	.stats-toggle:focus-visible {
+		outline: 2px solid rgb(var(--color-primary-500));
+		outline-offset: 4px;
+		border-radius: 0.5rem;
 	}
 
-	:global([data-mode='dark']) .value-input {
-		background-color: rgb(var(--color-surface-700));
-		border-color: rgb(var(--color-surface-600));
+	.stats-chevron {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0.7;
+		transition: transform 0.18s ease, opacity 0.15s ease;
+		transform: rotate(0deg);
+	}
+
+	.stats-chevron.open {
+		transform: rotate(90deg);
+		opacity: 1;
+	}
+
+	.stats-panel {
+		overflow: hidden;
 	}
 
 	.range-btn {

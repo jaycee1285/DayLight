@@ -11,6 +11,7 @@
 	import { filterByProject, filterNonHabits, type ViewTask } from '$lib/services/ViewService';
 	import { formatDuration } from '$lib/domain/timeLog';
 	import { eventMatchesKey, isEditableTarget } from '$lib/shortcuts/registry';
+	import { onMount } from 'svelte';
 
 	// Project filter state
 	let selectedProject = $state<string | null>(null);
@@ -31,7 +32,9 @@
 	const pastTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.past)));
 	const nowTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.now)));
 	const upcomingTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.upcoming)));
-	const wrappedTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.wrapped)));
+	// Defer wrapped computation until section is expanded
+	const wrappedCount = $derived(markdownStore.groupedView.wrapped.length);
+	const wrappedTasks = $derived(wrappedExpanded ? filterTasksByProject(filterNonHabits(markdownStore.groupedView.wrapped)) : []);
 
 	// Total time logged on the selected date (deduplicated by filename for recurring tasks)
 	const totalTimeToday = $derived.by(() => {
@@ -75,6 +78,26 @@
 		setSelectedDate(getTodayDate());
 		initializeMarkdownStore();
 	});
+
+	// Pull-to-refresh (dynamic import hidden from Rollup's static analysis
+	// via variable — the module is browser-only and unavailable in Nix sandbox)
+	onMount(async () => {
+		const mod = 'pulltorefreshjs';
+		const PullToRefresh = (await import(/* @vite-ignore */ mod)).default;
+		PullToRefresh.init({
+			mainElement: 'main',
+			instructionsPullToRefresh: 'Pull to refresh',
+			instructionsReleaseToRefresh: 'Release to refresh',
+			instructionsRefreshing: 'Refreshing...',
+			onRefresh() {
+				setSelectedDate(getTodayDate());
+				return initializeMarkdownStore();
+			}
+		});
+		return () => {
+			PullToRefresh.destroyAll();
+		};
+	});
 </script>
 
 <svelte:window onkeydown={handleRouteShortcutKeydown} />
@@ -93,7 +116,7 @@
 	</header>
 
 	<!-- Loading state -->
-	{#if markdownStore.isLoading}
+	{#if markdownStore.isLoading && nowTasks.length === 0}
 		<div class="flex items-center justify-center py-12">
 			<div class="text-lg opacity-60">Loading tasks...</div>
 		</div>
@@ -189,8 +212,8 @@
 			</section>
 		{/if}
 
-		<!-- Wrapped section (completed) - collapsible -->
-		{#if wrappedTasks.length > 0}
+		<!-- Wrapped section (completed) - collapsible, lazy-loaded -->
+		{#if wrappedCount > 0}
 			<section class="mb-6">
 				<button
 					type="button"
@@ -200,7 +223,7 @@
 					<span class="collapse-icon" class:expanded={wrappedExpanded}>&#x25B6;</span>
 					<span class="w-2 h-2 rounded-full bg-current"></span>
 					Wrapped
-					<span class="text-sm font-normal opacity-70">({wrappedTasks.length})</span>
+					<span class="text-sm font-normal opacity-70">({wrappedCount})</span>
 				</button>
 				{#if wrappedExpanded}
 					<div class="task-list flex flex-col gap-2">
@@ -259,5 +282,16 @@
 
 	.collapse-icon.expanded {
 		transform: rotate(90deg);
+	}
+
+	/* Pull-to-refresh theming */
+	:global(.ptr--ptr) {
+		background: rgb(var(--color-surface-100));
+		color: rgb(var(--color-surface-900));
+		font-family: inherit;
+	}
+	:global([data-mode='dark'] .ptr--ptr) {
+		background: rgb(var(--color-surface-800));
+		color: rgb(var(--color-surface-100));
 	}
 </style>

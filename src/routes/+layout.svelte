@@ -154,6 +154,89 @@
 	let monthlyDay = $state(1);
 	let customRecurrence = $state<Recurrence | null>(null);
 
+	let parsedTaskInput = $derived(parseShortcodes(taskInput));
+	function scoreTaskSuggestion(query: string, value: string): number {
+		const normalizedQuery = query.trim().toLowerCase();
+		const normalizedValue = value.trim().toLowerCase();
+		if (!normalizedQuery || !normalizedValue) return 0;
+		if (normalizedValue === normalizedQuery) return 1000;
+		if (normalizedValue.startsWith(normalizedQuery)) return 700;
+		if (normalizedValue.includes(normalizedQuery)) return 450;
+
+		let queryIndex = 0;
+		let streak = 0;
+		let score = 0;
+
+		for (const char of normalizedValue) {
+			if (char === normalizedQuery[queryIndex]) {
+				queryIndex += 1;
+				streak += 1;
+				score += 10 + streak * 6;
+				if (queryIndex === normalizedQuery.length) {
+					return Math.max(score - Math.max(normalizedValue.length - normalizedQuery.length, 0), 1);
+				}
+			} else {
+				streak = 0;
+			}
+		}
+
+		return 0;
+	}
+
+	let existingTaskSuggestions = $derived.by(() => {
+		const title = parsedTaskInput.title.trim();
+		if (title.length < 2) return [];
+
+		const seen = new Set<string>();
+		const candidates = markdownStore.viewTasks
+			.filter((task) => {
+				if (task.frontmatter.habit_type || task.frontmatter.tags.includes('habit')) return false;
+				const normalized = task.title.trim();
+				if (!normalized) return false;
+				const key = normalized.toLowerCase();
+				if (seen.has(key)) return false;
+				seen.add(key);
+				return true;
+			})
+			.map((task) => ({
+				title: task.title.trim(),
+				filename: task.filename,
+				meta: [task.frontmatter.projects[0], task.frontmatter.scheduled].filter(Boolean).join(' | ')
+			}));
+
+		const direct = candidates
+			.filter((candidate) => candidate.title.toLowerCase().includes(title.toLowerCase()))
+			.map((candidate) => ({
+				...candidate,
+				score: candidate.title.toLowerCase() === title.toLowerCase()
+					? 1000
+					: candidate.title.toLowerCase().startsWith(title.toLowerCase())
+						? 700
+						: 450
+			}));
+
+		const fuzzy = candidates
+			.map((candidate) => ({
+				...candidate,
+				score: scoreTaskSuggestion(title, candidate.title)
+			}))
+			.filter((candidate) => candidate.score > 0);
+
+		const byFilename = new Map<string, { title: string; filename: string; meta: string; score: number }>();
+		for (const candidate of direct) byFilename.set(candidate.filename, candidate);
+		for (const candidate of fuzzy) {
+			const existing = byFilename.get(candidate.filename);
+			byFilename.set(candidate.filename, {
+				...candidate,
+				score: (existing?.score ?? 0) + candidate.score
+			});
+		}
+
+		return Array.from(byFilename.values())
+			.sort((left, right) => right.score - left.score || left.title.localeCompare(right.title))
+			.slice(0, 10);
+	});
+
 	const weekDayOptions: { value: WeekDay; label: string }[] = [
 		{ value: 'sun', label: 'S' },
 		{ value: 'mon', label: 'M' },
@@ -302,6 +385,15 @@
 
 	function closeModal() {
 		modalMode = null;
+	}
+
+	function applySuggestedTaskTitle(title: string) {
+		const currentTitle = parsedTaskInput.title;
+		if (currentTitle && taskInput.startsWith(currentTitle)) {
+			taskInput = title + taskInput.slice(currentTitle.length);
+			return;
+		}
+		taskInput = title;
 	}
 
 	function hasOpenMenuOrPopover(): boolean {
@@ -1012,6 +1104,25 @@
 			suggestions={[...markdownStore.allTags, ...markdownStore.allContexts, ...markdownStore.allProjects]}
 		/>
 
+		{#if existingTaskSuggestions.length > 0}
+			<div class="task-suggestion-block">
+				<div class="task-suggestion-list">
+					{#each existingTaskSuggestions as suggestion}
+						<button
+							type="button"
+							class="task-suggestion-btn"
+							onclick={() => applySuggestedTaskTitle(suggestion.title)}
+						>
+							<span class="task-suggestion-title">{suggestion.title}</span>
+							{#if suggestion.meta}
+								<span class="task-suggestion-meta">{suggestion.meta}</span>
+							{/if}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		<div class="flex items-center gap-2">
 			<span class="text-sm opacity-70">Schedule for:</span>
 			<DatePill
@@ -1620,6 +1731,71 @@
 
 	:global([data-mode='dark']) .shortcut-list li {
 		background-color: rgb(var(--color-hover-bg-strong));
+	}
+
+	.task-suggestion-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.task-suggestion-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 0.5rem;
+	}
+
+	.task-suggestion-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.125rem;
+		width: 100%;
+		padding: 0.625rem 0.75rem;
+		border-radius: 0.625rem;
+		border: 1px solid rgb(var(--color-surface-300));
+		background-color: rgb(var(--color-surface-100));
+		text-align: left;
+		transition:
+			border-color 120ms ease,
+			background-color 120ms ease,
+			transform 120ms ease,
+			box-shadow 120ms ease;
+	}
+
+	.task-suggestion-btn:hover {
+		border-color: rgb(var(--color-accent-500));
+		background-color: rgb(var(--color-hover-bg));
+		transform: translateY(-1px);
+	}
+
+	.task-suggestion-btn:focus-visible {
+		outline: none;
+		border-color: rgb(var(--color-accent-500));
+		box-shadow: 0 0 0 2px rgba(var(--color-accent-500), 0.18);
+		background-color: rgb(var(--color-hover-bg));
+	}
+
+	:global([data-mode='dark']) .task-suggestion-btn {
+		border-color: rgb(var(--color-surface-600));
+		background-color: rgb(var(--color-hover-bg-strong));
+	}
+
+	:global([data-mode='dark']) .task-suggestion-btn:hover,
+	:global([data-mode='dark']) .task-suggestion-btn:focus-visible {
+		border-color: rgb(var(--color-accent-400));
+		background-color: rgb(var(--color-surface-600));
+	}
+
+	.task-suggestion-title {
+		font-weight: 600;
+		line-height: 1.3;
+	}
+
+	.task-suggestion-meta {
+		font-size: 0.8125rem;
+		opacity: 0.75;
+		line-height: 1.3;
 	}
 
 	.shortcut-debug-panel {

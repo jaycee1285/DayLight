@@ -5,9 +5,10 @@
 		completeShortcode,
 		type PartialShortcode
 	} from '$lib/shortcode/parser';
+	import { describeRecurrence } from '$lib/domain/recurrence';
 
 	export interface Chip {
-		type: 'tag' | 'context' | 'project';
+		type: 'tag' | 'project' | 'date' | 'recurrence';
 		value: string;
 	}
 
@@ -16,12 +17,12 @@
 		placeholder?: string;
 		suggestions?: string[];
 		oninput?: (value: string) => void;
-		onparsed?: (parsed: { title: string; tags: string[]; contexts: string[]; project: string | null }) => void;
+		onparsed?: (parsed: { title: string; tags: string[]; project: string | null; scheduled: string | null; recurrence: import('$lib/domain/recurrence').Recurrence | null }) => void;
 	}
 
 	let {
 		value = $bindable(''),
-		placeholder = 'Enter text with #tags @contexts +project',
+		placeholder = 'Task title with #tags +project @d @tom',
 		suggestions = [],
 		oninput,
 		onparsed
@@ -43,12 +44,16 @@
 			result.push({ type: 'tag', value: tag });
 		}
 
-		for (const context of parsed.contexts) {
-			result.push({ type: 'context', value: context });
-		}
-
 		if (parsed.project) {
 			result.push({ type: 'project', value: parsed.project });
+		}
+
+		if (parsed.scheduled) {
+			result.push({ type: 'date', value: parsed.scheduled });
+		}
+
+		if (parsed.recurrence) {
+			result.push({ type: 'recurrence', value: describeRecurrence(parsed.recurrence) });
 		}
 
 		return result;
@@ -83,10 +88,12 @@
 		switch (type) {
 			case 'tag':
 				return 'chip-tag';
-			case 'context':
-				return 'chip-context';
 			case 'project':
 				return 'chip-project';
+			case 'date':
+				return 'chip-date';
+			case 'recurrence':
+				return 'chip-recurrence';
 			default:
 				return '';
 		}
@@ -96,10 +103,12 @@
 		switch (type) {
 			case 'tag':
 				return '#';
-			case 'context':
-				return '@';
 			case 'project':
 				return '+';
+			case 'date':
+				return '';
+			case 'recurrence':
+				return '';
 			default:
 				return '';
 		}
@@ -169,7 +178,9 @@
 		<div class="chips-display flex flex-wrap gap-1 mb-2">
 			{#each chips as chip}
 				<span class="chip {getChipClass(chip.type)}">
-					<span class="chip-prefix">{getChipPrefix(chip.type)}</span>
+					{#if getChipPrefix(chip.type)}
+						<span class="chip-prefix">{getChipPrefix(chip.type)}</span>
+					{/if}
 					{chip.value}
 				</span>
 			{/each}
@@ -198,7 +209,7 @@
 					>
 						{#if partialShortcode}
 							<span class="suggestion-prefix">
-								{partialShortcode.type === 'tag' ? '#' : partialShortcode.type === 'context' ? '@' : '+'}
+								{partialShortcode.type === 'tag' ? '#' : '+'}
 							</span>
 						{/if}
 						{suggestion}
@@ -246,16 +257,6 @@
 		color: rgb(var(--color-primary-300));
 	}
 
-	.chip-context {
-		background-color: rgb(var(--color-secondary-100));
-		color: rgb(var(--color-secondary-700));
-	}
-
-	:global([data-mode='dark']) .chip-context {
-		background-color: rgb(var(--color-secondary-900));
-		color: rgb(var(--color-secondary-300));
-	}
-
 	.chip-project {
 		background-color: rgb(var(--color-tertiary-100));
 		color: rgb(var(--color-tertiary-700));
@@ -264,6 +265,26 @@
 	:global([data-mode='dark']) .chip-project {
 		background-color: rgb(var(--color-tertiary-900));
 		color: rgb(var(--color-tertiary-300));
+	}
+
+	.chip-date {
+		background-color: rgb(var(--color-success-100));
+		color: rgb(var(--color-success-700));
+	}
+
+	:global([data-mode='dark']) .chip-date {
+		background-color: rgb(var(--color-success-900));
+		color: rgb(var(--color-success-300));
+	}
+
+	.chip-recurrence {
+		background-color: rgb(var(--color-warning-100));
+		color: rgb(var(--color-warning-700));
+	}
+
+	:global([data-mode='dark']) .chip-recurrence {
+		background-color: rgb(var(--color-warning-900));
+		color: rgb(var(--color-warning-300));
 	}
 
 	.chip-prefix {

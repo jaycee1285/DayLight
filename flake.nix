@@ -108,7 +108,7 @@
 
           buildPhase = ''
             export HOME=$(mktemp -d)
-            bun install --frozen-lockfile
+            bun install --frozen-lockfile --linker hoisted
           '';
 
           installPhase = ''
@@ -118,7 +118,7 @@
 
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
-          outputHash = "sha256-wx/HAumEswYKOCRIiwyKsVOafwkYfT0b5PYVgOmVJJ0=";
+          outputHash = "sha256-k/A4xeCSEXM1egenqKz6Q90Klk0AG34CJe0+6JMkjHo=";
         };
 
       in
@@ -169,6 +169,7 @@
             chmod -R u+w node_modules
             patchShebangs node_modules
             export HOME=$(mktemp -d)
+            ./node_modules/.bin/svelte-kit sync
             ./node_modules/.bin/vite build
           '';
 

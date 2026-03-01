@@ -39,6 +39,26 @@ import { getDataPath, ensureDataDir } from './storage';
 import { generateConflictArchiveName, SYNCTHING_CONFLICT_PATTERN, DIR_CONFLICTS } from './constants';
 
 /**
+ * Result from Rust grouped task loading
+ */
+export interface GroupedTaskFilesResult {
+	now: Array<{ filename: string; content: string }>;
+	past: Array<{ filename: string; content: string }>;
+	upcoming: Array<{ filename: string; content: string }>;
+	wrapped: Array<{ filename: string; content: string }>;
+	errors: Array<{ filename: string; message: string }>;
+}
+
+/**
+ * Load all tasks via a single Rust IPC call that reads, parses frontmatter,
+ * and categorizes files into Now/Past/Upcoming/Wrapped groups.
+ */
+export async function loadGroupedTasks(tasksDir: string, today: string): Promise<GroupedTaskFilesResult> {
+	const { invoke } = await import('@tauri-apps/api/core');
+	return invoke('load_grouped_tasks', { tasksDir, today });
+}
+
+/**
  * Directory names within the data path
  */
 export const DIR_TASKS = 'Tasks';

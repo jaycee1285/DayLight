@@ -16,6 +16,7 @@
     "core:default",
     "shell:allow-open",
     "fs:default",
+    "fs:allow-exists",
     "fs:allow-app-read-recursive",
     "fs:allow-app-write-recursive",
     "fs:allow-appcache-read-recursive",
@@ -30,7 +31,11 @@
         "/storage/emulated/0/**",
         "$DOCUMENT/**",
         "$HOME/**",
-        "/home/**"
+        "$HOME/**/.daylight",
+        "$HOME/**/.daylight/**",
+        "/home/**",
+        "/home/**/.daylight",
+        "/home/**/.daylight/**"
       ]
     },
     "fs:read-all",

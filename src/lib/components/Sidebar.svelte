@@ -4,6 +4,7 @@
 	import IconCalendar from '~icons/lucide/calendar';
 	import IconRepeat from '~icons/lucide/repeat';
 	import IconTarget from '~icons/lucide/target';
+	import IconFileEdit from '~icons/lucide/file-edit';
 	import IconBarChart2 from '~icons/lucide/bar-chart-2';
 	import IconSettings from '~icons/lucide/settings';
 	import IconChevronRight from '~icons/lucide/chevron-right';
@@ -38,7 +39,7 @@
 	}: Props = $props();
 
 	let projectsExpanded = $state(true);
-	let tagsExpanded = $state(true);
+	let tagsExpanded = $state(false);
 
 	function isActive(href: string): boolean {
 		return $page.url.pathname === href || $page.url.pathname.startsWith(href + '/');
@@ -112,6 +113,26 @@
 			>
 				<span class="nav-icon"><IconTarget width="18" height="18" /></span>
 				<span>Habits</span>
+			</a>
+
+			<a
+				href="/editor"
+				class="nav-item"
+				class:active={isActive('/editor')}
+				onclick={onclose}
+			>
+				<span class="nav-icon"><IconFileEdit width="18" height="18" /></span>
+				<span>Editor</span>
+			</a>
+
+			<a
+				href="/reports"
+				class="nav-item"
+				class:active={isActive('/reports')}
+				onclick={onclose}
+			>
+				<span class="nav-icon"><IconBarChart2 width="18" height="18" /></span>
+				<span>Reports</span>
 			</a>
 
 			<hr class="nav-divider" />
@@ -217,16 +238,6 @@
 			</div>
 
 			<hr class="nav-divider" />
-
-			<a
-				href="/reports"
-				class="nav-item"
-				class:active={isActive('/reports')}
-				onclick={onclose}
-			>
-				<span class="nav-icon"><IconBarChart2 width="18" height="18" /></span>
-				<span>Reports</span>
-			</a>
 
 			<a
 				href="/settings"

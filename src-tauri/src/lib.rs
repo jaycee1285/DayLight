@@ -1,3 +1,4 @@
+mod tasks;
 mod theme;
 
 use std::sync::Mutex;
@@ -182,7 +183,8 @@ pub fn run() {
             await_oauth_code,
             fetch_url,
             tauri_ready,
-            theme::get_gtk_colors
+            theme::get_gtk_colors,
+            tasks::load_grouped_tasks
         ])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())

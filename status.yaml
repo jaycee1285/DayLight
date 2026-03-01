@@ -1,0 +1,51 @@
+repo: DayLight
+status_version: 1
+last_updated: 2026-03-01
+manual_smoke:
+  state: pass
+  source: user-confirmed
+  last_run: 2026-03-01
+  bounds:
+    platform: Linux desktop (Wayland primary)
+    scope:
+      - launch and load configured task folder
+      - task create/edit/complete persistence
+      - manual time logging persistence
+      - recurring instance behavior sanity
+      - restart/reload integrity
+      - markdown roundtrip sanity
+      - editor markdown search with persisted JSON index
+      - add-task fuzzy suggestion sanity
+    exclusions:
+      - Android-specific permission/folder smoke
+      - calendar provider integration edge cases
+  conditions:
+    app_launches_and_loads_data_path: pass
+    task_create_persists_to_markdown: pass
+    task_edit_updates_ui_and_markdown: pass
+    task_complete_behavior_matches_model: pass
+    manual_time_log_persists_and_displays: pass
+    recurring_instance_complete_does_not_break_series: pass
+    recurring_instance_reschedule_sane: pass
+    restart_preserves_task_time_and_recurrence_state: pass
+    external_markdown_edit_roundtrip_sane: pass
+    no_frontmatter_corruption_observed: pass
+    editor_search_initial_index_build_and_repeat_query: pass
+    add_task_fuzzy_suggestions_render_without_regression: pass
+  known_gaps:
+    - Android smoke cadence not encoded in this file
+    - persisted index freshness still depends on manual rebuild/query lifecycle
+    - add-task fuzzy ranking still needs broader real-data tuning
+  notes:
+    - Search smoke on 2026-03-01 used /home/john/syncthing with 3578 indexed docs.
+    - First editor query built the persisted index in about 15.8s; repeat query from session cache returned in about 17ms.
+    - Persisted index path is <selected-root>/.daylight/search-index.json.
+    - Imported TaskNotes migration remains staged-only; report reviewed by user and considered sane.
+  next_smoke_trigger:
+    - markdown storage/parser changes
+    - recurrence logic changes
+    - task completion semantics changes
+    - time logging changes
+    - conflict resolution changes
+    - editor search index format or rebuild flow changes
+    - add-task suggestion logic changes
