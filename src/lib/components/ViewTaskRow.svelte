@@ -472,7 +472,7 @@
 			<!-- Time Summary -->
 			<div class="time-summary mt-3 p-4 rounded-lg">
 				<div class="flex items-center justify-between">
-					<span class="text-sm opacity-70">Total time tracked</span>
+					<span class="text-sm opacity-70">Time this instance</span>
 					<span class="text-lg font-semibold">
 						{timeSpentMinutes > 0 ? formatDuration(timeSpentMinutes) : 'None'}
 					</span>

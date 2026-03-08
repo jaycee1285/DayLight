@@ -196,7 +196,7 @@ export function createViewTasks(
 				urgencyScore: calculateUrgencyScore(frontmatter, today),
 				isActiveToday: isActiveToday(frontmatter, today),
 				hasPastUncompleted: hasPastUncompletedInstances(frontmatter, today),
-				totalTimeTracked: calculateTotalTimeTracked(frontmatter.timeEntries),
+				totalTimeTracked: calculateActiveInstanceTime(frontmatter.timeEntries, frontmatter.complete_instances),
 				timeTrackedToday: calculateTimeTrackedOnDate(frontmatter.timeEntries, today),
 				instanceDate: null,
 				effectiveDate: frontmatter.scheduled || null
@@ -457,6 +457,34 @@ function calculateTotalTimeTracked(timeEntries: TimeEntry[]): number {
 	if (!timeEntries || timeEntries.length === 0) return 0;
 
 	return timeEntries.reduce((total, entry) => total + (entry.minutes || 0), 0);
+}
+
+/**
+ * Calculate time tracked for the current active instance only.
+ * Only counts time entries logged AFTER the most recent completion date.
+ * This way, reused tasks (like "Walmart") only show current-instance time
+ * in the task view, not accumulated historical time.
+ */
+function calculateActiveInstanceTime(
+	timeEntries: TimeEntry[],
+	completeInstances: string[]
+): number {
+	if (!timeEntries || timeEntries.length === 0) return 0;
+
+	if (!completeInstances || completeInstances.length === 0) {
+		// Never completed — all time entries belong to this instance
+		return calculateTotalTimeTracked(timeEntries);
+	}
+
+	// Find the most recent completion date
+	const lastCompletion = completeInstances.reduce((latest, date) =>
+		date > latest ? date : latest
+	);
+
+	// Only sum entries logged after the last completion
+	return timeEntries
+		.filter((entry) => entry.date > lastCompletion)
+		.reduce((total, entry) => total + (entry.minutes || 0), 0);
 }
 
 /**
