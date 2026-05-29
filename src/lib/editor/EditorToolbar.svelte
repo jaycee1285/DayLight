@@ -10,14 +10,15 @@
 	import IconRedo from '~icons/lucide/redo-2';
 	import IconBold from '~icons/lucide/bold';
 	import IconItalic from '~icons/lucide/italic';
-	import IconStrikethrough from '~icons/lucide/strikethrough';
+
 	import IconHeading from '~icons/lucide/heading';
 	import IconList from '~icons/lucide/list';
-	import IconListChecks from '~icons/lucide/list-checks';
+
 	import IconQuote from '~icons/lucide/quote';
 	import IconCode from '~icons/lucide/code';
 	import IconLink from '~icons/lucide/link';
 	import IconMinus from '~icons/lucide/minus';
+	import IconTable from '~icons/lucide/table';
 
 	interface Props {
 		editor: EditorHandle | null;
@@ -117,13 +118,6 @@
 			disabled: previewing
 		},
 		{
-			id: 'strikethrough',
-			icon: IconStrikethrough,
-			label: 'Strikethrough',
-			action: () => insertText('~~', '~~'),
-			disabled: previewing
-		},
-		{
 			id: 'heading',
 			icon: IconHeading,
 			label: 'Heading',
@@ -141,13 +135,6 @@
 			icon: IconList,
 			label: 'List',
 			action: () => insertLinePrefix('- '),
-			disabled: previewing
-		},
-		{
-			id: 'checklist',
-			icon: IconListChecks,
-			label: 'Checklist',
-			action: () => insertLinePrefix('- [ ] '),
 			disabled: previewing
 		},
 		{
@@ -169,6 +156,13 @@
 			icon: IconLink,
 			label: 'Link',
 			action: () => insertText('[', '](url)'),
+			disabled: previewing
+		},
+		{
+			id: 'table',
+			icon: IconTable,
+			label: 'Table',
+			action: () => insertText('\n| Header | Header |\n| --- | --- |\n| Cell | Cell |\n'),
 			disabled: previewing
 		},
 		{
@@ -229,7 +223,6 @@
 		bottom: 0;
 		left: 0;
 		right: 0;
-		height: 3rem;
 		background-color: rgb(var(--color-surface-100));
 		border-top: 1px solid rgb(var(--color-surface-300));
 		z-index: 50;
@@ -244,6 +237,7 @@
 	.toolbar-scroll {
 		display: flex;
 		align-items: center;
+		justify-content: flex-start;
 		height: 3rem;
 		overflow-x: auto;
 		-webkit-overflow-scrolling: touch;
@@ -268,8 +262,10 @@
 		align-items: center;
 		justify-content: center;
 		width: 2.75rem;
+		min-width: 2.75rem;
+		max-width: 2.75rem;
 		height: 2.75rem;
-		flex-shrink: 0;
+		flex: 0 0 2.75rem;
 		border-radius: 0.375rem;
 		color: rgb(var(--color-surface-700));
 		transition: background-color 0.15s ease, color 0.15s ease;

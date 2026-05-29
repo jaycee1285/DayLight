@@ -18,6 +18,7 @@
 		suggestions?: string[];
 		oninput?: (value: string) => void;
 		onparsed?: (parsed: { title: string; tags: string[]; project: string | null; scheduled: string | null; recurrence: import('$lib/domain/recurrence').Recurrence | null }) => void;
+		onhelp?: () => void;
 	}
 
 	let {
@@ -25,7 +26,8 @@
 		placeholder = 'Task title with #tags +project @d @tom',
 		suggestions = [],
 		oninput,
-		onparsed
+		onparsed,
+		onhelp
 	}: Props = $props();
 
 	let inputElement: HTMLInputElement | null = $state(null);
@@ -197,6 +199,15 @@
 		class="chip-input w-full p-3 rounded-lg border"
 		autocomplete="off"
 	/>
+	<button
+		type="button"
+		class="shortcode-help-btn"
+		onclick={() => onhelp?.()}
+		aria-label="Open shortcode reference"
+		title="Shortcode reference"
+	>
+		?
+	</button>
 	{#if showSuggestions && filteredSuggestions.length > 0}
 		<ul class="suggestions-dropdown absolute left-0 right-0 mt-1 rounded-lg shadow-lg z-50 overflow-hidden">
 			{#each filteredSuggestions as suggestion, index}
@@ -225,6 +236,7 @@
 		background-color: rgb(var(--color-surface-50));
 		border-color: rgb(var(--color-surface-300));
 		color: rgb(var(--body-text-color));
+		padding-right: 2.5rem;
 	}
 
 	:global([data-mode='dark']) .chip-input {
@@ -329,5 +341,42 @@
 	.suggestion-prefix {
 		opacity: 0.6;
 		margin-right: 0.125rem;
+	}
+
+	.shortcode-help-btn {
+		position: absolute;
+		right: 0.5rem;
+		top: 0.625rem;
+		width: 1.75rem;
+		height: 1.75rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		border: 1px solid rgb(var(--color-surface-300));
+		background-color: rgb(var(--color-surface-100));
+		color: rgb(var(--body-text-color));
+		font-size: 0.875rem;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.shortcode-help-btn:hover {
+		background-color: rgb(var(--color-hover-bg));
+	}
+
+	.shortcode-help-btn:focus-visible {
+		outline: none;
+		border-color: rgb(var(--color-primary-500));
+		box-shadow: 0 0 0 2px rgb(var(--color-primary-500) / 0.2);
+	}
+
+	:global([data-mode='dark']) .shortcode-help-btn {
+		background-color: rgb(var(--color-surface-700));
+		border-color: rgb(var(--color-surface-600));
+	}
+
+	:global([data-mode='dark']) .shortcode-help-btn:hover {
+		background-color: rgb(var(--color-surface-600));
 	}
 </style>

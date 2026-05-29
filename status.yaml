@@ -1,10 +1,11 @@
 repo: DayLight
 status_version: 1
-last_updated: 2026-03-01
+last_updated: 2026-04-11
+feature_status: feature-complete
 manual_smoke:
   state: pass
   source: user-confirmed
-  last_run: 2026-03-01
+  last_run: 2026-04-11
   bounds:
     platform: Linux desktop (Wayland primary)
     scope:
@@ -16,6 +17,9 @@ manual_smoke:
       - markdown roundtrip sanity
       - editor markdown search with persisted JSON index
       - add-task fuzzy suggestion sanity
+      - editor recent files via shared .ferrite/state.json
+      - editor dialog centering (folder/new note)
+      - UX normalization sweep (T19) for today-bases/settings/layout
     exclusions:
       - Android-specific permission/folder smoke
       - calendar provider integration edge cases
@@ -32,15 +36,36 @@ manual_smoke:
     no_frontmatter_corruption_observed: pass
     editor_search_initial_index_build_and_repeat_query: pass
     add_task_fuzzy_suggestions_render_without_regression: pass
+    editor_recent_files_fab_shows_and_opens_files: pass
+    editor_recent_files_updates_ferrite_state_on_open: pass
+    editor_dialogs_centered_on_screen: pass
+    shortcode_help_discoverability_inline_button_and_sheet: pass
+    task_edit_dirty_state_indicator_and_save_enablement: pass
+    command_palette_route_coverage_habits_projects_tags_conflicts_editor: pass
+    date_pill_escape_outside_click_and_viewport_bounds: pass
+    remove_today_bases_project_pills_row: pass
+    legacy_today_and_recurring_routes_redirect_to_bases: pass
+    add_task_prefill_from_project_or_tag_route: pass
+    dark_mode_input_surface_flattening_fixed_for_select_and_command_search: pass
+    layout_override_settings_toggles_force_mobile_and_force_desktop: pass
+    sidebar_persistent_mode_no_header_label_or_close_when_non_overlay: pass
+    sidebar_width_content_driven_with_dynamic_layout_offset: pass
   known_gaps:
     - Android smoke cadence not encoded in this file
     - persisted index freshness still depends on manual rebuild/query lifecycle
     - add-task fuzzy ranking still needs broader real-data tuning
+    - Ferrite/DayLight concurrent access to .ferrite/state.json untested (assumed non-concurrent)
+    - Layout override keyboard shortcuts (`Ctrl/Cmd+D`, `Ctrl/Cmd+M`) implemented but not explicitly human-confirmed yet
   notes:
     - Search smoke on 2026-03-01 used /home/john/syncthing with 3578 indexed docs.
     - First editor query built the persisted index in about 15.8s; repeat query from session cache returned in about 17ms.
     - Persisted index path is <selected-root>/.daylight/search-index.json.
     - Imported TaskNotes migration remains staged-only; report reviewed by user and considered sane.
+    - "Recent files" feature (2026-03-13) reads/writes .ferrite/state.json shared with Ferrite editor.
+    - Required explicit Tauri fs:scope entries for .ferrite dotdir — ** globs do not match dotfiles.
+    - Editor folder and new note dialogs recentered to match FileBrowser dialog pattern.
+    - UX normalization follow-through completed and signed off during 2026-04-10/2026-04-11 sessions (T19.4, T19.5, T19.6, T19.8, T19.9, T19.10, T19.11, T19.13).
+    - Sidebar behavior now supports manual layout override from Settings (auto/mobile/desktop), with content-driven width and dynamic nav/content offset.
   next_smoke_trigger:
     - markdown storage/parser changes
     - recurrence logic changes
@@ -49,3 +74,5 @@ manual_smoke:
     - conflict resolution changes
     - editor search index format or rebuild flow changes
     - add-task suggestion logic changes
+    - .ferrite/state.json format or read/write logic changes
+    - layout override behavior, breakpoint policy, or sidebar width-measurement logic changes

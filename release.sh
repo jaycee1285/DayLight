@@ -10,6 +10,8 @@ APP_NAME="daylight"
 ARCH="$(uname -m)"
 PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
 TARBALL="${APP_NAME}-${TAG}-${PLATFORM}-${ARCH}.tar.xz"
+REPO="jaycee1285/DayLight"
+ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${TARBALL}"
 
 echo "==> Building ${APP_NAME} ${TAG} (${PLATFORM}/${ARCH})"
 
@@ -53,15 +55,28 @@ if [[ "${SKIP_UPLOAD:-0}" == "1" ]]; then
   echo "==> SKIP_UPLOAD=1, leaving tarball at ${REPO_ROOT}/${TARBALL}"
 else
   echo "==> Uploading to GitHub release ${TAG}"
-  if gh release view "$TAG" --repo jaycee1285/DayLight &>/dev/null; then
-    gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo jaycee1285/DayLight --clobber
+  if gh release view "$TAG" --repo "$REPO" &>/dev/null; then
+    gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo "$REPO" --clobber
   else
     gh release create "$TAG" "$REPO_ROOT/$TARBALL" \
-      --repo jaycee1285/DayLight \
+      --repo "$REPO" \
       --title "${APP_NAME} ${TAG}" \
       --notes "${APP_NAME} ${TAG}" \
       --latest
   fi
 fi
 
-echo "==> Done! https://github.com/jaycee1285/DayLight/releases/tag/${TAG}"
+echo "==> Release asset: ${ASSET_URL}"
+echo "==> SHA-256 for Nix flake input:"
+if [[ "${SKIP_UPLOAD:-0}" == "1" ]]; then
+  nix hash file --type sha256 "$REPO_ROOT/$TARBALL"
+else
+  PREFETCH_JSON=$(nix store prefetch-file --json --hash-type sha256 "$ASSET_URL")
+  echo "$PREFETCH_JSON" | grep -oP '"hash"\s*:\s*"\K[^"]+'
+  PREFETCH_PATH=$(echo "$PREFETCH_JSON" | grep -oP '"storePath"\s*:\s*"\K[^"]+')
+  if [[ -n "$PREFETCH_PATH" ]]; then
+    nix store delete "$PREFETCH_PATH" 2>/dev/null || true
+  fi
+fi
+
+echo "==> Done! https://github.com/${REPO}/releases/tag/${TAG}"

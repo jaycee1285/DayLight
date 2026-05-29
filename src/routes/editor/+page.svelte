@@ -12,9 +12,22 @@
 	import IconChevronLeft from '~icons/lucide/chevron-left';
 	import IconSave from '~icons/lucide/save';
 	import IconPlus from '~icons/lucide/plus';
+	import IconFolderSearch from '~icons/lucide/folder-search';
+	import IconX from '~icons/lucide/x';
+	import IconHistory from '~icons/lucide/history';
 
 type View = 'browser' | 'editor' | 'preview';
 const EDITOR_PATH_KEY = 'daylight-editor-path';
+const FERRITE_DIR = '.ferrite';
+const FERRITE_STATE = 'state.json';
+const MAX_RECENT = 20;
+
+interface FerriteState {
+	recent_files: string[];
+	expanded_paths: string[];
+	file_tree_width: number;
+	show_file_tree: boolean;
+}
 
 	let view = $state<View>('browser');
 	let basePath = $state('');
@@ -27,6 +40,12 @@ const EDITOR_PATH_KEY = 'daylight-editor-path';
 	let saving = $state(false);
 	let dirty = $state(false);
 let previewing = $state(false);
+let showUnsavedDialog = $state(false);
+let pendingNavAction: (() => void) | null = null;
+let showCommandDrawer = $state(false);
+let showToolbar = $state(false);
+let swipeStartY = $state(0);
+let swipeStartX = $state(0);
 let initError = $state<string | null>(null);
 	let loadingPhase = $state<'init' | 'browser'>('init');
 	let initialized = $state(false);
@@ -37,6 +56,82 @@ let initError = $state<string | null>(null);
 	let showNewNoteDialog = $state(false);
 	let newNoteName = $state('');
 	let newNoteError = $state<string | null>(null);
+	let showRecentFiles = $state(false);
+	let recentFiles = $state<string[]>([]);
+
+	async function readFerriteState(): Promise<FerriteState | null> {
+		try {
+			const statePath = await join(basePath, FERRITE_DIR, FERRITE_STATE);
+			if (!(await exists(statePath))) return null;
+			const content = await readTextFile(statePath);
+			return JSON.parse(content) as FerriteState;
+		} catch {
+			return null;
+		}
+	}
+
+	async function writeFerriteState(state: FerriteState): Promise<void> {
+		try {
+			const dirPath = await join(basePath, FERRITE_DIR);
+			const { mkdir } = await import('@tauri-apps/plugin-fs');
+			try { await mkdir(dirPath); } catch { /* already exists */ }
+			const statePath = await join(dirPath, FERRITE_STATE);
+			await writeTextFile(statePath, JSON.stringify(state, null, 2));
+		} catch (e) {
+			console.error('Failed to write .ferrite/state.json:', e);
+		}
+	}
+
+	async function loadRecentFiles(): Promise<void> {
+		const state = await readFerriteState();
+		recentFiles = state?.recent_files ?? [];
+	}
+
+	async function trackRecentFile(absolutePath: string): Promise<void> {
+		let state = await readFerriteState();
+		if (!state) {
+			state = {
+				recent_files: [],
+				expanded_paths: [basePath],
+				file_tree_width: 250.0,
+				show_file_tree: true
+			};
+		}
+		// Remove if already in list, then prepend
+		state.recent_files = state.recent_files.filter((f) => f !== absolutePath);
+		state.recent_files.unshift(absolutePath);
+		// Cap at MAX_RECENT to match Ferrite's behavior
+		if (state.recent_files.length > MAX_RECENT) {
+			state.recent_files = state.recent_files.slice(0, MAX_RECENT);
+		}
+		await writeFerriteState(state);
+		recentFiles = state.recent_files;
+	}
+
+	function recentFileDisplayName(absolutePath: string): string {
+		const parts = absolutePath.split('/');
+		const filename = parts.at(-1) ?? absolutePath;
+		return filename.replace(/\.md$/, '');
+	}
+
+	function recentFileRelativePath(absolutePath: string): string | null {
+		if (!absolutePath.startsWith(basePath)) return null;
+		let rel = absolutePath.slice(basePath.length);
+		if (rel.startsWith('/')) rel = rel.slice(1);
+		return rel;
+	}
+
+	async function openRecentFile(absolutePath: string): Promise<void> {
+		showRecentFiles = false;
+		const rel = recentFileRelativePath(absolutePath);
+		if (!rel) return;
+		const filename = absolutePath.split('/').at(-1) ?? '';
+		// Check file still exists
+		try {
+			if (!(await exists(absolutePath))) return;
+		} catch { return; }
+		await openFile(rel, filename);
+	}
 
 	async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
 		let timer: ReturnType<typeof setTimeout> | null = null;
@@ -116,8 +211,39 @@ async function loadBasePath() {
 		void loadBasePath();
 	});
 
+	// Load recent files whenever basePath is set/changed
 	$effect(() => {
+		if (basePath) {
+			void loadRecentFiles();
+		}
+	});
+
+	$effect(() => {
+		function handleBeforeUnload(e: BeforeUnloadEvent) {
+			if (dirty) {
+				e.preventDefault();
+				e.returnValue = '';
+			}
+		}
+		function handleKeydown(e: KeyboardEvent) {
+			if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+				e.preventDefault();
+				if (dirty && !saving) saveFile();
+			}
+			if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+				e.preventDefault();
+				showCommandDrawer = !showCommandDrawer;
+			}
+			if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+				e.preventDefault();
+				showToolbar = !showToolbar;
+			}
+		}
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		window.addEventListener('keydown', handleKeydown);
 		return () => {
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+			window.removeEventListener('keydown', handleKeydown);
 			editorHandle?.destroy();
 			editorHandle = null;
 		};
@@ -136,6 +262,9 @@ async function loadBasePath() {
 			dirty = false;
 			previewing = false;
 			view = 'editor';
+
+			// Track in .ferrite/state.json for cross-app history
+			trackRecentFile(fullPath);
 
 			// Mount editor after DOM updates
 			await mountEditor();
@@ -179,17 +308,78 @@ async function loadBasePath() {
 		}
 	}
 
+	function guardedNav(action: () => void) {
+		if (dirty) {
+			pendingNavAction = action;
+			showUnsavedDialog = true;
+		} else {
+			action();
+		}
+	}
+
+	function confirmDiscard() {
+		showUnsavedDialog = false;
+		dirty = false;
+		const action = pendingNavAction;
+		pendingNavAction = null;
+		action?.();
+	}
+
+	async function confirmSaveAndGo() {
+		showUnsavedDialog = false;
+		await saveFile();
+		const action = pendingNavAction;
+		pendingNavAction = null;
+		action?.();
+	}
+
+	function cancelNav() {
+		showUnsavedDialog = false;
+		pendingNavAction = null;
+	}
+
+	function doGoBack() {
+		editorHandle?.destroy();
+		editorHandle = null;
+		view = 'browser';
+		previewing = false;
+	}
+
 	function goBack() {
 		if (view === 'editor' || view === 'preview') {
-			editorHandle?.destroy();
-			editorHandle = null;
-			view = 'browser';
-			previewing = false;
+			guardedNav(doGoBack);
 		}
 	}
 
 function togglePreview() {
 	previewing = !previewing;
+}
+
+function handleEditorTouchStart(e: TouchEvent) {
+	const touch = e.touches[0];
+	swipeStartY = touch.clientY;
+	swipeStartX = touch.clientX;
+}
+
+function handleEditorTouchEnd(e: TouchEvent) {
+	const touch = e.changedTouches[0];
+	const deltaY = swipeStartY - touch.clientY;
+	const deltaX = touch.clientX - swipeStartX;
+	const absDeltaX = Math.abs(deltaX);
+	const absDeltaY = Math.abs(deltaY);
+
+	// Swipe up from bottom area → toggle toolbar
+	if (deltaY > 60 && absDeltaY > absDeltaX && swipeStartY > window.innerHeight - 80) {
+		showToolbar = true;
+	}
+	// Swipe down near bottom → hide toolbar
+	if (deltaY < -60 && absDeltaY > absDeltaX && showToolbar) {
+		showToolbar = false;
+	}
+	// Swipe left (finger moves right-to-left from right edge) → open command drawer
+	if (deltaX < -60 && absDeltaX > absDeltaY && swipeStartX > window.innerWidth - 40) {
+		showCommandDrawer = true;
+	}
 }
 
 async function browseEditorFolder() {
@@ -243,6 +433,7 @@ function useEditorFolder() {
 	} catch {
 		// Ignore storage errors.
 	}
+	void loadRecentFiles();
 }
 
 	function resetEditorFolder() {
@@ -320,9 +511,43 @@ function useEditorFolder() {
 				onOpenFolderDialog={() => (showFolderDialog = true)}
 				onDirectoryChange={(path) => (currentDirectory = path)}
 			/>
+			<!-- Recent files FAB -->
+			{#if recentFiles.length > 0}
+				<button
+					type="button"
+					class="recent-fab"
+					onclick={() => (showRecentFiles = !showRecentFiles)}
+					aria-label="Recent files"
+				>
+					<IconHistory width="22" height="22" />
+				</button>
+			{/if}
+			<!-- Recent files popup -->
+			{#if showRecentFiles}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="recent-popup-overlay" onclick={() => (showRecentFiles = false)}>
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="recent-popup" onclick={(e) => e.stopPropagation()}>
+						{#each recentFiles.slice(0, 3) as filePath}
+							{@const rel = recentFileRelativePath(filePath)}
+							{#if rel}
+								<button
+									type="button"
+									class="recent-item"
+									onclick={() => openRecentFile(filePath)}
+								>
+									<span class="recent-item-name">{recentFileDisplayName(filePath)}</span>
+									<span class="recent-item-path">{rel.split('/').slice(0, -1).join('/') || '/'}</span>
+								</button>
+							{/if}
+						{/each}
+					</div>
+				</div>
+			{/if}
+			<!-- Add note FAB -->
 			<button
 				type="button"
-				class="note-fab w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+				class="note-fab"
 				onclick={openNewNoteDialog}
 				aria-label="Create new note"
 			>
@@ -350,31 +575,107 @@ function useEditorFolder() {
 			</span>
 			<div class="header-actions">
 				{#if dirty}
-					<button
-						type="button"
-						class="header-btn save-btn"
-						onclick={saveFile}
-						disabled={saving}
-						aria-label="Save"
-					>
-						<IconSave />
-					</button>
+					<span class="dirty-indicator" title="Unsaved changes"></span>
 				{/if}
 			</div>
 		</div>
 
 		<!-- Editor area -->
-		<div class="editor-content">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="editor-content"
+			class:toolbar-visible={showToolbar}
+			ontouchstart={handleEditorTouchStart}
+			ontouchend={handleEditorTouchEnd}
+		>
 			<div class="milkdown-host" class:hidden={previewing} bind:this={editorRoot}></div>
 			<div class="preview-pane" class:hidden={!previewing}>
 				{@html renderedHtml}
 			</div>
 		</div>
 
-		<!-- Toolbar -->
-		<EditorToolbar editor={editorHandle} onTogglePreview={togglePreview} {previewing} />
+		<!-- Toolbar (collapsible) -->
+		{#if showToolbar}
+			<EditorToolbar editor={editorHandle} onTogglePreview={togglePreview} {previewing} />
+		{/if}
+
+		<!-- Floating save FAB — shifts up when toolbar visible -->
+		{#if dirty}
+			<button
+				type="button"
+				class="save-fab"
+				class:save-fab-toolbar-visible={showToolbar}
+				onclick={saveFile}
+				disabled={saving}
+				aria-label="Save file"
+			>
+				<IconSave width="22" height="22" />
+			</button>
+		{/if}
+
+		<!-- Swipe-up hint bar (visible when toolbar hidden) -->
+		{#if !showToolbar}
+			<div class="toolbar-hint" onclick={() => (showToolbar = true)} role="button" tabindex="-1">
+				<div class="toolbar-hint-pill"></div>
+			</div>
+		{/if}
+
+		<!-- Command drawer (swipe-in from right / Ctrl+M) -->
+		{#if showCommandDrawer}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="command-drawer-overlay" onclick={() => (showCommandDrawer = false)}>
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="command-drawer" onclick={(e) => e.stopPropagation()}>
+					<div class="command-drawer-header">
+						<span class="command-drawer-title">{currentFileName.replace(/\.md$/, '')}</span>
+						<button type="button" class="header-btn" onclick={() => (showCommandDrawer = false)} aria-label="Close">
+							<IconX />
+						</button>
+					</div>
+					<button
+						type="button"
+						class="command-row"
+						onclick={() => { saveFile(); showCommandDrawer = false; }}
+						disabled={!dirty || saving}
+					>
+						<IconSave width="20" height="20" />
+						<span>Save</span>
+						{#if dirty}<span class="command-hint">unsaved</span>{/if}
+					</button>
+					<button
+						type="button"
+						class="command-row"
+						onclick={() => { showCommandDrawer = false; goBack(); }}
+					>
+						<IconFolderSearch width="20" height="20" />
+						<span>Back to files</span>
+					</button>
+				</div>
+			</div>
+		{/if}
 	{/if}
 </div>
+
+{#if showUnsavedDialog}
+	<div
+		class="folder-dialog-overlay"
+		role="button"
+		tabindex="0"
+		aria-label="Close unsaved changes dialog"
+		onclick={cancelNav}
+		onkeydown={(e) => closeOnOverlayKey(e, cancelNav)}
+	>
+		<div class="folder-dialog" role="dialog" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+			<div class="folder-dialog-title">Unsaved Changes</div>
+			<p class="unsaved-message">You have unsaved changes. What would you like to do?</p>
+			<div class="path-actions">
+				<button type="button" class="path-btn save-action-btn" onclick={confirmSaveAndGo}>Save</button>
+				<button type="button" class="path-btn discard-action-btn" onclick={confirmDiscard}>Discard</button>
+				<button type="button" class="path-btn" onclick={cancelNav}>Cancel</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 {#if showFolderDialog}
 	<div
@@ -477,9 +778,9 @@ function useEditorFolder() {
 		background: rgba(0, 0, 0, 0.45);
 		z-index: 70;
 		display: flex;
-		align-items: flex-end;
+		align-items: center;
 		justify-content: center;
-		padding: 0.75rem;
+		padding: 1rem;
 	}
 
 	.folder-dialog {
@@ -553,14 +854,129 @@ function useEditorFolder() {
 	.note-fab {
 		position: fixed;
 		right: 1rem;
-		bottom: 1rem;
+		bottom: calc(1rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
 		z-index: 60;
+		width: 3.5rem;
+		height: 3.5rem;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 		background-color: rgb(var(--color-primary-500));
 		color: rgb(var(--color-on-primary));
 	}
 
 	.note-fab:hover {
 		background-color: rgb(var(--color-primary-600));
+	}
+
+	.recent-fab {
+		position: fixed;
+		right: 1rem;
+		bottom: calc(5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
+		z-index: 60;
+		width: 3rem;
+		height: 3rem;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		background-color: rgb(var(--color-surface-100));
+		color: rgb(var(--color-surface-700));
+		border: 1px solid rgb(var(--color-surface-300));
+	}
+
+	:global([data-mode='dark']) .recent-fab {
+		background-color: rgb(var(--color-surface-800));
+		color: rgb(var(--color-surface-300));
+		border-color: rgb(var(--color-surface-600));
+	}
+
+	.recent-fab:hover {
+		background-color: rgb(var(--color-surface-200));
+	}
+
+	:global([data-mode='dark']) .recent-fab:hover {
+		background-color: rgb(var(--color-surface-700));
+	}
+
+	.recent-popup-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 65;
+	}
+
+	.recent-popup {
+		position: fixed;
+		right: 1rem;
+		bottom: calc(8.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
+		z-index: 66;
+		width: min(18rem, calc(100vw - 2rem));
+		background-color: rgb(var(--color-surface-50));
+		border: 1px solid rgb(var(--color-surface-300));
+		border-radius: 0.75rem;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+		overflow: hidden;
+		animation: recent-slide-up 0.15s ease-out;
+	}
+
+	:global([data-mode='dark']) .recent-popup {
+		background-color: rgb(var(--color-surface-800));
+		border-color: rgb(var(--color-surface-600));
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+	}
+
+	@keyframes recent-slide-up {
+		from { opacity: 0; transform: translateY(0.5rem); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+
+	.recent-item {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		padding: 0.75rem 1rem;
+		text-align: left;
+		border-bottom: 1px solid rgb(var(--color-surface-200));
+		color: rgb(var(--color-surface-800));
+	}
+
+	:global([data-mode='dark']) .recent-item {
+		border-bottom-color: rgb(var(--color-surface-700));
+		color: rgb(var(--color-surface-100));
+	}
+
+	.recent-item:last-child {
+		border-bottom: none;
+	}
+
+	.recent-item:hover {
+		background-color: rgb(var(--color-primary-500));
+		color: rgb(var(--color-on-primary));
+	}
+
+	.recent-item:hover .recent-item-path {
+		color: rgb(var(--color-on-primary));
+		opacity: 0.75;
+	}
+
+	.recent-item-name {
+		font-weight: 600;
+		font-size: 0.9375rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.recent-item-path {
+		font-size: 0.75rem;
+		color: rgb(var(--color-surface-500));
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		margin-top: 0.125rem;
 	}
 
 	/* Editor header */
@@ -608,12 +1024,63 @@ function useEditorFolder() {
 		height: 1.25rem;
 	}
 
-	.save-btn {
-		color: rgb(var(--color-primary-500));
+	.dirty-indicator {
+		display: inline-block;
+		width: 0.5rem;
+		height: 0.5rem;
+		border-radius: 50%;
+		background-color: rgb(var(--color-warning-500));
+		margin-right: 0.25rem;
 	}
 
-	.save-btn:disabled {
+	.save-fab {
+		position: fixed;
+		right: 1rem;
+		bottom: calc(1.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
+		z-index: 55;
+		transition: bottom 0.2s ease;
+		width: 3.25rem;
+		height: 3.25rem;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: rgb(var(--color-primary-500));
+		color: rgb(var(--color-on-primary));
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+	}
+
+	.save-fab:hover {
+		background-color: rgb(var(--color-primary-600));
+	}
+
+	.save-fab:disabled {
 		opacity: 0.5;
+	}
+
+	.save-fab-toolbar-visible {
+		bottom: calc(4rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
+	}
+
+	.unsaved-message {
+		font-size: 0.875rem;
+		color: rgb(var(--color-surface-600));
+		margin: 0;
+	}
+
+	:global([data-mode='dark']) .unsaved-message {
+		color: rgb(var(--color-surface-400));
+	}
+
+	.save-action-btn {
+		background-color: rgb(var(--color-primary-500)) !important;
+		color: rgb(var(--color-on-primary)) !important;
+		border-color: rgb(var(--color-primary-500)) !important;
+	}
+
+	.discard-action-btn {
+		color: rgb(var(--color-error-500)) !important;
+		border-color: rgb(var(--color-error-500)) !important;
 	}
 
 	.header-filename {
@@ -643,7 +1110,12 @@ function useEditorFolder() {
 		min-height: 0;
 		overflow-y: auto;
 		-webkit-overflow-scrolling: touch;
-		padding-bottom: 3.5rem;
+		padding-bottom: calc(1.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
+		transition: padding-bottom 0.2s ease;
+	}
+
+	.editor-content.toolbar-visible {
+		padding-bottom: calc(3.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
 	}
 
 	/* Milkdown editor host */
@@ -911,5 +1383,119 @@ function useEditorFolder() {
 		max-width: 100%;
 		height: auto;
 		border-radius: 0.375rem;
+	}
+
+	/* Toolbar hint bar */
+	.toolbar-hint {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 45;
+		display: flex;
+		justify-content: center;
+		padding: 0.375rem 0;
+		padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px));
+		cursor: pointer;
+	}
+
+	.toolbar-hint-pill {
+		width: 2.5rem;
+		height: 0.25rem;
+		border-radius: 0.125rem;
+		background-color: rgb(var(--color-surface-400));
+		opacity: 0.6;
+	}
+
+	/* Command drawer (bottom sheet) */
+	.command-drawer-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 80;
+		background: rgba(0, 0, 0, 0.35);
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+	}
+
+	.command-drawer {
+		width: min(28rem, 100%);
+		background-color: rgb(var(--color-surface-50));
+		border-top: 1px solid rgb(var(--color-surface-300));
+		border-radius: 0.75rem 0.75rem 0 0;
+		display: flex;
+		flex-direction: column;
+		padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px));
+		animation: sheet-slide-up 0.2s ease-out;
+	}
+
+	:global([data-mode='dark']) .command-drawer {
+		background-color: rgb(var(--color-surface-900));
+		border-top-color: rgb(var(--color-surface-600));
+	}
+
+	@keyframes sheet-slide-up {
+		from { transform: translateY(100%); }
+		to { transform: translateY(0); }
+	}
+
+	.command-drawer-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.75rem 1rem;
+		border-bottom: 1px solid rgb(var(--color-surface-200));
+	}
+
+	:global([data-mode='dark']) .command-drawer-header {
+		border-bottom-color: rgb(var(--color-surface-700));
+	}
+
+	.command-drawer-title {
+		font-weight: 600;
+		font-size: 0.9375rem;
+		color: rgb(var(--color-surface-800));
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	:global([data-mode='dark']) .command-drawer-title {
+		color: rgb(var(--color-surface-200));
+	}
+
+	.command-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.875rem 1rem;
+		border-bottom: 1px solid rgb(var(--color-surface-200));
+		color: rgb(var(--color-surface-800));
+		text-align: left;
+		font-size: 0.9375rem;
+	}
+
+	:global([data-mode='dark']) .command-row {
+		border-bottom-color: rgb(var(--color-surface-700));
+		color: rgb(var(--color-surface-100));
+	}
+
+	.command-row:disabled {
+		opacity: 0.4;
+	}
+
+	.command-row:hover:not(:disabled) {
+		background-color: rgb(var(--color-surface-100));
+	}
+
+	:global([data-mode='dark']) .command-row:hover:not(:disabled) {
+		background-color: rgb(var(--color-surface-800));
+	}
+
+	.command-hint {
+		margin-left: auto;
+		font-size: 0.75rem;
+		color: rgb(var(--color-warning-500));
+		font-weight: 600;
 	}
 </style>

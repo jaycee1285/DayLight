@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import IconSun from '~icons/lucide/sun';
 	import IconCalendar from '~icons/lucide/calendar';
@@ -17,6 +18,7 @@
 		onclose: () => void;
 		projects: string[];
 		tags: string[];
+		onwidthchange?: (width: number) => void;
 		onprojectclick?: (project: string) => void;
 		ontagclick?: (tag: string) => void;
 		onaddproject?: () => void;
@@ -30,6 +32,7 @@
 		onclose,
 		projects,
 		tags,
+		onwidthchange,
 		onprojectclick,
 		ontagclick,
 		onaddproject,
@@ -40,6 +43,7 @@
 
 	let projectsExpanded = $state(true);
 	let tagsExpanded = $state(false);
+	let sidebarElement: HTMLElement | null = $state(null);
 
 	function isActive(href: string): boolean {
 		return $page.url.pathname === href || $page.url.pathname.startsWith(href + '/');
@@ -50,28 +54,63 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		if (!open) return;
 		if (e.key === 'Escape') {
 			onclose();
 		}
 	}
+
+	function handleNavItemClick() {
+		if (open) {
+			onclose();
+		}
+	}
+
+	function reportSidebarWidth() {
+		if (!onwidthchange || !sidebarElement) return;
+		const layoutOverride = document.documentElement.getAttribute('data-layout-override');
+		const forceDesktop = layoutOverride === 'desktop';
+		const forceMobile = layoutOverride === 'mobile';
+		if (forceMobile || (!forceDesktop && window.innerWidth < 500)) {
+			onwidthchange(0);
+			return;
+		}
+		const width = Math.ceil(sidebarElement.getBoundingClientRect().width);
+		onwidthchange(width);
+	}
+
+	onMount(() => {
+		const observer = new ResizeObserver(() => reportSidebarWidth());
+		if (sidebarElement) observer.observe(sidebarElement);
+		const onResize = () => reportSidebarWidth();
+		const onLayoutOverrideChange = () => reportSidebarWidth();
+		window.addEventListener('resize', onResize);
+		window.addEventListener('daylight:layout-override-change', onLayoutOverrideChange);
+		queueMicrotask(reportSidebarWidth);
+		return () => {
+			window.removeEventListener('resize', onResize);
+			window.removeEventListener('daylight:layout-override-change', onLayoutOverrideChange);
+			observer.disconnect();
+		};
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-{#if open}
-	<!-- Backdrop -->
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="sidebar-backdrop" onclick={handleBackdropClick}></div>
+<!-- Backdrop -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="sidebar-backdrop" class:open={open} onclick={handleBackdropClick}></div>
 
-	<!-- Sidebar panel -->
-	<aside class="sidebar">
+<!-- Sidebar panel -->
+<aside class="sidebar" class:open={open} bind:this={sidebarElement}>
+		{#if open}
 		<div class="sidebar-header">
-			<h2 class="text-lg font-semibold">Menu</h2>
 			<button type="button" class="close-btn" onclick={onclose} aria-label="Close menu">
 				<IconX width="20" height="20" />
 			</button>
 		</div>
+		{/if}
 
 		<nav class="sidebar-nav">
 			<!-- Main navigation items -->
@@ -79,7 +118,7 @@
 				href="/today-bases"
 				class="nav-item"
 				class:active={isActive('/today-bases')}
-				onclick={onclose}
+				onclick={handleNavItemClick}
 			>
 				<span class="nav-icon"><IconSun width="18" height="18" /></span>
 				<span>Today</span>
@@ -89,7 +128,7 @@
 				href="/calendar"
 				class="nav-item"
 				class:active={isActive('/calendar')}
-				onclick={onclose}
+				onclick={handleNavItemClick}
 			>
 				<span class="nav-icon"><IconCalendar width="18" height="18" /></span>
 				<span>Calendar</span>
@@ -99,7 +138,7 @@
 				href="/recurring-bases"
 				class="nav-item"
 				class:active={isActive('/recurring-bases')}
-				onclick={onclose}
+				onclick={handleNavItemClick}
 			>
 				<span class="nav-icon"><IconRepeat width="18" height="18" /></span>
 				<span>Recurring</span>
@@ -109,7 +148,7 @@
 				href="/habits"
 				class="nav-item"
 				class:active={isActive('/habits')}
-				onclick={onclose}
+				onclick={handleNavItemClick}
 			>
 				<span class="nav-icon"><IconTarget width="18" height="18" /></span>
 				<span>Habits</span>
@@ -119,7 +158,7 @@
 				href="/editor"
 				class="nav-item"
 				class:active={isActive('/editor')}
-				onclick={onclose}
+				onclick={handleNavItemClick}
 			>
 				<span class="nav-icon"><IconFileEdit width="18" height="18" /></span>
 				<span>Editor</span>
@@ -129,7 +168,7 @@
 				href="/reports"
 				class="nav-item"
 				class:active={isActive('/reports')}
-				onclick={onclose}
+				onclick={handleNavItemClick}
 			>
 				<span class="nav-icon"><IconBarChart2 width="18" height="18" /></span>
 				<span>Reports</span>
@@ -157,7 +196,7 @@
 									href="/projects/{encodeURIComponent(project)}"
 									class="section-item-btn"
 									class:active={isActive(`/projects/${encodeURIComponent(project)}`)}
-									onclick={onclose}
+									onclick={handleNavItemClick}
 								>
 									<span class="item-indicator project-indicator"></span>
 									<span class="item-label">{project}</span>
@@ -207,7 +246,7 @@
 									href="/tags/{encodeURIComponent(tag)}"
 									class="section-item-btn"
 									class:active={isActive(`/tags/${encodeURIComponent(tag)}`)}
-									onclick={onclose}
+									onclick={handleNavItemClick}
 								>
 									<span class="item-indicator tag-indicator"></span>
 									<span class="item-label">{tag}</span>
@@ -243,39 +282,111 @@
 				href="/settings"
 				class="nav-item"
 				class:active={isActive('/settings')}
-				onclick={onclose}
+				onclick={handleNavItemClick}
 			>
 				<span class="nav-icon"><IconSettings width="18" height="18" /></span>
 				<span>Settings</span>
 			</a>
 		</nav>
-	</aside>
-{/if}
+</aside>
 
 <style>
 	.sidebar-backdrop {
+		display: none;
 		position: fixed;
 		inset: 0;
-		background-color: rgba(0, 0, 0, 0.4);
+		background-color: rgb(var(--color-overlay) / 0.4);
 		z-index: 100;
 	}
 
+	.sidebar-backdrop.open {
+		display: block;
+	}
+
 	.sidebar {
+		display: none;
 		position: fixed;
 		top: 0;
 		left: 0;
 		bottom: 0;
-		width: 280px;
+		width: fit-content;
+		min-width: 14rem;
 		max-width: 85vw;
 		background-color: rgb(var(--color-surface-100));
 		z-index: 101;
-		display: flex;
 		flex-direction: column;
 		box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
 	}
 
+	.sidebar.open {
+		display: flex;
+	}
+
 	:global([data-mode='dark']) .sidebar {
 		background-color: rgb(var(--color-surface-800));
+	}
+
+	@media (min-width: 500px) {
+		.sidebar-backdrop {
+			display: none !important;
+		}
+
+		.sidebar {
+		display: flex;
+		box-shadow: none;
+		border-right: 1px solid rgb(var(--color-surface-200));
+		z-index: 30;
+	}
+
+		:global([data-mode='dark']) .sidebar {
+			border-right-color: rgb(var(--color-surface-600));
+		}
+
+		.close-btn {
+			display: none;
+		}
+	}
+
+	:global([data-layout-override='desktop']) .sidebar-backdrop {
+		display: none !important;
+	}
+
+	:global([data-layout-override='desktop']) .sidebar {
+		display: flex !important;
+		box-shadow: none;
+		border-right: 1px solid rgb(var(--color-surface-200));
+		z-index: 30;
+	}
+
+	:global([data-layout-override='desktop'][data-mode='dark']) .sidebar {
+		border-right-color: rgb(var(--color-surface-600));
+	}
+
+	:global([data-layout-override='desktop']) .close-btn {
+		display: none !important;
+	}
+
+	:global([data-layout-override='mobile']) .sidebar {
+		display: none !important;
+		border-right: none !important;
+		box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+		z-index: 101;
+	}
+
+	:global([data-layout-override='mobile']) .sidebar.open {
+		display: flex !important;
+	}
+
+	:global([data-layout-override='mobile']) .sidebar-backdrop {
+		display: none;
+	}
+
+	:global([data-layout-override='mobile']) .sidebar-backdrop.open {
+		display: block;
+	}
+
+	:global([data-layout-override='mobile']) .close-btn {
+		display: flex !important;
 	}
 
 	.sidebar-header {

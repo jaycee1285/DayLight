@@ -34,6 +34,7 @@
 	let selectedTheme = $state('flexoki-light');
 	let initialized = $state(false);
 	let hasStoragePermission = $state(true); // Assume true on non-Android
+	let layoutOverride = $state<'auto' | 'mobile' | 'desktop'>('auto');
 
 	const baseThemeOptions = [
 		{ value: 'system', label: 'System (auto)' },
@@ -144,6 +145,19 @@
 			selectedTheme = 'system';
 		}
 
+		try {
+			const storedLayout = localStorage.getItem('daylight-layout-override');
+			if (storedLayout === 'mobile' || storedLayout === 'desktop') {
+				layoutOverride = storedLayout;
+			} else {
+				layoutOverride = 'auto';
+			}
+			applyLayoutOverride(layoutOverride);
+		} catch {
+			layoutOverride = 'auto';
+			applyLayoutOverride('auto');
+		}
+
 		// Check storage permission on Android
 		checkStoragePermission();
 
@@ -182,6 +196,39 @@
 	function setThemeAttributes(theme: string) {
 		document.documentElement.setAttribute('data-theme', theme);
 		document.documentElement.setAttribute('data-mode', darkThemes.has(theme) ? 'dark' : 'light');
+	}
+
+	function applyLayoutOverride(mode: 'auto' | 'mobile' | 'desktop') {
+		if (mode === 'auto') {
+			document.documentElement.removeAttribute('data-layout-override');
+			return;
+		}
+		document.documentElement.setAttribute('data-layout-override', mode);
+	}
+
+	function setLayoutOverride(mode: 'auto' | 'mobile' | 'desktop') {
+		layoutOverride = mode;
+		applyLayoutOverride(mode);
+		window.dispatchEvent(new Event('daylight:layout-override-change'));
+		try {
+			if (mode === 'auto') {
+				localStorage.removeItem('daylight-layout-override');
+			} else {
+				localStorage.setItem('daylight-layout-override', mode);
+			}
+		} catch {
+			// Ignore persistence errors.
+		}
+	}
+
+	function handleForceMobileChange(event: Event) {
+		const checked = (event.target as HTMLInputElement).checked;
+		setLayoutOverride(checked ? 'mobile' : 'auto');
+	}
+
+	function handleForceDesktopChange(event: Event) {
+		const checked = (event.target as HTMLInputElement).checked;
+		setLayoutOverride(checked ? 'desktop' : 'auto');
 	}
 
 	async function handleThemeChange(event: Event) {
@@ -882,6 +929,30 @@
 		</div>
 	</section>
 
+	<!-- Layout -->
+	<section class="settings-section mb-6">
+		<h2 class="text-lg font-semibold mb-3">Layout</h2>
+		<div class="settings-card p-4 rounded-lg">
+			<p class="text-sm opacity-70 mb-3">Override responsive layout detection if your device reports unusual viewport values.</p>
+			<label class="layout-toggle">
+				<input
+					type="checkbox"
+					checked={layoutOverride === 'mobile'}
+					onchange={handleForceMobileChange}
+				/>
+				<span>Force mobile layout</span>
+			</label>
+			<label class="layout-toggle">
+				<input
+					type="checkbox"
+					checked={layoutOverride === 'desktop'}
+					onchange={handleForceDesktopChange}
+				/>
+				<span>Force desktop layout</span>
+			</label>
+		</div>
+	</section>
+
 	<!-- About -->
 	<section class="settings-section">
 		<h2 class="text-lg font-semibold mb-3">About</h2>
@@ -961,5 +1032,13 @@
 
 	:global([data-mode='dark']) .code-inline {
 		background-color: rgb(var(--color-hover-bg-strong));
+	}
+
+	.layout-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.875rem;
+		margin-bottom: 0.5rem;
 	}
 </style>

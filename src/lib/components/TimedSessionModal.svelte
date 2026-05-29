@@ -114,7 +114,14 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && sessionState === 'select') {
+		if (!open) return;
+		if (e.key === 'Escape') {
+			handleClose();
+		}
+	}
+
+	function handleBackdropClick(e: MouseEvent) {
+		if (e.target === e.currentTarget) {
 			handleClose();
 		}
 	}
@@ -125,16 +132,14 @@
 {#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="session-backdrop" onclick={(e) => e.target === e.currentTarget && sessionState === 'select' && handleClose()}>
+	<div class="session-backdrop" onclick={handleBackdropClick}>
 		<div class="session-modal">
 			<!-- Header -->
 			<div class="session-header">
 				<h2 class="session-title">{task.title}</h2>
-				{#if sessionState === 'select'}
-					<button type="button" class="close-btn" onclick={handleClose} aria-label="Close">
-						<IconX width="20" height="20" />
-					</button>
-				{/if}
+				<button type="button" class="close-btn" onclick={handleClose} aria-label="Close">
+					<IconX width="20" height="20" />
+				</button>
 			</div>
 
 			<!-- Select Duration State -->
@@ -265,6 +270,8 @@
 		max-width: 320px;
 		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 		overflow: hidden;
+		/* Respect Android nav bar / iOS home indicator */
+		margin-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
 	}
 
 	:global([data-mode='dark']) .session-modal {

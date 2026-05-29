@@ -8,7 +8,7 @@
   #   cp flake.nix.bak flake.nix && rm flake.nix.bak
 
   inputs = {
-    config.url = "github:jaycee1285/config";
+    config.url = "path:/home/john/repos/config-canary";
     nixpkgs.follows = "config/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
@@ -77,7 +77,7 @@
           pname = "daylight";
           version = "0.1.0";
           src = ./.;
-          cargoHash = "sha256-7cH1KESU+ibSKZcrYmgKQCPgK2VTSTbjv+V1Qw7hIGw=";
+          cargoLock.lockFile = ./src-tauri/Cargo.lock;
 
           cargoRoot = "src-tauri";
           buildAndTestSubdir = "src-tauri";

@@ -1,0 +1,65 @@
+repo: DayLight
+status_version: 1
+last_updated: 2026-05-02
+feature_status: migration-prototype
+manual_smoke:
+  state: partial-pass
+  source: session-confirmed-and-cli-verified
+  last_run: 2026-05-02
+  bounds:
+    platform: Linux desktop (Wayland primary)
+    scope:
+      - native Rust/EGui launch through nix develop -c cargo run
+      - egui-shadcn root crate scaffold
+      - GTK 4 color parsing and theme token mapping
+      - GTK theme hot reload polling
+      - markdown task frontmatter parser and folder loader
+      - daily attention grouping diagnostics for Past, Now, Upcoming, Wrapped
+      - today-bases count parity against local TaskNotes snapshot
+    exclusions:
+      - add/edit task persistence UI
+      - task completion UI
+      - active/manual time logging UI
+      - quick capture daemon and compositor shortcut
+      - V2 habits and calendar views
+      - weekly planner drag/drop and markdown editor component
+      - Android/mobile Tauri parity
+  conditions:
+    native_cargo_fmt_passes: pass
+    native_cargo_test_passes: pass
+    native_cargo_check_passes: pass
+    root_cargo_run_launches_egui_shell: pass
+    egui_shadcn_pinned_exact_version: pass
+    gtk_theme_reader_present: pass
+    gtk_theme_debug_panel_present: pass
+    gtk_theme_hot_reload_polling_present: pass
+    markdown_frontmatter_parser_present: pass
+    markdown_task_folder_default_detection_present: pass
+    print_counts_cli_present: pass
+    list_past_cli_present: pass
+    list_upcoming_cli_present: pass
+    recurrence_today_bases_count_parity_2026_05_02: pass
+    print_counts_matches_tauri_target_2026_05_02: pass
+  known_gaps:
+    - V1.3 daily task row interactions are not implemented yet
+    - Add/edit dialogs are scaffold-only and do not persist task mutations yet
+    - Task completion UI and persistence are not implemented yet
+    - Time tracking UI and commands are not implemented yet
+    - Quick capture daemon and compositor shortcut are not implemented yet
+    - GTK parser is pragmatic and may need broader CSS expression coverage
+    - Count parity is verified against the 2026-05-02 local TaskNotes snapshot and should be fixture-tested before recurrence refactors
+    - 8 local markdown files currently report parser/load errors in diagnostic counts
+  notes:
+    - Root Cargo.toml is the native desktop migration path; the existing Tauri/Svelte app remains intact.
+    - Native diagnostic command is nix develop -c cargo run -- --print-counts.
+    - On 2026-05-02 diagnostic counts matched the user-reported Tauri today-bases target: Now 5, Past 24, Upcoming 18, Wrapped 415.
+    - Earlier Past inflation came from expanding stale recurring active instances into Past; the native daily model now avoids that behavior.
+  next_smoke_trigger:
+    - recurrence or daily grouping model changes
+    - markdown parser or frontmatter serializer changes
+    - V1.3 daily row interaction changes
+    - add/edit task persistence changes
+    - task completion semantics changes
+    - time logging changes
+    - GTK theme token mapping changes
+    - quick capture daemon or IPC changes

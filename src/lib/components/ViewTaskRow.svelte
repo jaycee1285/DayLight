@@ -215,9 +215,17 @@
 
 		if (event.repeat || event.altKey || event.shiftKey) return;
 		if (!(event.ctrlKey || event.metaKey)) return;
-		if (!eventMatchesKey(event, 't')) return;
-		event.preventDefault();
-		window.dispatchEvent(new CustomEvent('daylight:shortcut:log-time'));
+
+		if (eventMatchesKey(event, 'e')) {
+			event.preventDefault();
+			handleOpenEditModal();
+			return;
+		}
+
+		if (eventMatchesKey(event, 't')) {
+			event.preventDefault();
+			window.dispatchEvent(new CustomEvent('daylight:shortcut:log-time'));
+		}
 	}
 
 </script>

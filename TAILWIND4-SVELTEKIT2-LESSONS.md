@@ -230,12 +230,17 @@ See DayLight's flake.nix for complete dependency list.
 
 ## Summary
 
-| Approach | Status | Notes |
-|----------|--------|-------|
-| PostCSS + @tailwindcss/postcss | ✅ Works | Use this |
-| Vite plugin + @tailwindcss/vite | ❌ Fails | 500 errors |
-| Skeleton Card component | ❌ Gone | Use styled divs |
-| unplugin-icons | ✅ Works | Better than lucide-svelte |
-| @tailwindcss/typography | ✅ Works | Use @plugin directive |
+| Approach             | Status  | Notes                |
+|----------------------|---------|----------------------|
+| PostCSS +            | ✅ Works | Use this             |
+| @tailwindcss/postcss |         |                      |
+| Vite plugin +        | ❌ Fails | 500 errors           |
+| @tailwindcss/vite    |         |                      |
+| Skeleton Card        | ❌ Gone  | Use styled divs      |
+| component            |         |                      |
+| unplugin-icons       | ✅ Works | Better than          |
+|                      |         | lucide-svelte        |
+| @tailwindcss/typography | ✅ Works | Use @plugin          |
+|                      |         | directive            |
 
 **TL;DR**: For SvelteKit 2 + Tailwind 4, use PostCSS approach, not Vite plugin. Skeleton v4 has no Card. Clear caches when switching approaches.

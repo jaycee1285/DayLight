@@ -178,12 +178,14 @@ config/home/daylight.nix
 
 Looking at your config, you already do this exact thing for:
 
-| Flake | Where consumed | Pattern |
-|-------|----------------|---------|
-| `zen-browser` | `modules/zen-browser.nix` | System-level package |
+| Flake            | Where consumed       | Pattern              |
+|------------------|----------------------|----------------------|
+| `zen-browser`    | `modules/zen-browser.nix` | System-level package |
 | `claude-desktop` | `modules/claude-desktop.nix` | System-level package |
-| `walls` | `home/walls.nix` | Home Manager file copy |
-| `gtk-themes` | `home/gtk-themes.nix` | Home Manager packages |
+| `walls`          | `home/walls.nix`     | Home Manager file    |
+|                  |                      | copy                 |
+| `gtk-themes`     | `home/gtk-themes.nix` | Home Manager         |
+|                  |                      | packages             |
 
 DayLight follows the `gtk-themes` pattern: user-level package via Home Manager.
 

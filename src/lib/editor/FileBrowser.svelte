@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { exists, mkdir, readDir, remove, rename, stat } from '@tauri-apps/plugin-fs';
+	import { exists, mkdir, readDir, readTextFile, remove, rename, stat, writeTextFile } from '@tauri-apps/plugin-fs';
 	import { join } from '@tauri-apps/api/path';
 	import IconFolder from '~icons/lucide/folder';
 	import IconFile from '~icons/lucide/file-text';
@@ -10,6 +10,7 @@
 	import IconPencil from '~icons/lucide/pencil';
 	import IconTrash2 from '~icons/lucide/trash-2';
 	import IconMoveRight from '~icons/lucide/move-right';
+	import IconCopy from '~icons/lucide/copy';
 	import SearchDialog from './SearchDialog.svelte';
 	import { invalidateEditorSearch, type EditorSearchResult } from './search-index';
 
@@ -363,6 +364,49 @@
 		}
 	}
 
+	async function copyEntry() {
+		if (!actionTarget) return;
+		showActionSheet = false;
+		try {
+			const srcFull = await join(basePath, actionTarget.path);
+			const parentParts = actionTarget.path.split('/');
+			parentParts.pop();
+			const parentRelative = parentParts.join('/');
+
+			if (actionTarget.isDir) {
+				// For folders, just append " (copy)"
+				const copyName = `${actionTarget.name} (copy)`;
+				const destRelative = parentRelative ? `${parentRelative}/${copyName}` : copyName;
+				const destFull = await join(basePath, destRelative);
+				if (await exists(destFull)) {
+					error = `A folder named "${copyName}" already exists.`;
+					return;
+				}
+				// Can't deep-copy dirs easily without recursion; create empty folder
+				await mkdir(destFull, { recursive: false });
+			} else {
+				// For files, insert " (copy)" before .md
+				const baseName = actionTarget.name.replace(/\.md$/i, '');
+				let copyName = `${baseName} (copy).md`;
+				let counter = 2;
+				let destRelative = parentRelative ? `${parentRelative}/${copyName}` : copyName;
+				let destFull = await join(basePath, destRelative);
+				while (await exists(destFull)) {
+					copyName = `${baseName} (copy ${counter}).md`;
+					destRelative = parentRelative ? `${parentRelative}/${copyName}` : copyName;
+					destFull = await join(basePath, destRelative);
+					counter++;
+				}
+				const content = await readTextFile(srcFull);
+				await writeTextFile(destFull, content);
+			}
+			invalidateEditorSearch(basePath);
+			await loadDir(currentPath);
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		}
+	}
+
 	function startCreateFolder() {
 		createFolderError = null;
 		createFolderValue = '';
@@ -526,6 +570,10 @@
 			<button type="button" class="action-row" onclick={startRename}>
 				<IconPencil width="18" height="18" />
 				<span>Rename</span>
+			</button>
+			<button type="button" class="action-row" onclick={copyEntry}>
+				<IconCopy width="18" height="18" />
+				<span>Duplicate</span>
 			</button>
 			<button type="button" class="action-row action-row-danger" onclick={() => openDeletePrompt(actionTarget!)}>
 				<IconTrash2 width="18" height="18" />

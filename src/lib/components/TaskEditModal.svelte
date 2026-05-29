@@ -31,6 +31,8 @@
 	let showProjectInput = $state(false);
 	let showRecurrenceEditor = $state(false);
 	let titleError = $state('');
+	let initialDraftSignature = $state('');
+	let lastInitializedTaskKey = $state<string | null>(null);
 
 	// Recurrence state
 	const existingRecurrence = $derived.by(() => {
@@ -40,22 +42,52 @@
 	let editedRecurrence = $state<Recurrence | null>(null);
 	let recurrenceRemoved = $state(false);
 
+	function buildDraftSignature(
+		title: string,
+		info: string,
+		nextTags: string[],
+		nextProjects: string[],
+		recurrence: string | null
+	): string {
+		return JSON.stringify({
+			title,
+			info,
+			tags: nextTags,
+			projects: nextProjects,
+			recurrence
+		});
+	}
+
 	// Reset state when modal opens or task changes
 	$effect(() => {
-		if (open) {
-			taskTitle = task.title || '';
-			taskInfo = task.body || '';
-			tags = [...task.frontmatter.tags.filter(t => t !== 'task')];
-			projects = [...task.frontmatter.projects];
-			editedRecurrence = null;
-			recurrenceRemoved = false;
-			showRecurrenceEditor = false;
-			newTagInput = '';
-			newProjectInput = '';
-			showTagInput = false;
-			showProjectInput = false;
-			titleError = '';
+		if (!open) {
+			lastInitializedTaskKey = null;
+			return;
 		}
+
+		const initKey = task.filename;
+		if (lastInitializedTaskKey === initKey) return;
+
+		taskTitle = task.title || '';
+		taskInfo = task.body || '';
+		tags = [...task.frontmatter.tags.filter(t => t !== 'task')];
+		projects = [...task.frontmatter.projects];
+		editedRecurrence = null;
+		recurrenceRemoved = false;
+		showRecurrenceEditor = false;
+		newTagInput = '';
+		newProjectInput = '';
+		showTagInput = false;
+		showProjectInput = false;
+		titleError = '';
+		initialDraftSignature = buildDraftSignature(
+			task.title || '',
+			task.body || '',
+			task.frontmatter.tags.filter(t => t !== 'task'),
+			task.frontmatter.projects,
+			task.frontmatter.recurrence
+		);
+		lastInitializedTaskKey = initKey;
 	});
 
 	const recurrenceLabel = $derived.by(() => {
@@ -63,6 +95,16 @@
 		const rec = editedRecurrence || existingRecurrence;
 		return rec ? formatRecurrenceShort(rec) : 'Not repeating';
 	});
+
+	const draftRecurrence = $derived.by(() => {
+		if (recurrenceRemoved) return null;
+		if (editedRecurrence) return recurrenceToRRule(editedRecurrence);
+		return task.frontmatter.recurrence;
+	});
+
+	const hasUnsavedChanges = $derived.by(() =>
+		buildDraftSignature(taskTitle, taskInfo, tags, projects, draftRecurrence) !== initialDraftSignature
+	);
 
 	function removeTag(tag: string) {
 		tags = tags.filter(t => t !== tag);
@@ -145,7 +187,7 @@
 	}
 </script>
 
-<Sheet {open} onclose={onclose} title="Edit Task">
+<Sheet {open} onclose={onclose} title="Edit Task" centered>
 	<div class="task-edit-modal">
 		<!-- Task Title (editable) -->
 		<div class="section mb-4">
@@ -294,10 +336,19 @@
 
 		<!-- Action buttons -->
 		<div class="actions">
+			{#if hasUnsavedChanges}
+				<span class="dirty-indicator" aria-live="polite">Unsaved changes</span>
+			{/if}
 			<button type="button" class="cancel-btn" onclick={onclose}>
 				Cancel
 			</button>
-			<button type="button" class="save-btn" onclick={handleSave}>
+			<button
+				type="button"
+				class="save-btn"
+				class:save-btn-dirty={hasUnsavedChanges}
+				onclick={handleSave}
+				disabled={!hasUnsavedChanges}
+			>
 				Save
 			</button>
 		</div>
@@ -534,6 +585,7 @@
 	.actions {
 		display: flex;
 		justify-content: flex-end;
+		align-items: center;
 		gap: 0.75rem;
 		margin-top: 1rem;
 		padding-top: 1rem;
@@ -581,5 +633,25 @@
 
 	.save-btn:hover {
 		background-color: rgb(var(--color-primary-600));
+	}
+
+	.save-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.save-btn-dirty {
+		box-shadow: 0 0 0 2px rgb(var(--color-primary-500) / 0.25);
+	}
+
+	.dirty-indicator {
+		margin-right: auto;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: rgb(var(--color-warning-600));
+	}
+
+	:global([data-mode='dark']) .dirty-indicator {
+		color: rgb(var(--color-warning-400));
 	}
 </style>

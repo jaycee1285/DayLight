@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount, tick } from 'svelte';
+
 	interface Props {
 		date: Date;
 		onselect?: (date: Date) => void;
@@ -8,6 +10,9 @@
 	let { date = $bindable(new Date()), onselect, showPicker = false }: Props = $props();
 
 	let pickerOpen = $state(false);
+	let alignRight = $state(false);
+	let containerElement: HTMLDivElement | null = $state(null);
+	let dropdownElement: HTMLDivElement | null = $state(null);
 
 	function formatDate(d: Date): string {
 		const today = new Date();
@@ -58,15 +63,78 @@
 		const day = String(d.getDate()).padStart(2, '0');
 		return `${year}-${month}-${day}`;
 	}
+
+	function closePicker() {
+		pickerOpen = false;
+	}
+
+	async function openPicker() {
+		pickerOpen = true;
+		await tick();
+		updateDropdownAlignment();
+	}
+
+	function togglePicker() {
+		if (pickerOpen) {
+			closePicker();
+			return;
+		}
+		void openPicker();
+	}
+
+	function updateDropdownAlignment() {
+		if (!pickerOpen || !containerElement || !dropdownElement) return;
+		const viewportWidth = window.innerWidth;
+		const rect = containerElement.getBoundingClientRect();
+		const dropdownWidth = dropdownElement.offsetWidth;
+		const wouldOverflowRight = rect.left + dropdownWidth > viewportWidth - 8;
+		const wouldOverflowLeftIfRightAligned = rect.right - dropdownWidth < 8;
+		alignRight = wouldOverflowRight && !wouldOverflowLeftIfRightAligned;
+	}
+
+	onMount(() => {
+		const handlePointerDown = (event: PointerEvent) => {
+			if (!pickerOpen) return;
+			if (!(event.target instanceof Node)) return;
+			if (containerElement?.contains(event.target)) return;
+			closePicker();
+		};
+
+		const handleKeydown = (event: KeyboardEvent) => {
+			if (!pickerOpen) return;
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				closePicker();
+			}
+		};
+
+		const handleWindowResize = () => updateDropdownAlignment();
+
+		window.addEventListener('pointerdown', handlePointerDown);
+		window.addEventListener('keydown', handleKeydown);
+		window.addEventListener('resize', handleWindowResize);
+		window.addEventListener('scroll', handleWindowResize, true);
+
+		return () => {
+			window.removeEventListener('pointerdown', handlePointerDown);
+			window.removeEventListener('keydown', handleKeydown);
+			window.removeEventListener('resize', handleWindowResize);
+			window.removeEventListener('scroll', handleWindowResize, true);
+		};
+	});
 </script>
 
-<div class="date-pill-container relative inline-block">
-	<button type="button" class="date-pill" onclick={() => (pickerOpen = !pickerOpen)}>
+<div class="date-pill-container relative inline-block" bind:this={containerElement}>
+	<button type="button" class="date-pill" onclick={togglePicker}>
 		{formatDate(date)}
 	</button>
 
 	{#if pickerOpen}
-		<div class="date-picker-dropdown absolute top-full left-0 mt-1 p-2 rounded-lg shadow-lg z-50">
+		<div
+			class="date-picker-dropdown absolute top-full left-0 mt-1 p-2 rounded-lg shadow-lg z-50"
+			class:align-right={alignRight}
+			bind:this={dropdownElement}
+		>
 			<div class="quick-dates flex flex-col gap-1 mb-2">
 				<button type="button" class="quick-date-btn" onclick={() => selectQuickDate(-1)}>
 					Yesterday
@@ -124,6 +192,12 @@
 		background-color: rgb(var(--color-surface-100));
 		border: 1px solid rgb(var(--color-surface-200));
 		min-width: 160px;
+		max-width: min(300px, calc(100vw - 1rem));
+	}
+
+	.date-picker-dropdown.align-right {
+		left: auto;
+		right: 0;
 	}
 
 	:global([data-mode='dark']) .date-picker-dropdown {
@@ -158,13 +232,19 @@
 	}
 
 	.date-input {
-		background-color: rgb(var(--color-surface-100));
+		background-color: rgb(var(--color-surface-50));
 		border-color: rgb(var(--color-surface-300));
 		color: rgb(var(--body-text-color));
 	}
 
 	:global([data-mode='dark']) .date-input {
-		background-color: rgb(var(--color-surface-800));
+		background-color: rgb(var(--color-surface-700));
 		border-color: rgb(var(--color-surface-600));
+	}
+
+	.date-input:focus {
+		outline: none;
+		border-color: rgb(var(--color-primary-500));
+		box-shadow: 0 0 0 2px rgb(var(--color-primary-500) / 0.2);
 	}
 </style>

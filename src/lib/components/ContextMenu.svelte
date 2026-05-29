@@ -14,9 +14,11 @@
 		y: number;
 		items: MenuItem[];
 		onclose: () => void;
+		/** When true, y is measured from viewport bottom (use CSS `bottom` instead of `top`) */
+		anchorBottom?: boolean;
 	}
 
-	let { open, x, y, items, onclose }: Props = $props();
+	let { open, x, y, items, onclose, anchorBottom = false }: Props = $props();
 
 	let menuEl: HTMLDivElement | undefined = $state();
 
@@ -36,9 +38,11 @@
 			adjX = viewportWidth - rect.width - 8;
 		}
 
-		// Adjust vertical position
-		if (y + rect.height > viewportHeight) {
-			adjY = viewportHeight - rect.height - 8;
+		if (!anchorBottom) {
+			// Adjust vertical position
+			if (y + rect.height > viewportHeight) {
+				adjY = viewportHeight - rect.height - 8;
+			}
 		}
 
 		return { x: adjX, y: adjY };
@@ -68,7 +72,7 @@
 	<div
 		bind:this={menuEl}
 		class="context-menu"
-		style="left: {adjustedPosition().x}px; top: {adjustedPosition().y}px;"
+		style="left: {adjustedPosition().x}px; {anchorBottom ? 'bottom' : 'top'}: {adjustedPosition().y}px;"
 	>
 		{#each items as item}
 			<button

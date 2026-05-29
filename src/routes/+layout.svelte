@@ -6,14 +6,15 @@
 	import '../app.css';
 	import Sheet from '$lib/components/Sheet.svelte';
 	import ChipInput from '$lib/components/ChipInput.svelte';
+	import ShortcodeHelp from '$lib/components/ShortcodeHelp.svelte';
 	import DatePill from '$lib/components/DatePill.svelte';
 	import ClockDrag from '$lib/components/ClockDrag.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import RecurrenceEditor from '$lib/components/RecurrenceEditor.svelte';
-	import IconMenu from '~icons/lucide/menu';
+	import IconSun from '~icons/lucide/sun';
 	import IconCalendar from '~icons/lucide/calendar';
-	import IconBarChart2 from '~icons/lucide/bar-chart-2';
 	import IconTarget from '~icons/lucide/target';
+	import IconFileEdit from '~icons/lucide/file-edit';
 	import IconSettings from '~icons/lucide/settings';
 	import AddHabitSheet from '$lib/components/AddHabitSheet.svelte';
 	import IconPlus from '~icons/lucide/plus';
@@ -62,6 +63,13 @@
 			if (savedDataPath) {
 				setDataPathOverride(savedDataPath);
 			}
+
+			const savedLayoutOverride = localStorage.getItem('daylight-layout-override');
+			if (savedLayoutOverride === 'mobile' || savedLayoutOverride === 'desktop') {
+				document.documentElement.setAttribute('data-layout-override', savedLayoutOverride);
+			} else {
+				document.documentElement.removeAttribute('data-layout-override');
+			}
 		} catch {
 			// Ignore localStorage errors during SSR or in restricted contexts
 		}
@@ -72,11 +80,39 @@
 
 	// Sidebar state
 	let sidebarOpen = $state(false);
+	let sidebarWidthPx = $state(280);
+
+	// Sun button: right-click (desktop) or long-press (mobile) opens the Sidebar,
+	// which is the full nav hub (Today, Calendar, Recurring, Habits, Editor,
+	// Reports, Settings, + Projects and Tags sections). Tap still navigates to
+	// /today-bases via the <a href>.
+	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function handleSunContextMenu(e: MouseEvent) {
+		e.preventDefault();
+		sidebarOpen = true;
+	}
+
+	function handleSunTouchStart(e: TouchEvent) {
+		longPressTimer = setTimeout(() => {
+			e.preventDefault();
+			sidebarOpen = true;
+		}, 500);
+	}
+
+	function handleSunTouchEnd() {
+		if (longPressTimer) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
+	}
 
 		const shortcutCombos = {
 			newTask: { key: 'n', ctrlOrMeta: true },
 			newTaskAlt: { key: 'n', alt: true, shift: true },
 			logTime: { key: 't', ctrlOrMeta: true, shift: true },
+			forceDesktopLayout: { key: 'd', ctrlOrMeta: true },
+			forceMobileLayout: { key: 'm', ctrlOrMeta: true },
 			goToday: { key: '1', ctrlOrMeta: true },
 			goCalendar: { key: '2', ctrlOrMeta: true },
 			goReports: { key: '3', ctrlOrMeta: true },
@@ -85,6 +121,7 @@
 			openCommandPalette: { key: 'k', ctrlOrMeta: true },
 			openCommandPaletteAlt: { key: 'k', alt: true, shift: true },
 			openCommandPaletteAltSecondary: { key: 'p', alt: true, shift: true },
+			showShortcutHelpPrimary: { key: 'h', ctrlOrMeta: true },
 			showShortcutHelp: { key: '?', shift: true },
 			showShortcutHelpAlt: { key: 'h', alt: true, shift: true },
 			closeOverlay: { key: 'Escape' }
@@ -98,16 +135,16 @@
 			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goCalendar)
 		},
 		{
-			href: '/reports',
-			label: 'Reports',
-			icon: IconBarChart2,
-			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goReports)
-		},
-		{
 			href: '/habits',
 			label: 'Habits',
 			icon: IconTarget,
 			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goHabits)
+		},
+		{
+			href: '/editor',
+			label: 'Editor',
+			icon: IconFileEdit,
+			ariaKeyShortcuts: formatAriaKeyShortcuts(shortcutCombos.goReports)
 		},
 		{
 			href: '/settings',
@@ -117,7 +154,7 @@
 		}
 	];
 
-	type ModalMode = 'task' | 'time' | 'command' | 'shortcuts' | null;
+	type ModalMode = 'task' | 'time' | 'command' | 'shortcuts' | 'shortcode-help' | null;
 	type ShortcutDebugEntry = {
 		id: number;
 		time: string;
@@ -337,6 +374,48 @@
 		}
 	}
 
+	function decodePathSegment(segment: string): string {
+		try {
+			return decodeURIComponent(segment);
+		} catch {
+			return segment;
+		}
+	}
+
+	function getAddTaskPreset(pathname: string): string {
+		const projectMatch = pathname.match(/^\/projects\/([^/]+)/);
+		if (projectMatch) {
+			const project = decodePathSegment(projectMatch[1]).trim();
+			return project ? `+${project} ` : '';
+		}
+
+		const tagMatch = pathname.match(/^\/tags\/([^/]+)/);
+		if (tagMatch) {
+			const tag = decodePathSegment(tagMatch[1]).trim();
+			return tag ? `#${tag} ` : '';
+		}
+
+		return '';
+	}
+
+	function navigateToProjects() {
+		const firstProject = markdownStore.allProjects[0];
+		if (firstProject) {
+			navigateTo(`/projects/${encodeURIComponent(firstProject)}`);
+			return;
+		}
+		sidebarOpen = true;
+	}
+
+	function navigateToTags() {
+		const firstTag = markdownStore.allTags[0];
+		if (firstTag) {
+			navigateTo(`/tags/${encodeURIComponent(firstTag)}`);
+			return;
+		}
+		sidebarOpen = true;
+	}
+
 	function openAddTask() {
 		// On /habits route, open the add habit sheet instead
 		if ($page.url.pathname === '/habits') {
@@ -344,7 +423,7 @@
 			return;
 		}
 		modalMode = 'task';
-		taskInput = '';
+		taskInput = getAddTaskPreset($page.url.pathname);
 		taskScheduledDate = new Date();
 		recurrenceType = 'none';
 		weeklyDays = [];
@@ -381,6 +460,49 @@
 
 	function openShortcutsHelp() {
 		modalMode = 'shortcuts';
+	}
+
+	function openShortcodeHelp() {
+		modalMode = 'shortcode-help';
+	}
+
+	type LayoutOverrideMode = 'auto' | 'mobile' | 'desktop';
+
+	function getLayoutOverrideMode(): LayoutOverrideMode {
+		const override = document.documentElement.getAttribute('data-layout-override');
+		if (override === 'mobile' || override === 'desktop') return override;
+		return 'auto';
+	}
+
+	function setLayoutOverrideMode(mode: LayoutOverrideMode) {
+		if (mode === 'auto') {
+			document.documentElement.removeAttribute('data-layout-override');
+			try {
+				localStorage.removeItem('daylight-layout-override');
+			} catch {
+				// Ignore storage errors.
+			}
+			window.dispatchEvent(new Event('daylight:layout-override-change'));
+			return;
+		}
+
+		document.documentElement.setAttribute('data-layout-override', mode);
+		try {
+			localStorage.setItem('daylight-layout-override', mode);
+		} catch {
+			// Ignore storage errors.
+		}
+		window.dispatchEvent(new Event('daylight:layout-override-change'));
+	}
+
+	function toggleDesktopLayoutOverride() {
+		const current = getLayoutOverrideMode();
+		setLayoutOverrideMode(current === 'desktop' ? 'auto' : 'desktop');
+	}
+
+	function toggleMobileLayoutOverride() {
+		const current = getLayoutOverrideMode();
+		setLayoutOverrideMode(current === 'mobile' ? 'auto' : 'mobile');
 	}
 
 	function closeModal() {
@@ -465,6 +587,36 @@
 				run: () => navigateTo('/calendar')
 			},
 			{
+				id: 'go-habits',
+				label: 'Go to Habits',
+				hint: 'Ctrl/Cmd+4',
+				run: () => navigateTo('/habits')
+			},
+			{
+				id: 'go-editor',
+				label: 'Go to Editor',
+				hint: 'Ctrl/Cmd+3',
+				run: () => navigateTo('/editor')
+			},
+			{
+				id: 'go-projects',
+				label: 'Go to Projects',
+				hint: 'First project or sidebar',
+				run: navigateToProjects
+			},
+			{
+				id: 'go-tags',
+				label: 'Go to Tags',
+				hint: 'First tag or sidebar',
+				run: navigateToTags
+			},
+			{
+				id: 'go-conflicts',
+				label: 'Go to Conflicts',
+				hint: 'Open conflicts view',
+				run: () => navigateTo('/conflicts')
+			},
+			{
 				id: 'go-reports',
 				label: 'Go to Reports',
 				hint: 'Ctrl/Cmd+3',
@@ -479,8 +631,14 @@
 			{
 				id: 'show-shortcuts',
 				label: 'Keyboard shortcuts',
-				hint: '?',
+				hint: 'Ctrl/Cmd+H',
 				run: openShortcutsHelp
+			},
+			{
+				id: 'show-shortcode-reference',
+				label: 'Shortcode reference',
+				hint: 'Add Task ? button',
+				run: openShortcodeHelp
 			}
 		];
 
@@ -493,10 +651,6 @@
 	});
 
 	function runCommandPaletteAction(action: CommandPaletteAction) {
-		if (action.id === 'show-shortcuts') {
-			openShortcutsHelp();
-			return;
-		}
 		modalMode = null;
 		action.run();
 	}
@@ -524,6 +678,20 @@
 			run: openLogTime
 		},
 		{
+			id: 'toggle-force-desktop-layout',
+			description: 'Toggle force desktop layout',
+			combo: shortcutCombos.forceDesktopLayout,
+			scope: 'page',
+			run: toggleDesktopLayoutOverride
+		},
+		{
+			id: 'toggle-force-mobile-layout',
+			description: 'Toggle force mobile layout',
+			combo: shortcutCombos.forceMobileLayout,
+			scope: 'page',
+			run: toggleMobileLayoutOverride
+		},
+		{
 			id: 'go-today',
 			description: 'Go to Today',
 			combo: shortcutCombos.goToday,
@@ -538,11 +706,11 @@
 			run: () => navigateTo('/calendar')
 		},
 		{
-			id: 'go-reports',
-			description: 'Go to Reports',
+			id: 'go-editor',
+			description: 'Go to Editor',
 			combo: shortcutCombos.goReports,
 			scope: 'page',
-			run: () => navigateTo('/reports')
+			run: () => navigateTo('/editor')
 		},
 		{
 			id: 'go-habits',
@@ -578,6 +746,13 @@
 			combo: shortcutCombos.openCommandPaletteAltSecondary,
 			scope: 'page',
 			run: openCommandPalette
+		},
+		{
+			id: 'show-shortcuts-help-primary',
+			description: 'Show keyboard shortcuts (primary)',
+			combo: shortcutCombos.showShortcutHelpPrimary,
+			scope: 'page',
+			run: openShortcutsHelp
 		},
 		{
 			id: 'show-shortcuts-help',
@@ -1036,23 +1211,29 @@
 
 <svelte:window onkeydown={onGlobalShortcutKeydown} onkeyup={onGlobalShortcutKeyup} />
 
-	<!-- Sidebar -->
+	<!-- Sidebar — full nav hub, opened by right-click/long-press on sun button -->
 	<Sidebar
 		open={sidebarOpen}
 		onclose={() => (sidebarOpen = false)}
 		projects={markdownStore.allProjects}
 		tags={markdownStore.allTags}
+		onwidthchange={(width) => {
+			if (width > 0) {
+				sidebarWidthPx = width;
+			}
+		}}
 	/>
 
-	<div class="app-shell min-h-screen flex flex-col">
+	<div class="app-shell min-h-screen flex flex-col" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
 		<!-- Main content area -->
 		<div class="main-content flex-1 overflow-y-auto">
 			{#if children}
 				{@render children()}
 			{/if}
-	</div>
+		</div>
 
-	<!-- FAB (Floating Action Button) -->
+	<!-- FAB (Floating Action Button) — hidden on /editor -->
+	{#if !$page.url.pathname.startsWith('/editor')}
 		<div class="fab-container fixed right-4 z-50">
 			<button
 				type="button"
@@ -1064,17 +1245,22 @@
 				<IconPlus width="24" height="24" />
 			</button>
 		</div>
+	{/if}
 
-	<!-- Navigation bar (bottom on mobile, top on desktop) -->
-	<nav class="nav-bar fixed left-0 right-0 z-40 flex items-center justify-between px-2">
-		<button
-			type="button"
+	<!-- Navigation bar (bottom on mobile, top on desktop) — hidden on /editor -->
+	<nav class="nav-bar fixed left-0 right-0 z-40 flex items-center justify-between px-2" class:hidden={$page.url.pathname.startsWith('/editor')}>
+		<a
+			href="/today-bases"
 			class="nav-btn"
-			onclick={() => (sidebarOpen = true)}
-			aria-label="Open menu"
+			class:active={isActive('/today-bases', $page.url.pathname)}
+			aria-label="Today"
+			oncontextmenu={handleSunContextMenu}
+			ontouchstart={handleSunTouchStart}
+			ontouchend={handleSunTouchEnd}
+			ontouchmove={handleSunTouchEnd}
 		>
-			<IconMenu width="20" height="20" />
-		</button>
+			<IconSun width="20" height="20" />
+		</a>
 
 		{#each navItems as item}
 			{@const Icon = item.icon}
@@ -1096,12 +1282,13 @@
 <AddHabitSheet open={showAddHabit} onclose={() => showAddHabit = false} />
 
 <!-- Add Task Sheet -->
-<Sheet open={modalMode === 'task'} onclose={closeModal} title="Add Task">
+<Sheet open={modalMode === 'task'} onclose={closeModal} title="Add Task" centered>
 	<div class="space-y-4">
 		<ChipInput
 			bind:value={taskInput}
-			placeholder="Task title with #tags @contexts +project"
+			placeholder="Task title with #tags +project @tom @w"
 			suggestions={[...markdownStore.allTags, ...markdownStore.allContexts, ...markdownStore.allProjects]}
+			onhelp={openShortcodeHelp}
 		/>
 
 		{#if existingTaskSuggestions.length > 0}
@@ -1358,22 +1545,28 @@
 </Sheet>
 
 <!-- Keyboard Shortcut Help Sheet -->
-<Sheet open={modalMode === 'shortcuts'} onclose={closeModal} title="Keyboard Shortcuts">
-	<div class="space-y-3">
-		<p class="text-sm opacity-70">Desktop shortcuts are available when no text field is focused.</p>
-				<ul class="shortcut-list">
-					<li><span>New task</span><kbd>Ctrl/Cmd+N or Alt+Shift+N</kbd></li>
-					<li><span>Log time</span><kbd>Ctrl/Cmd+Shift+T</kbd></li>
-					<li><span>Go to Today</span><kbd>Ctrl/Cmd+1</kbd></li>
-					<li><span>Go to Calendar</span><kbd>Ctrl/Cmd+2</kbd></li>
-					<li><span>Go to Reports</span><kbd>Ctrl/Cmd+3</kbd></li>
+<Sheet open={modalMode === 'shortcuts'} onclose={closeModal} title="Keyboard Shortcuts" centered>
+	<div class="space-y-4">
+		<div>
+			<p class="text-sm opacity-70 mb-2">Desktop shortcuts (when no text field is focused)</p>
+			<ul class="shortcut-list">
+				<li><span>New task</span><kbd>Ctrl/Cmd+N or Alt+Shift+N</kbd></li>
+				<li><span>Log time</span><kbd>Ctrl/Cmd+Shift+T</kbd></li>
+				<li><span>Toggle desktop layout</span><kbd>Ctrl/Cmd+D</kbd></li>
+				<li><span>Toggle mobile layout</span><kbd>Ctrl/Cmd+M</kbd></li>
+				<li><span>Go to Today</span><kbd>Ctrl/Cmd+1</kbd></li>
+				<li><span>Go to Calendar</span><kbd>Ctrl/Cmd+2</kbd></li>
+				<li><span>Go to Reports</span><kbd>Ctrl/Cmd+3</kbd></li>
 				<li><span>Go to Settings</span><kbd>Ctrl/Cmd+4</kbd></li>
-					<li><span>Command palette</span><kbd>Ctrl/Cmd+K, Alt+Shift+K, or Alt+Shift+P</kbd></li>
-				<li><span>Shortcuts help</span><kbd>? or Alt+Shift+H</kbd></li>
-					<li><span>Close overlay</span><kbd>Esc</kbd></li>
-				</ul>
+				<li><span>Command palette</span><kbd>Ctrl/Cmd+K, Alt+Shift+K, or Alt+Shift+P</kbd></li>
+				<li><span>Shortcuts help</span><kbd>Ctrl/Cmd+H, ?, or Alt+Shift+H</kbd></li>
+				<li><span>Edit focused task</span><kbd>Ctrl/Cmd+E</kbd></li>
+				<li><span>Close overlay</span><kbd>Esc</kbd></li>
+			</ul>
 		</div>
+	</div>
 </Sheet>
+<ShortcodeHelp open={modalMode === 'shortcode-help'} onclose={closeModal} />
 
 	{#if false && shortcutDebugEnabled}
 		<div class="shortcut-build-marker">BUILD {devBuildMarker} | tauriInvoke:{tauriInvokeAvailable ? 'yes' : 'no'}</div>
@@ -1479,6 +1672,32 @@
 		}
 	}
 
+	@media (min-width: 500px) {
+		.main-content {
+			padding-left: var(--sidebar-width);
+		}
+
+		.nav-bar {
+			left: var(--sidebar-width);
+		}
+	}
+
+	:global([data-layout-override='desktop']) .main-content {
+		padding-left: var(--sidebar-width);
+	}
+
+	:global([data-layout-override='desktop']) .nav-bar {
+		left: var(--sidebar-width);
+	}
+
+	:global([data-layout-override='mobile']) .main-content {
+		padding-left: 0 !important;
+	}
+
+	:global([data-layout-override='mobile']) .nav-bar {
+		left: 0 !important;
+	}
+
 	.nav-btn {
 		width: 2.75rem;
 		height: 2.75rem;
@@ -1543,7 +1762,7 @@
 	}
 
 	:global([data-mode='dark']) .select-input {
-		background-color: rgb(var(--color-hover-bg-strong));
+		background-color: rgb(var(--color-surface-600));
 		border-color: rgb(var(--color-surface-600));
 	}
 
@@ -1662,7 +1881,7 @@
 	}
 
 	:global([data-mode='dark']) .command-search {
-		background-color: rgb(var(--color-hover-bg-strong));
+		background-color: rgb(var(--color-surface-600));
 		border-color: rgb(var(--color-surface-600));
 	}
 
@@ -1833,11 +2052,11 @@
 	}
 
 	.shortcut-debug-badge.not-ready {
-		background: #dc2626;
+		background: rgb(var(--color-error-500));
 	}
 
 	.shortcut-debug-badge.ready {
-		background: #16a34a;
+		background: rgb(var(--color-success-500));
 	}
 
 	.shortcut-build-marker {
@@ -1850,8 +2069,8 @@
 		font-size: 0.65rem;
 		font-weight: 700;
 		letter-spacing: 0.03em;
-		color: #111827;
-		background: #f59e0b;
+		color: rgb(var(--color-surface-950));
+		background: rgb(var(--color-warning-500));
 	}
 
 	.shortcut-debug-header {

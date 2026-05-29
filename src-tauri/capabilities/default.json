@@ -33,9 +33,13 @@
         "$HOME/**",
         "$HOME/**/.daylight",
         "$HOME/**/.daylight/**",
+        "$HOME/**/.ferrite",
+        "$HOME/**/.ferrite/**",
         "/home/**",
         "/home/**/.daylight",
-        "/home/**/.daylight/**"
+        "/home/**/.daylight/**",
+        "/home/**/.ferrite",
+        "/home/**/.ferrite/**"
       ]
     },
     "fs:read-all",

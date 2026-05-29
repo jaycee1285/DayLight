@@ -1,40 +1,29 @@
 <script lang="ts">
 	import ViewTaskRow from '$lib/components/ViewTaskRow.svelte';
 	import DatePill from '$lib/components/DatePill.svelte';
-	import ProjectTabs from '$lib/components/ProjectTabs.svelte';
 	import {
 		markdownStore,
 		initializeMarkdownStore,
 		setSelectedDate
 	} from '$lib/stores/markdown-store.svelte';
 	import { getTodayDate, getOffsetDate, formatLocalDate } from '$lib/domain/task';
-	import { filterByProject, filterNonHabits, type ViewTask } from '$lib/services/ViewService';
+	import { filterNonHabits } from '$lib/services/ViewService';
 	import { formatDuration } from '$lib/domain/timeLog';
 	import { eventMatchesKey, isEditableTarget } from '$lib/shortcuts/registry';
 	import { onMount } from 'svelte';
-
-	// Project filter state
-	let selectedProject = $state<string | null>(null);
 
 	// Collapsible section states
 	let pastExpanded = $state(false);
 	let upcomingExpanded = $state(false);
 	let wrappedExpanded = $state(false);
 
-	// Filter tasks by selected project
-	function filterTasksByProject(tasks: ViewTask[]): ViewTask[] {
-		const proj = selectedProject;
-		if (!proj) return tasks;
-		return filterByProject(tasks, proj);
-	}
-
 	// Filtered grouped view (exclude habits)
-	const pastTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.past)));
-	const nowTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.now)));
-	const upcomingTasks = $derived(filterTasksByProject(filterNonHabits(markdownStore.groupedView.upcoming)));
+	const pastTasks = $derived(filterNonHabits(markdownStore.groupedView.past));
+	const nowTasks = $derived(filterNonHabits(markdownStore.groupedView.now));
+	const upcomingTasks = $derived(filterNonHabits(markdownStore.groupedView.upcoming));
 	// Defer wrapped computation until section is expanded
 	const wrappedCount = $derived(markdownStore.groupedView.wrapped.length);
-	const wrappedTasks = $derived(wrappedExpanded ? filterTasksByProject(filterNonHabits(markdownStore.groupedView.wrapped)) : []);
+	const wrappedTasks = $derived(wrappedExpanded ? filterNonHabits(markdownStore.groupedView.wrapped) : []);
 
 	// Total time logged on the selected date (deduplicated by filename for recurring tasks)
 	const totalTimeToday = $derived.by(() => {
@@ -130,17 +119,6 @@
 						<li>{error.filename}: {error.message}</li>
 					{/each}
 				</ul>
-			</div>
-		{/if}
-
-		<!-- Project filter tabs -->
-		{#if markdownStore.allProjects.length > 0}
-			<div class="mb-4">
-				<ProjectTabs
-					projects={markdownStore.allProjects}
-					{selectedProject}
-					onselect={(p) => (selectedProject = p)}
-				/>
 			</div>
 		{/if}
 

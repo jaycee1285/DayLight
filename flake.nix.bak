@@ -1,0 +1,324 @@
+{
+  description = "Wayland-Ready Tasks + Calendar + Manual Time Logging App";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { self, nixpkgs, flake-utils, rust-overlay }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs {
+          inherit system overlays;
+        };
+
+        # Android SDK setup (uses writable SDK at ~/.local/share/android-sdk)
+        androidSdkPath = "$HOME/.local/share/android-sdk";
+        ndkVersion = "27.2.12479018";
+
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [ "rust-src" "rust-analyzer" ];
+          targets = [
+            "x86_64-unknown-linux-gnu"    # Dev machine (Linux desktop)
+            "aarch64-linux-android"        # Android ARM 64-bit
+            "armv7-linux-androideabi"      # Android ARM 32-bit
+            "i686-linux-android"           # Android x86 32-bit
+            "x86_64-linux-android"         # Android x86 64-bit
+          ];
+        };
+
+        # Tauri 2 dependencies for Linux/Wayland
+        tauriDeps = with pkgs; [
+          # Build dependencies
+          pkg-config
+          openssl
+          openssl.dev
+
+          # WebKit and GTK
+          webkitgtk_4_1
+          gtk3
+          glib
+          glib-networking
+          libsoup_3
+          cairo
+          pango
+          gdk-pixbuf
+          atk
+          harfbuzz
+          librsvg
+
+          # D-Bus (required by Tauri)
+          dbus
+
+          # Wayland support
+          wayland
+          wayland-protocols
+          libxkbcommon
+
+          # X11 fallback (for XWayland compatibility)
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXrandr
+          xorg.libXi
+          xorg.libxcb
+        ];
+
+        # Libraries needed at runtime
+        runtimeLibs = with pkgs; [
+          webkitgtk_4_1
+          gtk3
+          glib
+          glib-networking
+          libsoup_3
+          cairo
+          pango
+          gdk-pixbuf
+          openssl
+          dbus
+          wayland
+          libxkbcommon
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXrandr
+          xorg.libXi
+          libGL
+          fontconfig
+          freetype
+        ];
+
+        eframeDeps = with pkgs; [
+          libGL
+          fontconfig
+          freetype
+          xorg.libXext
+          xorg.libXrender
+          xorg.libXfixes
+          xorg.libXdamage
+          xorg.libXcomposite
+          xorg.libXinerama
+          xorg.libXxf86vm
+        ];
+
+        buildInputs = tauriDeps ++ eframeDeps;
+
+        nativeBuildInputs = with pkgs; [
+          pkg-config
+          gobject-introspection
+          wrapGAppsHook3
+        ];
+
+        # Fixed-output derivation to fetch bun dependencies with network access
+        bunDeps = pkgs.stdenvNoCC.mkDerivation {
+          pname = "daylight-bun-deps";
+          version = "0.1.0";
+
+          src = ./.;
+
+          nativeBuildInputs = [ pkgs.bun pkgs.cacert ];
+
+          buildPhase = ''
+            export HOME=$(mktemp -d)
+            bun install --frozen-lockfile --linker hoisted
+          '';
+
+          installPhase = ''
+            mkdir -p $out
+            cp -r node_modules $out/
+          '';
+
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+          outputHash = "sha256-k/A4xeCSEXM1egenqKz6Q90Klk0AG34CJe0+6JMkjHo=";
+        };
+
+      in
+      {
+        packages.default = pkgs.rustPlatform.buildRustPackage {
+          pname = "daylight";
+          version = "0.1.0";
+
+          src = ./.;
+
+          cargoLock = {
+            lockFile = ./src-tauri/Cargo.lock;
+          };
+
+          # Cargo.toml is in src-tauri, not root
+          cargoRoot = "src-tauri";
+          buildAndTestSubdir = "src-tauri";
+
+          nativeBuildInputs = with pkgs; [
+            pkg-config
+            gobject-introspection
+            wrapGAppsHook3
+            bun
+            nodejs_22
+          ];
+
+          buildInputs = tauriDeps;
+
+          doCheck = false;
+
+          # Disable the explicit --target flag that cargoBuildHook adds.
+          # When --target is set, Cargo resolves features separately for host
+          # (proc macros) and target dependencies. This prevents the
+          # custom-protocol feature from reaching tauri-macros, causing the
+          # generate_context!() proc macro to emit dev-server code instead of
+          # embedding the frontend assets.
+          CARGO_BUILD_TARGET = "";
+
+          OPENSSL_DIR = "${pkgs.openssl.dev}";
+          OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+          OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
+
+          # Build the SvelteKit frontend BEFORE cargoBuildHook runs cargo build.
+          # preBuild runs from the project root (cargoBuildHook handles cd into
+          # cargoRoot internally, after preBuild completes).
+          preBuild = ''
+            cp -r ${bunDeps}/node_modules .
+            chmod -R u+w node_modules
+            patchShebangs node_modules
+            export HOME=$(mktemp -d)
+            ./node_modules/.bin/svelte-kit sync
+            ./node_modules/.bin/vite build
+          '';
+
+          # Let cargoInstallHook handle installation (it knows the --target path)
+
+          postFixup = ''
+            wrapProgram $out/bin/daylight \
+              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath runtimeLibs}" \
+              --set GIO_MODULE_DIR "${pkgs.glib-networking}/lib/gio/modules" \
+              --set WEBKIT_DISABLE_COMPOSITING_MODE "1" \
+              --prefix XDG_DATA_DIRS : "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+          '';
+        };
+
+        devShells.default = pkgs.mkShell {
+          inherit buildInputs nativeBuildInputs;
+
+          packages = with pkgs; [
+            # Node.js runtime
+            nodejs_22
+
+            # Bun package manager
+            bun
+
+            # Rust toolchain (complete, with Android targets)
+            rustToolchain
+            cargo-watch
+            cargo-tauri
+
+            # Java (for Android builds)
+            jdk17
+
+            # Development utilities
+            just
+
+            # release.sh strips Nix store paths for cross-machine portability
+            patchelf
+          ];
+
+          # Environment variables for building and running Tauri
+          OPENSSL_DIR = "${pkgs.openssl.dev}";
+          OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+          OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
+
+          # pkg-config path for native dependencies
+          PKG_CONFIG_PATH = pkgs.lib.makeSearchPath "lib/pkgconfig" [
+            pkgs.glib.dev
+            pkgs.gtk3.dev
+            pkgs.webkitgtk_4_1.dev
+            pkgs.libsoup_3.dev
+            pkgs.cairo.dev
+            pkgs.pango.dev
+            pkgs.gdk-pixbuf.dev
+            pkgs.atk.dev
+            pkgs.harfbuzz.dev
+            pkgs.openssl.dev
+            pkgs.dbus.dev
+            pkgs.wayland.dev
+            pkgs.libxkbcommon.dev
+          ];
+
+          shellHook = ''
+            # Library path for runtime
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath runtimeLibs}:$LD_LIBRARY_PATH"
+
+            # GIO modules for HTTPS support
+            export GIO_MODULE_DIR="${pkgs.glib-networking}/lib/gio/modules"
+
+            # WebKit settings
+            export WEBKIT_DISABLE_COMPOSITING_MODE=1
+
+            # XDG for proper Wayland detection
+            export XDG_DATA_DIRS="${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:$XDG_DATA_DIRS"
+
+            # Ensure cargo/rustup paths are available
+            export PATH="$HOME/.cargo/bin:$PATH"
+
+            # Java for Android builds
+            export JAVA_HOME="${pkgs.jdk17}"
+
+            # Android SDK setup (uses writable SDK from flutter setup)
+            if [ -d "${androidSdkPath}" ]; then
+              export ANDROID_HOME="${androidSdkPath}"
+              export ANDROID_SDK_ROOT="${androidSdkPath}"
+              export NDK_HOME="${androidSdkPath}/ndk/${ndkVersion}"
+              export PATH="${androidSdkPath}/platform-tools:${androidSdkPath}/cmdline-tools/latest/bin:$PATH"
+              # NDK toolchain needs its own libc++ for the host clang
+              export LD_LIBRARY_PATH="${androidSdkPath}/ndk/${ndkVersion}/toolchains/llvm/prebuilt/linux-x86_64/lib64:$LD_LIBRARY_PATH"
+
+              # NixOS fix: Android SDK scripts use #!/bin/bash which doesn't exist on NixOS
+              if [ ! -f "/bin/bash" ]; then
+                # NDK clang wrappers
+                if [ -d "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" ]; then
+                  for f in "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/"*-clang \
+                           "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/"*-clang++; do
+                    if head -1 "$f" 2>/dev/null | grep -q '^#!/bin/bash$'; then
+                      sed -i '1s|^#!/bin/bash$|#!/usr/bin/env bash|' "$f" 2>/dev/null || true
+                    fi
+                  done
+                fi
+                # Build-tools (apksigner, d8, etc.)
+                for f in "${androidSdkPath}/build-tools/"*/apksigner \
+                         "${androidSdkPath}/build-tools/"*/d8; do
+                  if [ -f "$f" ] && head -1 "$f" 2>/dev/null | grep -q '^#!/bin/bash$'; then
+                    sed -i '1s|^#!/bin/bash$|#!/usr/bin/env bash|' "$f" 2>/dev/null || true
+                  fi
+                done
+              fi
+
+              ANDROID_STATUS="found at ${androidSdkPath}"
+            else
+              ANDROID_STATUS="not found (run 'flutter doctor' to set up)"
+            fi
+
+            echo "══════════════════════════════════════════════"
+            echo "  DayLight dev environment ready"
+            echo "══════════════════════════════════════════════"
+            echo "  Node:  $(node --version)"
+            echo "  Bun:   $(bun --version)"
+            echo "  Rust:  $(rustc --version)"
+            echo "  Cargo: $(cargo --version)"
+            echo "  Android SDK: $ANDROID_STATUS"
+            echo ""
+            echo "  Commands:"
+            echo "    bun install            - Install JS dependencies"
+            echo "    bun run tauri:dev      - Run Tauri in dev mode"
+            echo "    bun run tauri:build    - Build release binary"
+            echo "    bun run tauri android init  - Init Android project"
+            echo "    bun run tauri android dev   - Run on Android device"
+            echo "    bun run tauri android build - Build Android APK"
+            echo "══════════════════════════════════════════════"
+          '';
+        };
+      }
+    );
+}

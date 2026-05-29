@@ -6,10 +6,11 @@
 		open: boolean;
 		onclose: () => void;
 		title?: string;
+		centered?: boolean;
 		children: Snippet;
 	}
 
-	let { open, onclose, title = '', children }: Props = $props();
+	let { open, onclose, title = '', centered = false, children }: Props = $props();
 
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) {
@@ -29,14 +30,22 @@
 {#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
-		class="sheet-backdrop fixed inset-0 z-[60] flex items-end justify-center"
+		class="sheet-backdrop fixed inset-0 z-[60] flex justify-center"
+		class:items-end={!centered}
+		class:items-center={centered}
 		onclick={handleBackdropClick}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby={title ? 'sheet-title' : undefined}
 		tabindex="-1"
 	>
-		<div class="sheet-content w-full max-w-lg rounded-t-xl animate-slide-up">
+		<div
+			class="sheet-content w-full max-w-lg"
+			class:rounded-t-xl={!centered}
+			class:rounded-xl={centered}
+			class:animate-slide-up={!centered}
+			class:animate-fade-in={centered}
+		>
 			{#if title}
 				<div class="sheet-header flex items-center justify-between p-4 border-b flex-shrink-0">
 					<h2 id="sheet-title" class="text-lg font-semibold">{title}</h2>
@@ -118,7 +127,22 @@
 		}
 	}
 
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
 	.animate-slide-up {
 		animation: slide-up 0.2s ease-out;
+	}
+
+	.animate-fade-in {
+		animation: fade-in 0.15s ease-out;
 	}
 </style>
