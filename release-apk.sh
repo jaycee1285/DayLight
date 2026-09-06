@@ -16,7 +16,7 @@ REPO=$(basename "$(pwd)")
 
 # Android SDK/NDK paths
 ANDROID_SDK="$HOME/.local/share/android-sdk"
-NDK_VERSION="25.1.8937393"
+NDK_VERSION="27.2.12479018"
 NDK_PATH="$ANDROID_SDK/ndk/$NDK_VERSION"
 
 # Verify this looks like a Tauri project

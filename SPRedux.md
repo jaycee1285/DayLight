@@ -1,1 +1,0 @@
-/home/john/Sync/JMC/SideProjects/SPRedux/SPRedux.md

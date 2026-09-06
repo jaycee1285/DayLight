@@ -1,14 +1,18 @@
 repo: DayLight
 status_version: 1
-last_updated: 2026-04-11
+last_updated: 2026-06-01
 feature_status: feature-complete
 manual_smoke:
   state: pass
   source: user-confirmed
-  last_run: 2026-04-11
+  last_run: 2026-06-01
   bounds:
     platform: Linux desktop (Wayland primary)
     scope:
+      - extended-table markdown render in editor preview (colspan/rowspan/multi-row/percent)
+      - content-routed edit surface (raw textarea for extended-table files, milkdown otherwise)
+      - raw textarea auto-grow + page scroll
+      - Ctrl/Cmd+E preview<->edit toggle across both edit modes
       - launch and load configured task folder
       - task create/edit/complete persistence
       - manual time logging persistence
@@ -50,7 +54,15 @@ manual_smoke:
     layout_override_settings_toggles_force_mobile_and_force_desktop: pass
     sidebar_persistent_mode_no_header_label_or_close_when_non_overlay: pass
     sidebar_width_content_driven_with_dynamic_layout_offset: pass
+    extended_tables_render_in_editor_preview: pass
+    extended_table_files_open_in_raw_text_not_wysiwyg: pass
+    normal_files_still_open_in_milkdown_wysiwyg: pass
+    raw_textarea_fills_and_grows_with_content: pass
+    preview_replaces_raw_editor_not_renders_below_it: pass
+    ctrl_e_toggles_preview_edit_in_both_modes: pass
   known_gaps:
+    - marked-extended-tables raw-text edit chrome offset (toolbar overlap) tuned by reasoning, not device-measured
+    - old Ctrl/Cmd+E toolbar toggle is now orphaned from the keyboard (swipe-up / hint-pill only)
     - Android smoke cadence not encoded in this file
     - persisted index freshness still depends on manual rebuild/query lifecycle
     - add-task fuzzy ranking still needs broader real-data tuning
@@ -66,6 +78,9 @@ manual_smoke:
     - Editor folder and new note dialogs recentered to match FileBrowser dialog pattern.
     - UX normalization follow-through completed and signed off during 2026-04-10/2026-04-11 sessions (T19.4, T19.5, T19.6, T19.8, T19.9, T19.10, T19.11, T19.13).
     - Sidebar behavior now supports manual layout override from Settings (auto/mobile/desktop), with content-driven width and dynamic nav/content offset.
+    - 2026-06-01: extended-table markdown parity with ferrinode (Phase 20). New src/lib/markdown.ts (renderMarkdown + hasExtendedTables); editor preview renders extended tables; mountEditor routes extended-table files to a raw textarea (rawEdit) and everything else to milkdown; Ctrl/Cmd+E toggles preview<->edit.
+    - Dependency is marked-extended-tables@^2.0.1 from the npm REGISTRY (a `../marked-extended-tables` local-clone path was a reproducibility bug, fixed). marked stays ^17 — the extension's declared >=3 <16 peer range is a stated test ceiling, measured PASS on 15/16/17.
+    - Raw textarea fills via an autogrow action (height = scrollHeight) mirroring milkdown's content-driven height, since the parent chain (.app-shell min-h-screen) has no definite height; diagnosed with an element-tree screenshot + headless height probe, not guessed.
   next_smoke_trigger:
     - markdown storage/parser changes
     - recurrence logic changes
@@ -76,3 +91,4 @@ manual_smoke:
     - add-task suggestion logic changes
     - .ferrite/state.json format or read/write logic changes
     - layout override behavior, breakpoint policy, or sidebar width-measurement logic changes
+    - markdown render path, marked/extension version, or editor mode-routing (rawEdit) changes

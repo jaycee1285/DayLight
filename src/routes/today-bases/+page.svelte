@@ -10,12 +10,15 @@
 	import { filterNonHabits } from '$lib/services/ViewService';
 	import { formatDuration } from '$lib/domain/timeLog';
 	import { eventMatchesKey, isEditableTarget } from '$lib/shortcuts/registry';
+	import { hasContextEntry } from '$lib/storage/context';
 	import { onMount } from 'svelte';
 
 	// Collapsible section states
 	let pastExpanded = $state(false);
 	let upcomingExpanded = $state(false);
 	let wrappedExpanded = $state(false);
+	let selectedDateHasContext = $state(false);
+	let contextCheckId = 0;
 
 	// Filtered grouped view (exclude habits)
 	const pastTasks = $derived(filterNonHabits(markdownStore.groupedView.past));
@@ -59,6 +62,20 @@
 		window.dispatchEvent(new CustomEvent('daylight:shortcut:add-task'));
 	}
 
+	async function refreshContextMarker(date: string) {
+		const checkId = ++contextCheckId;
+		try {
+			const hasEntry = await hasContextEntry(date);
+			if (checkId === contextCheckId) {
+				selectedDateHasContext = hasEntry;
+			}
+		} catch {
+			if (checkId === contextCheckId) {
+				selectedDateHasContext = false;
+			}
+		}
+	}
+
 	let initialized = $state(false);
 
 	$effect(() => {
@@ -68,23 +85,38 @@
 		initializeMarkdownStore();
 	});
 
+	$effect(() => {
+		void refreshContextMarker(markdownStore.selectedDate);
+	});
+
 	// Pull-to-refresh (dynamic import hidden from Rollup's static analysis
 	// via variable — the module is browser-only and unavailable in Nix sandbox)
-	onMount(async () => {
+	onMount(() => {
+		function handleContextUpdated() {
+			void refreshContextMarker(markdownStore.selectedDate);
+		}
+		window.addEventListener('daylight:context-updated', handleContextUpdated);
+
+		let PullToRefresh: { init: (options: Record<string, unknown>) => void; destroyAll: () => void } | null = null;
 		const mod = 'pulltorefreshjs';
-		const PullToRefresh = (await import(/* @vite-ignore */ mod)).default;
-		PullToRefresh.init({
-			mainElement: 'main',
-			instructionsPullToRefresh: 'Pull to refresh',
-			instructionsReleaseToRefresh: 'Release to refresh',
-			instructionsRefreshing: 'Refreshing...',
-			onRefresh() {
-				setSelectedDate(getTodayDate());
-				return initializeMarkdownStore();
-			}
+		void import(/* @vite-ignore */ mod).then((loaded) => {
+			const pullToRefresh = loaded.default;
+			PullToRefresh = pullToRefresh;
+			pullToRefresh.init({
+				mainElement: 'main',
+				instructionsPullToRefresh: 'Pull to refresh',
+				instructionsReleaseToRefresh: 'Release to refresh',
+				instructionsRefreshing: 'Refreshing...',
+				onRefresh() {
+					setSelectedDate(getTodayDate());
+					return initializeMarkdownStore();
+				}
+			});
 		});
+
 		return () => {
-			PullToRefresh.destroyAll();
+			window.removeEventListener('daylight:context-updated', handleContextUpdated);
+			PullToRefresh?.destroyAll();
 		};
 	});
 </script>
@@ -98,6 +130,9 @@
 			date={new Date(markdownStore.selectedDate + 'T00:00:00')}
 			onselect={handleDateSelect}
 		/>
+		{#if selectedDateHasContext}
+			<span class="context-marker" aria-label="Context entry exists"></span>
+		{/if}
 		{#if totalTimeToday > 0}
 			<span class="time-total">{formatDuration(totalTimeToday)}</span>
 		{/if}
@@ -226,6 +261,14 @@
 		font-size: 0.875rem;
 		font-weight: 600;
 		opacity: 0.7;
+	}
+
+	.context-marker {
+		width: 0.625rem;
+		height: 0.625rem;
+		border-radius: 999px;
+		background-color: rgb(var(--color-warning-500));
+		box-shadow: 0 0 0 2px rgb(var(--color-warning-500) / 0.2);
 	}
 
 	.section-header-past {

@@ -24,8 +24,8 @@ export interface RecurringInstanceConfig {
 }
 
 const DEFAULT_CONFIG: RecurringInstanceConfig = {
-	lookAheadDays: 30,
-	lookBehindDays: 7
+	lookAheadDays: 0,
+	lookBehindDays: 0
 };
 
 /**
@@ -269,6 +269,10 @@ export function getTaskDateGroup(frontmatter: TaskFrontmatter, today: string = g
 	// 1. Status 'done' → Wrapped (permanently closed)
 	if (frontmatter.status === 'done') {
 		return 'Wrapped';
+	}
+
+	if (frontmatter.status === 'float') {
+		return 'Upcoming';
 	}
 
 	// 2. Completed today → Wrapped

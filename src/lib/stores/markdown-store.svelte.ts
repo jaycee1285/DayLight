@@ -251,6 +251,7 @@ export async function addTask(
 		startTime?: string;
 		plannedDuration?: number;
 		priority?: 'none' | 'low' | 'normal' | 'high';
+		status?: 'open' | 'float';
 	} = {}
 ): Promise<string> {
 	// Check if task with this exact title already exists
@@ -258,10 +259,11 @@ export async function addTask(
 	const existing = taskFiles.get(existingFilename);
 
 	if (existing && !existing.frontmatter.recurrence) {
+		const status = options.status || 'open';
 		// Task exists and is non-recurring - reschedule it (reactivate)
 		const updates: Partial<TaskFrontmatter> = {
-			scheduled: options.scheduled || null,
-			status: 'open'
+			scheduled: status === 'float' ? null : options.scheduled || null,
+			status
 		};
 
 		// Optionally merge in new tags/projects if provided
@@ -288,9 +290,9 @@ export async function addTask(
 	const now = new Date().toISOString();
 
 	const frontmatter: TaskFrontmatter = {
-		status: 'open',
+		status: options.status || 'open',
 		priority: options.priority || 'none',
-		scheduled: options.scheduled || null,
+		scheduled: options.status === 'float' ? null : options.scheduled || null,
 		due: options.due || null,
 		startTime: options.startTime || null,
 		plannedDuration: options.plannedDuration || null,
@@ -342,13 +344,13 @@ export async function addRecurringTask(
 	const now = new Date().toISOString();
 	const today = getTodayDate();
 
-	// Generate initial active instances
-	const windowEnd = formatLocalDate(new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000));
-	const instances = generateOccurrences(recurrence, today, windowEnd);
+	const nextYear = formatLocalDate(new Date(new Date().getTime() + 366 * 24 * 60 * 60 * 1000));
+	const upcomingInstances = generateOccurrences(recurrence, today, nextYear);
 
 	// Use first actual instance as scheduled date (may differ from startDate
 	// when today isn't an occurrence day, e.g. MWF created on Thursday)
-	const firstInstance = instances.length > 0 ? instances[0] : recurrence.startDate;
+	const firstInstance = upcomingInstances.length > 0 ? upcomingInstances[0] : recurrence.startDate;
+	const activeInstances = firstInstance === today ? [today] : [];
 
 	const frontmatter: TaskFrontmatter = {
 		status: 'open',
@@ -362,7 +364,7 @@ export async function addRecurringTask(
 		projects: options.projects || [],
 		recurrence: recurrenceToRRule(recurrence),
 		recurrence_anchor: 'scheduled',
-		active_instances: instances,
+		active_instances: activeInstances,
 		complete_instances: [],
 		skipped_instances: [],
 		rescheduled_instances: {},
@@ -416,8 +418,7 @@ export async function addHabit(
 		recurrence = { frequency: 'daily', interval: 1, startDate: today };
 	}
 
-	const windowEnd = formatLocalDate(new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000));
-	const instances = generateOccurrences(recurrence, today, windowEnd);
+	const instances = generateOccurrences(recurrence, today, today);
 
 	const frontmatter: TaskFrontmatter = {
 		status: 'open',

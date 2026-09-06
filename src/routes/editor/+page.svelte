@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 	import { join } from '@tauri-apps/api/path';
-	import { marked } from 'marked';
+	import { renderMarkdown, hasExtendedTables } from '$lib/markdown';
 	import { createEditor, type EditorHandle } from '$lib/editor/milkdown-adapter';
 	import EditorToolbar from '$lib/editor/EditorToolbar.svelte';
 	import FileBrowser from '$lib/editor/FileBrowser.svelte';
@@ -40,6 +40,11 @@ interface FerriteState {
 	let saving = $state(false);
 	let dirty = $state(false);
 let previewing = $state(false);
+// Decided at file-open time from content: extended-table files edit as raw text
+// (milkdown would corrupt the grammar); everything else uses milkdown. Computed
+// once on open, not reactively, so typing a table mid-edit doesn't yank the
+// surface out from under you.
+let rawEdit = $state(false);
 let showUnsavedDialog = $state(false);
 let pendingNavAction: (() => void) | null = null;
 let showCommandDrawer = $state(false);
@@ -147,9 +152,22 @@ let initError = $state<string | null>(null);
 		}
 	}
 
-	function renderMarkdown(markdown: string): string {
-		const parsed = marked.parse(markdown, { async: false });
-		return typeof parsed === 'string' ? parsed : '';
+	// Make the raw textarea auto-grow to its content, the way milkdown's
+	// contenteditable does — so .main-content (the page) owns the scroll and the
+	// textarea fills naturally instead of needing a hardcoded viewport height.
+	// The min-height:50vh floor (milkdown's value) covers empty/short files.
+	function autogrow(node: HTMLTextAreaElement) {
+		const resize = () => {
+			node.style.height = 'auto';
+			node.style.height = `${node.scrollHeight}px`;
+		};
+		resize();
+		node.addEventListener('input', resize);
+		return {
+			// Re-fit when the bound value changes from outside (e.g. file open).
+			update: () => resize(),
+			destroy: () => node.removeEventListener('input', resize)
+		};
 	}
 
 	function closeOnOverlayKey(
@@ -234,9 +252,15 @@ async function loadBasePath() {
 				e.preventDefault();
 				showCommandDrawer = !showCommandDrawer;
 			}
+			// Ctrl/Cmd-E toggles preview ↔ edit. togglePreview hides whichever edit
+			// surface is mounted (milkdown WYSIWYG, or the raw textarea for
+			// extended-table files) and shows the preview pane, so it handles both
+			// modes without branching. stopPropagation so the layout's Ctrl-E
+			// (go-to-editor) doesn't also fire.
 			if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
 				e.preventDefault();
-				showToolbar = !showToolbar;
+				e.stopPropagation();
+				togglePreview();
 			}
 		}
 		window.addEventListener('beforeunload', handleBeforeUnload);
@@ -261,6 +285,7 @@ async function loadBasePath() {
 			currentMarkdown = content;
 			dirty = false;
 			previewing = false;
+			rawEdit = hasExtendedTables(content);
 			view = 'editor';
 
 			// Track in .ferrite/state.json for cross-app history
@@ -274,6 +299,14 @@ async function loadBasePath() {
 	}
 
 	async function mountEditor() {
+		// Extended-table files edit as raw text — no milkdown to corrupt the
+		// grammar. The textarea binds currentMarkdown directly (see template).
+		if (rawEdit) {
+			editorHandle?.destroy();
+			editorHandle = null;
+			return;
+		}
+
 		// Wait for DOM
 		await new Promise((r) => requestAnimationFrame(r));
 		if (!editorRoot) return;
@@ -588,7 +621,18 @@ function useEditorFolder() {
 			ontouchstart={handleEditorTouchStart}
 			ontouchend={handleEditorTouchEnd}
 		>
-			<div class="milkdown-host" class:hidden={previewing} bind:this={editorRoot}></div>
+			{#if rawEdit}
+				<textarea
+					class="raw-editor"
+					class:hidden={previewing}
+					spellcheck="false"
+					bind:value={currentMarkdown}
+					use:autogrow={currentMarkdown}
+					oninput={() => (dirty = currentMarkdown !== originalContent)}
+				></textarea>
+			{:else}
+				<div class="milkdown-host" class:hidden={previewing} bind:this={editorRoot}></div>
+			{/if}
 			<div class="preview-pane" class:hidden={!previewing}>
 				{@html renderedHtml}
 			</div>
@@ -1118,6 +1162,7 @@ function useEditorFolder() {
 		padding-bottom: calc(3.5rem + max(env(safe-area-inset-bottom, 0px), var(--android-nav-fallback, 0px)));
 	}
 
+
 	/* Milkdown editor host */
 	.milkdown-host {
 		min-height: 100%;
@@ -1282,6 +1327,43 @@ function useEditorFolder() {
 
 	.hidden {
 		display: none;
+	}
+
+	/* Raw-text edit surface for extended-table files (milkdown would corrupt the
+	   grammar on reserialize). Plain textarea, no syntax highlighting by design.
+
+	   Height is driven by the `autogrow` action (JS sets height = scrollHeight on
+	   input/open), so the textarea grows with its content exactly like milkdown's
+	   contenteditable and .main-content (the page) owns the scroll. CSS only sets
+	   the floor for empty/short files — min-height:50vh, milkdown's own value.
+	   overflow:hidden so the textarea never shows its own scrollbar (the page
+	   scrolls); resize:none so the JS-set height isn't fought by the drag handle. */
+	.raw-editor {
+		display: block;
+		width: 100%;
+		min-height: 50vh;
+		overflow: hidden;
+		resize: none;
+		border: none;
+		outline: none;
+		background: transparent;
+		color: rgb(var(--color-surface-900));
+		padding: 1rem;
+		font-family: ui-monospace, 'Cascadia Code', monospace;
+		font-size: 0.95rem;
+		line-height: 1.55;
+		tab-size: 2;
+	}
+
+	/* .raw-editor sets display:block, which (same specificity, defined later) would
+	   override the shared .hidden rule and keep the textarea visible during preview.
+	   This higher-specificity rule restores hiding when previewing. */
+	.raw-editor.hidden {
+		display: none;
+	}
+
+	:global([data-mode='dark']) .raw-editor {
+		color: rgb(var(--color-surface-100));
 	}
 
 	:global([data-mode='dark']) .preview-pane {

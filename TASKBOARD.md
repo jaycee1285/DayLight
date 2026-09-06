@@ -673,6 +673,41 @@ Full UX review against `design-basics.md` + `design-normalization.md`, with cros
 
 ---
 
+## Phase 20: Extended-Table Markdown Parity (Complete — 2026-06-01)
+
+Brought DayLight's editor in line with the ferrinode/desktop markdown handling so
+the same MD files read and edit identically across apps. Driven by John in a
+ferrinode session; DayLight is the shared-lib **version reference**.
+
+| ID    | Ticket               | Status | Notes                |
+|------:|----------------------|--------|----------------------|
+| T20.1 | `marked-extended-tables` in render path | Done | New `src/lib/markdown.ts`: `renderMarkdown` (marked + extension) + `hasExtendedTables`. Preview pane renders colspan `\|\|\|` / rowspan `^\|` / multi-row headers / percent widths. |
+| --- | --- | --- | --- |
+| T20.2 | Registry dependency, not local path | Done | `marked-extended-tables@^2.0.1` from npm (NOT `../marked-extended-tables` — that was a reproducibility bug John caught). marked stays `^17`. |
+| --- | --- | --- | --- |
+| T20.3 | Content-routed edit surface | Done | `mountEditor` checks `hasExtendedTables(content)` at file-open: extended-table files open a raw `<textarea>` (`rawEdit`), all others milkdown WYSIWYG. Silent — no toggle or warning. Protects the grammar from milkdown reserialization. |
+| --- | --- | --- | --- |
+| T20.4 | Raw textarea fills like milkdown | Done | `autogrow` action sets height = scrollHeight on input/open; page (`.main-content`) owns scroll; `min-height:50vh` floor. Matches how milkdown's contenteditable fills — the parent chain is `min-h-screen`/indefinite, so a fixed height or flex-fill does not work here. |
+| --- | --- | --- | --- |
+| T20.5 | Preview hides raw editor | Done | `.raw-editor.hidden` specificity fix (the added `display:block` was beating the shared `.hidden` rule, so preview rendered below the text). |
+| --- | --- | --- | --- |
+| T20.6 | `Ctrl/Cmd+E` toggles preview ↔ edit | Done | Repointed from toggle-toolbar. `togglePreview` flips `previewing`, which hides whichever edit surface is mounted (milkdown or raw textarea) — handles both modes with no branching. Old toolbar toggle is now swipe-up / hint-pill only. |
+
+**Measured, not assumed** (this session's discipline):
+- `marked-extended-tables` PASSes on marked 15/16/17 via a headless harness — the
+  declared `>=3 <16` peer range is the author's stated test ceiling, not a real
+  boundary. Do not pin a library to the version it was authored against.
+- The textarea fill was diagnosed with an element-tree screenshot + a headless
+  height probe against the real parent chain, after two wrong arbitrary-number
+  attempts (50vh, dvh-calc). Milkdown fills by content auto-growth, not a height
+  value — so the textarea was made to auto-grow too.
+
+**Cross-app note**: ferrinode has the same stack but its Text-mode fill uses flex
+(its shell is `height:100dvh`, definite) — same symptom, different correct fix.
+Do not cross-port the auto-grow approach to ferrinode or vice versa.
+
+---
+
 ## v2 Backlog
 
 | ID   | Ticket               | Status  | Owner | Notes                |

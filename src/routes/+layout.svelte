@@ -17,6 +17,7 @@
 	import IconFileEdit from '~icons/lucide/file-edit';
 	import IconSettings from '~icons/lucide/settings';
 	import AddHabitSheet from '$lib/components/AddHabitSheet.svelte';
+	import ContextEntrySheet from '$lib/components/ContextEntrySheet.svelte';
 	import IconPlus from '~icons/lucide/plus';
 	import { createCalendarCache } from '$lib/domain/calendar';
 	import {
@@ -169,6 +170,7 @@
 	};
 	let modalMode = $state<ModalMode>(null);
 	let showAddHabit = $state(false);
+	let showContextEntry = $state(false);
 	let commandQuery = $state('');
 	let commandInput: HTMLInputElement | null = $state(null);
 	let shortcutIsMac = false;
@@ -181,8 +183,10 @@
 	const commandPaletteAriaShortcuts = `${formatAriaKeyShortcuts(shortcutCombos.openCommandPalette)} ${formatAriaKeyShortcuts(shortcutCombos.openCommandPaletteAlt)} ${formatAriaKeyShortcuts(shortcutCombos.openCommandPaletteAltSecondary)}`;
 
 	// Add Task state
+	type TaskScheduleMode = 'active' | 'float';
 	let taskInput = $state('');
 	let taskScheduledDate = $state<Date>(new Date());
+	let taskScheduleMode = $state<TaskScheduleMode>('active');
 
 	// Recurrence state
 	type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -192,6 +196,14 @@
 	let customRecurrence = $state<Recurrence | null>(null);
 
 	let parsedTaskInput = $derived(parseShortcodes(taskInput));
+
+	$effect(() => {
+		if (taskScheduleMode !== 'float') return;
+		recurrenceType = 'none';
+		weeklyDays = [];
+		customRecurrence = null;
+	});
+
 	function scoreTaskSuggestion(query: string, value: string): number {
 		const normalizedQuery = query.trim().toLowerCase();
 		const normalizedValue = value.trim().toLowerCase();
@@ -425,10 +437,54 @@
 		modalMode = 'task';
 		taskInput = getAddTaskPreset($page.url.pathname);
 		taskScheduledDate = new Date();
+		taskScheduleMode = 'active';
 		recurrenceType = 'none';
 		weeklyDays = [];
 		monthlyDay = new Date().getDate();
 		customRecurrence = null;
+	}
+
+	function openContextEntry() {
+		showContextEntry = true;
+	}
+
+	let fabLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+	let fabLongPressOpened = false;
+
+	function clearFabLongPressTimer() {
+		if (fabLongPressTimer) {
+			clearTimeout(fabLongPressTimer);
+			fabLongPressTimer = null;
+		}
+	}
+
+	function handleFabPointerDown(event: PointerEvent) {
+		if (event.button !== 0) return;
+		fabLongPressOpened = false;
+		clearFabLongPressTimer();
+		fabLongPressTimer = setTimeout(() => {
+			fabLongPressOpened = true;
+			openContextEntry();
+		}, 500);
+	}
+
+	function handleFabPointerUp() {
+		clearFabLongPressTimer();
+	}
+
+	function handleFabClick(event: MouseEvent) {
+		if (fabLongPressOpened) {
+			event.preventDefault();
+			fabLongPressOpened = false;
+			return;
+		}
+		openAddTask();
+	}
+
+	function handleFabContextMenu(event: MouseEvent) {
+		event.preventDefault();
+		clearFabLongPressTimer();
+		openContextEntry();
 	}
 
 	function openLogTime() {
@@ -973,6 +1029,7 @@
 		const parsed = parseShortcodes(taskInput);
 		const dateStr = formatLocalDate(taskScheduledDate);
 		const projects = parsed.project ? [parsed.project] : [];
+		const taskStatus = taskScheduleMode === 'float' ? 'float' : 'open';
 
 		if (recurrenceType === 'none') {
 			// Regular one-time task
@@ -980,7 +1037,8 @@
 				tags: parsed.tags,
 				contexts: parsed.contexts,
 				projects,
-				scheduled: dateStr
+				scheduled: taskScheduleMode === 'float' ? undefined : dateStr,
+				status: taskStatus
 			});
 		} else if (recurrenceType === 'daily') {
 			// Daily recurring task
@@ -1237,7 +1295,12 @@
 		<div class="fab-container fixed right-4 z-50">
 			<button
 				type="button"
-				onclick={openAddTask}
+				onclick={handleFabClick}
+				onpointerdown={handleFabPointerDown}
+				onpointerup={handleFabPointerUp}
+				onpointercancel={handleFabPointerUp}
+				onpointerleave={handleFabPointerUp}
+				oncontextmenu={handleFabContextMenu}
 				class="fab w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
 				aria-label={$page.url.pathname === '/habits' ? 'Add habit' : 'Add task'}
 				aria-keyshortcuts={newTaskAriaShortcuts}
@@ -1281,6 +1344,12 @@
 <!-- Add Habit Sheet (shown on /habits route) -->
 <AddHabitSheet open={showAddHabit} onclose={() => showAddHabit = false} />
 
+<ContextEntrySheet
+	open={showContextEntry}
+	date={markdownStore.selectedDate}
+	onclose={() => showContextEntry = false}
+/>
+
 <!-- Add Task Sheet -->
 <Sheet open={modalMode === 'task'} onclose={closeModal} title="Add Task" centered>
 	<div class="space-y-4">
@@ -1314,10 +1383,16 @@
 			<span class="text-sm opacity-70">Schedule for:</span>
 			<DatePill
 				bind:date={taskScheduledDate}
+				bind:mode={taskScheduleMode}
+				allowFloat={true}
+				onselect={() => {
+					taskScheduleMode = 'active';
+				}}
 			/>
 		</div>
 
 		<!-- Recurrence Options -->
+		{#if taskScheduleMode === 'active'}
 		<div class="recurrence-section">
 			<span class="text-sm opacity-70 block mb-2">Repeat:</span>
 			<div class="flex gap-2 mb-3">
@@ -1407,6 +1482,7 @@
 				/>
 			{/if}
 		</div>
+		{/if}
 
 		<div class="flex justify-between items-center pt-4">
 				<button

@@ -18,7 +18,7 @@ export interface TaskFrontmatter {
 	// id is stored for backwards compatibility during migration
 
 	// Status
-	status: 'open' | 'done' | 'cancelled';
+	status: 'open' | 'done' | 'cancelled' | 'float';
 	priority: 'none' | 'low' | 'normal' | 'high';
 
 	// Scheduling
@@ -226,8 +226,8 @@ function cleanFrontmatterForSerialization(fm: TaskFrontmatter): Record<string, u
 
 // Normalization helpers
 
-function normalizeStatus(value: unknown): 'open' | 'done' | 'cancelled' {
-	if (value === 'done' || value === 'cancelled') return value;
+function normalizeStatus(value: unknown): 'open' | 'done' | 'cancelled' | 'float' {
+	if (value === 'done' || value === 'cancelled' || value === 'float') return value;
 	return 'open';
 }
 

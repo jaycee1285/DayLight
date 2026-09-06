@@ -8,7 +8,8 @@
 
 import { parse as parseYaml } from 'yaml';
 import type { TaskFrontmatter, TimeEntry } from '$lib/storage/frontmatter';
-import { parseMarkdown } from '$lib/storage/frontmatter';
+import { parseMarkdown, rruleToRecurrence } from '$lib/storage/frontmatter';
+import { generateOccurrences } from '$lib/domain/recurrence';
 import {
 	getTaskDateGroup,
 	calculateUrgencyScore,
@@ -351,8 +352,12 @@ export function getTasksForDate(
 			}
 		}
 
+		if (fm.recurrence && recurringRuleMatchesDate(fm, date)) {
+			return true;
+		}
+
 		return false;
-	});
+	}).sort(compareCalendarTasks);
 }
 
 /**
@@ -400,9 +405,47 @@ export function getTasksInDateRange(
 				}
 			}
 		}
+
+		if (fm.recurrence) {
+			for (const date of tasksByDate.keys()) {
+				if (!recurringRuleMatchesDate(fm, date)) continue;
+				const existing = tasksByDate.get(date)!;
+				if (!existing.some((t) => t.filename === task.filename)) {
+					existing.push(task);
+				}
+			}
+		}
+	}
+
+	for (const [date, dateTasks] of tasksByDate) {
+		tasksByDate.set(date, dateTasks.sort(compareCalendarTasks));
 	}
 
 	return tasksByDate;
+}
+
+function recurringRuleMatchesDate(frontmatter: TaskFrontmatter, date: string): boolean {
+	if (!frontmatter.recurrence) return false;
+	if (frontmatter.scheduled && frontmatter.scheduled > date) return false;
+	if (frontmatter.complete_instances.includes(date)) return false;
+	if (frontmatter.skipped_instances.includes(date)) return false;
+
+	const recurrence = rruleToRecurrence(frontmatter.recurrence);
+	if (!recurrence) return false;
+	return generateOccurrences(recurrence, date, date).includes(date);
+}
+
+function compareCalendarTasks(left: ViewTask, right: ViewTask): number {
+	const leftRecurring = left.frontmatter.recurrence ? 1 : 0;
+	const rightRecurring = right.frontmatter.recurrence ? 1 : 0;
+	if (leftRecurring !== rightRecurring) return leftRecurring - rightRecurring;
+
+	const leftTime = left.frontmatter.startTime ?? '99:99';
+	const rightTime = right.frontmatter.startTime ?? '99:99';
+	const timeCompare = leftTime.localeCompare(rightTime);
+	if (timeCompare !== 0) return timeCompare;
+
+	return left.title.localeCompare(right.title);
 }
 
 /**
@@ -714,8 +757,10 @@ export function getUnplannedTasksForDates(
 ): ViewTask[] {
 	const dateSet = new Set(dates);
 	return tasks.filter((t) => {
+		if (t.frontmatter.status === 'float') return true;
 		// Exclude completed and overdue tasks
 		if (t.dateGroup === 'Wrapped' || t.dateGroup === 'Past') return false;
+		if (t.frontmatter.recurrence) return false;
 		const scheduled = t.effectiveDate || t.instanceDate || t.frontmatter.scheduled;
 		if (!scheduled || !dateSet.has(scheduled)) return false;
 		// Has a scheduled date in range but no time block
@@ -729,7 +774,7 @@ export function getUnplannedTasksForDates(
 export function getBacklogTasks(tasks: ViewTask[]): ViewTask[] {
 	return tasks.filter((t) => {
 		const fm = t.frontmatter;
-		return fm.status === 'open' && !fm.scheduled && !fm.recurrence;
+		return (fm.status === 'open' || fm.status === 'float') && !fm.scheduled && !fm.recurrence;
 	});
 }
 

@@ -49,6 +49,7 @@
     "flexsearch": "^0.8.212",
     "fuzzysort": "^3.1.0",
     "marked": "^17.0.3",
+    "marked-extended-tables": "^2.0.1",
     "pulltorefreshjs": "^0.1.22",
     "yaml": "^2.8.2"
   }

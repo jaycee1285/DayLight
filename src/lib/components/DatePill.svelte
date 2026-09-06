@@ -5,9 +5,17 @@
 		date: Date;
 		onselect?: (date: Date) => void;
 		showPicker?: boolean;
+		allowFloat?: boolean;
+		mode?: 'active' | 'float';
 	}
 
-	let { date = $bindable(new Date()), onselect, showPicker = false }: Props = $props();
+	let {
+		date = $bindable(new Date()),
+		onselect,
+		showPicker = false,
+		allowFloat = false,
+		mode = $bindable('active')
+	}: Props = $props();
 
 	let pickerOpen = $state(false);
 	let alignRight = $state(false);
@@ -44,6 +52,7 @@
 		const newDate = new Date();
 		newDate.setDate(newDate.getDate() + offset);
 		date = newDate;
+		mode = 'active';
 		onselect?.(date);
 		pickerOpen = false;
 	}
@@ -52,9 +61,16 @@
 		const target = e.target as HTMLInputElement;
 		if (target.value) {
 			date = new Date(target.value + 'T00:00:00');
+			mode = 'active';
 			onselect?.(date);
 			pickerOpen = false;
 		}
+	}
+
+	function selectFloat() {
+		if (!allowFloat) return;
+		mode = 'float';
+		pickerOpen = false;
 	}
 
 	function formatInputDate(d: Date): string {
@@ -126,7 +142,7 @@
 
 <div class="date-pill-container relative inline-block" bind:this={containerElement}>
 	<button type="button" class="date-pill" onclick={togglePicker}>
-		{formatDate(date)}
+		{mode === 'float' ? 'Float' : formatDate(date)}
 	</button>
 
 	{#if pickerOpen}
@@ -136,6 +152,12 @@
 			bind:this={dropdownElement}
 		>
 			<div class="quick-dates flex flex-col gap-1 mb-2">
+				{#if allowFloat}
+					<button type="button" class="quick-date-btn" onclick={selectFloat}>
+						Float
+					</button>
+					<div class="divider my-2"></div>
+				{/if}
 				<button type="button" class="quick-date-btn" onclick={() => selectQuickDate(-1)}>
 					Yesterday
 				</button>

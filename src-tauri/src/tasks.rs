@@ -109,6 +109,10 @@ fn categorize(fm: &RawFrontmatter, today: &str) -> &'static str {
         return "wrapped";
     }
 
+    if fm.status.as_deref() == Some("float") {
+        return "upcoming";
+    }
+
     // 2. Completed today → wrapped (with exception for non-recurring re-scheduled for today)
     if fm.complete_instances.iter().any(|d| d == today) {
         let has_recurrence = fm.recurrence.is_some();

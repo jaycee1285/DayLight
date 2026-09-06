@@ -155,9 +155,27 @@
 
 	<!-- Unplanned tasks hint -->
 	{#if unplanned.length > 0 && !showPicker}
-		<div class="unplanned-hint">
-			<span>{unplanned.length} unplanned task{unplanned.length !== 1 ? 's' : ''}</span>
-			<span class="hint-text">Tap the grid to place</span>
+		<div class="unplanned-rail">
+			<div class="unplanned-heading">
+				<span>Unplanned this week</span>
+				<span class="hint-text">Tap grid to place</span>
+			</div>
+			<div class="unplanned-list">
+				{#each unplanned.slice(0, 7) as task (task.filename + (task.instanceDate || ''))}
+					<button type="button" class="unplanned-chip" onclick={() => {
+						pickerMinutes = dayStartMinutes;
+						showPicker = true;
+					}}>
+						<span>{task.title}</span>
+						{#if task.frontmatter.status === 'float'}
+							<span class="float-badge">float</span>
+						{/if}
+					</button>
+				{/each}
+				{#if unplanned.length > 7}
+					<span class="more-count">+{unplanned.length - 7}</span>
+				{/if}
+			</div>
 		</div>
 	{/if}
 
@@ -291,24 +309,72 @@
 		left: 40px;
 	}
 
-	/* Unplanned hint */
-	.unplanned-hint {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
+	/* Unplanned rail */
+	.unplanned-rail {
 		padding: 8px 12px;
-		font-size: 0.75rem;
 		border-top: 1px solid rgb(var(--color-surface-200));
 		flex-shrink: 0;
 	}
 
-	:global([data-mode='dark']) .unplanned-hint {
+	:global([data-mode='dark']) .unplanned-rail {
 		border-top-color: rgb(var(--color-surface-600));
+	}
+
+	.unplanned-heading {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.75rem;
+		font-weight: 600;
+		margin-bottom: 6px;
 	}
 
 	.hint-text {
 		opacity: 0.5;
 		font-style: italic;
+		font-weight: 400;
+	}
+
+	.unplanned-list {
+		display: flex;
+		gap: 6px;
+		overflow-x: auto;
+		padding-bottom: 2px;
+	}
+
+	.unplanned-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		max-width: 11rem;
+		border: none;
+		border-radius: 6px;
+		padding: 5px 8px;
+		font-size: 0.75rem;
+		background-color: rgb(var(--color-surface-200));
+		color: inherit;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	:global([data-mode='dark']) .unplanned-chip {
+		background-color: rgb(var(--color-surface-700));
+	}
+
+	.unplanned-chip span:first-child {
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.float-badge,
+	.more-count {
+		font-size: 0.625rem;
+		opacity: 0.65;
+	}
+
+	.more-count {
+		align-self: center;
+		white-space: nowrap;
 	}
 
 	/* Picker overlay + sheet */
