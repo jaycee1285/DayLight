@@ -21,7 +21,7 @@ persists_to:
 depends_on:
   - markdown-store
 staleness_risks:
-  - darkThemes Set vs actual theme registry
+  - app.html inline DARK/KNOWN lists vs src/lib/theme.ts (locked by src/lib/theme.test.ts)
   - route-conditional visibility (editor, future routes)
   - layout override logic split across layout + settings + sidebar
   - sidebar width offset depends on runtime measurement and CSS breakpoint parity
@@ -57,7 +57,11 @@ Risky to edit:
 
 ## Authority Notes
 - **Nav/FAB visibility**: layout is authoritative. Routes don't control their own nav visibility; layout checks `$page.url.pathname`.
-- **Theme attributes**: layout sets `data-theme` and `data-mode` on `<html>`. Settings page writes to localStorage, but layout applies.
+- **Theme attributes**: `src/lib/theme.ts` is the registry (theme name, label, dark/light) and owns `applyThemeAttributes()`. `data-theme` and `data-mode` must ALWAYS be written as a pair — a dark `data-theme` with a missing or stale `data-mode` renders every component's light-mode card colors on the dark body background (unreadable light-on-light text).
+  - First write is the inline pre-paint script in `src/app.html`, which duplicates the dark list because it cannot import a module. `src/lib/theme.test.ts` executes that script and locks its lists to the registry.
+  - `+layout.svelte` re-affirms the pair synchronously in its pre-mount block (next to the `data-path` override) so a hot remount can't leave it half-applied.
+  - `applyTheme()` / `handleThemeChange()` set the attributes **before their first `await`**. The GTK bridge and dynamic imports are best-effort refinement and must never gate the base theme.
+  - `gtk-theme.ts` also writes the pair, inferring dark/light from the real window background.
 - **Add-task sheet**: layout owns the sheet; routes trigger it via shared state.
 - **Layout override application**: layout applies/clears `data-layout-override` and emits `daylight:layout-override-change`.
 - **Sidebar offset**: layout is authoritative for applying measured `--sidebar-width` to content/nav offsets.

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="flexoki-light">
+<html lang="en" data-theme="flexoki-light" data-mode="light">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
@@ -7,19 +7,59 @@
 		<script>
 			// Synchronous theme application to prevent FOUC (flash of unstyled content).
 			// Runs before paint so the correct theme is visible immediately.
-			try {
-				var saved = localStorage.getItem('daylight-theme');
-				if (saved === 'gtk') {
-					// GTK colors applied async after Tauri init; use stored dark preference for base
-					var gtkDark = localStorage.getItem('daylight-gtk-dark');
-					document.documentElement.setAttribute('data-theme', gtkDark === 'true' ? 'flexoki-dark' : 'flexoki-light');
-				} else if (saved && saved !== 'system') {
-					document.documentElement.setAttribute('data-theme', saved);
-				} else {
-					var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-					document.documentElement.setAttribute('data-theme', prefersDark ? 'flexoki-dark' : 'flexoki-light');
+			//
+			// CRITICAL: data-theme and data-mode must ALWAYS be set together. Components
+			// pick their card/text colors from [data-mode='dark']; a dark data-theme with
+			// a missing or stale data-mode renders light cards on a dark body (unreadable).
+			// This list is locked to src/lib/theme.ts by src/lib/theme.test.ts — update both.
+			(function () {
+				var DARK = [
+					'flexoki-dark',
+					'ayu-dark',
+					'everforest-dark-hard',
+					'glacier',
+					'gruvbox-material-dark',
+					'kanagawa',
+					'nordfox',
+					'rose-pine-moon',
+					'solarized-dark-higher-contrast',
+					'tokyo-night-storm'
+				];
+				var KNOWN = DARK.concat([
+					'flexoki-light',
+					'ayu-light',
+					'catppuccin-latte',
+					'dawnfox',
+					'everforest-light-hard',
+					'gruvbox-material-light-hard',
+					'kanagawa-lotus',
+					'polar',
+					'rose-pine-dawn',
+					'solarized-light'
+				]);
+				var theme = 'flexoki-light';
+				try {
+					var saved = localStorage.getItem('daylight-theme');
+					if (saved === 'gtk') {
+						// GTK colors applied async after Tauri init; use stored dark preference for base
+						theme =
+							localStorage.getItem('daylight-gtk-dark') === 'true'
+								? 'flexoki-dark'
+								: 'flexoki-light';
+					} else if (saved && saved !== 'system' && KNOWN.indexOf(saved) !== -1) {
+						theme = saved;
+					} else {
+						theme = window.matchMedia('(prefers-color-scheme: dark)').matches
+							? 'flexoki-dark'
+							: 'flexoki-light';
+					}
+				} catch (e) {
+					// localStorage/matchMedia unavailable — keep the light default.
 				}
-			} catch (e) {}
+				var root = document.documentElement;
+				root.setAttribute('data-theme', theme);
+				root.setAttribute('data-mode', DARK.indexOf(theme) !== -1 ? 'dark' : 'light');
+			})();
 		</script>
 		%sveltekit.head%
 	</head>

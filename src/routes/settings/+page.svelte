@@ -13,6 +13,12 @@
 	import { refreshCalendarCache } from '$lib/calendar/refresh';
 	import { buildAuthUrl, exchangeCodeForToken } from '$lib/calendar/google';
 	import { hasTauriInvoke, isTauriRuntime } from '$lib/platform/tauri';
+	import {
+		THEMES,
+		applyThemeAttributes,
+		resolveSystemTheme,
+		resolveThemePreference
+	} from '$lib/theme';
 
 	function handleScanConflicts() {
 		goto('/conflicts');
@@ -36,28 +42,11 @@
 	let hasStoragePermission = $state(true); // Assume true on non-Android
 	let layoutOverride = $state<'auto' | 'mobile' | 'desktop'>('auto');
 
+	// Options come straight from the theme registry so the dropdown can never
+	// offer a theme that has no CSS block (or omit one that does).
 	const baseThemeOptions = [
 		{ value: 'system', label: 'System (auto)' },
-		{ value: 'flexoki-light', label: 'Flexoki Light' },
-		{ value: 'flexoki-dark', label: 'Flexoki Dark' },
-		{ value: 'ayu-light', label: 'Ayu Light' },
-		{ value: 'ayu-dark', label: 'Ayu Dark' },
-		{ value: 'catppuccin-latte', label: 'Catppuccin Latte' },
-		{ value: 'dawnfox', label: 'Dawnfox' },
-		{ value: 'everforest-dark-hard', label: 'Everforest Dark' },
-		{ value: 'everforest-light-hard', label: 'Everforest Light' },
-		{ value: 'glacier', label: 'Glacier' },
-		{ value: 'gruvbox-material-dark', label: 'Gruvbox Material Dark' },
-		{ value: 'gruvbox-material-light-hard', label: 'Gruvbox Material Light Hard' },
-		{ value: 'kanagawa', label: 'Kanagawa' },
-		{ value: 'kanagawa-lotus', label: 'Kanagawa Lotus' },
-		{ value: 'nordfox', label: 'Nordfox' },
-		{ value: 'polar', label: 'Polar' },
-		{ value: 'rose-pine-dawn', label: 'Rosé Pine Dawn' },
-		{ value: 'rose-pine-moon', label: 'Rosé Pine Moon' },
-		{ value: 'solarized-dark-higher-contrast', label: 'Solarized Dark HC' },
-		{ value: 'solarized-light', label: 'Solarized Light' },
-		{ value: 'tokyo-night-storm', label: 'Tokyo Night Storm' },
+		...THEMES.map((t) => ({ value: t.value, label: t.label }))
 	];
 	let themeOptions = $derived(
 		isTauri && !isMobile
@@ -167,17 +156,8 @@
 		}
 	});
 
-	const darkThemes = new Set([
-		'flexoki-dark', 'ayu-dark',
-		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard', 'gruvbox-material-dark',
-		'kanagawa', 'liquidcarbon', 'modus-vivendi', 'modus-vivendi-tinted',
-		'nordfox', 'pencildark', 'rose-pine-moon', 'solarized-dark-higher-contrast',
-		'tokyo-night-storm', 'tomorrow-night-blue'
-	]);
-
 	function setThemeAttributes(theme: string) {
-		document.documentElement.setAttribute('data-theme', theme);
-		document.documentElement.setAttribute('data-mode', darkThemes.has(theme) ? 'dark' : 'light');
+		applyThemeAttributes(theme);
 	}
 
 	function applyLayoutOverride(mode: 'auto' | 'mobile' | 'desktop') {
@@ -218,6 +198,17 @@
 		const preference = target.value;
 		selectedTheme = preference;
 
+		// Attributes first, synchronously — see the note in +layout.svelte's
+		// applyTheme(). The async GTK work below only refines what is already set.
+		const resolved = resolveThemePreference(preference);
+		setThemeAttributes(resolved);
+
+		try {
+			localStorage.setItem('daylight-theme', preference);
+		} catch {
+			// Ignore theme persistence errors.
+		}
+
 		if (preference === 'gtk') {
 			try {
 				const { invoke } = await import('@tauri-apps/api/core');
@@ -227,8 +218,7 @@
 				await initGtkThemeListener();
 			} catch (err) {
 				console.error('[Settings] GTK theme failed, falling back:', err);
-				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				setThemeAttributes(prefersDark ? 'flexoki-dark' : 'flexoki-light');
+				setThemeAttributes(resolveSystemTheme());
 			}
 		} else {
 			// Clear any GTK overrides if switching away
@@ -240,18 +230,8 @@
 				// Module not loaded yet, nothing to clear
 			}
 
-			let resolved = preference;
-			if (preference === 'system') {
-				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				resolved = prefersDark ? 'flexoki-dark' : 'flexoki-light';
-			}
+			// clearGtkTheme() strips inline overrides; re-affirm the pair after it.
 			setThemeAttributes(resolved);
-		}
-
-		try {
-			localStorage.setItem('daylight-theme', preference);
-		} catch {
-			// Ignore theme persistence errors.
 		}
 	}
 

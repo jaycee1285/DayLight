@@ -31,6 +31,7 @@
 	import {
 		markdownStore,
 		initializeMarkdownStore,
+		refreshRecurringInstances,
 		addTask as addMarkdownTask,
 		addRecurringTask as addMarkdownRecurringTask,
 		logTime as logMarkdownTime
@@ -55,6 +56,13 @@
 		type ShortcutScope
 	} from '$lib/shortcuts/registry';
 	import { waitForTauriReady } from '$lib/platform/tauri';
+	import {
+		applyThemeAttributes,
+		resolveSystemTheme,
+		resolveThemePreference,
+		DEFAULT_DARK_THEME,
+		DEFAULT_LIGHT_THEME
+	} from '$lib/theme';
 
 	// CRITICAL: Set data path override synchronously BEFORE any child components initialize
 	// This fixes a race condition where markdown-store would initialize before the path was set
@@ -71,6 +79,13 @@
 			} else {
 				document.documentElement.removeAttribute('data-layout-override');
 			}
+
+			// Re-affirm data-theme + data-mode synchronously, before any child
+			// component mounts. app.html already did this pre-paint; repeating it
+			// here means a hot client-side remount (Android resume, HMR, SPA
+			// re-hydration) can never leave the pair half-applied while the async
+			// onMount chain is still pending.
+			applyThemeAttributes(resolveThemePreference(localStorage.getItem('daylight-theme')));
 		} catch {
 			// Ignore localStorage errors during SSR or in restricted contexts
 		}
@@ -312,26 +327,26 @@
 	let currentTheme = $state('flexoki-light');
 	let themePreference = $state('flexoki-light');
 
-	const darkThemes = new Set([
-		'flexoki-dark', 'ayu-dark',
-		'everforest-dark-hard', 'glacier', 'gruvbox-dark-hard', 'gruvbox-material-dark',
-		'kanagawa', 'liquidcarbon', 'modus-vivendi', 'modus-vivendi-tinted',
-		'nordfox', 'pencildark', 'rose-pine-moon', 'solarized-dark-higher-contrast',
-		'tokyo-night-storm', 'tomorrow-night-blue'
-	]);
-
 	function setThemeAttributes(theme: string) {
-		document.documentElement.setAttribute('data-theme', theme);
-		document.documentElement.setAttribute('data-mode', darkThemes.has(theme) ? 'dark' : 'light');
-	}
-
-	function resolveSystemTheme(): string {
-		const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-		return prefersDark ? 'flexoki-dark' : 'flexoki-light';
+		applyThemeAttributes(theme);
 	}
 
 	async function applyTheme(preference: string) {
 		themePreference = preference;
+
+		// Set data-theme + data-mode SYNCHRONOUSLY, before any await. Everything
+		// below (GTK bridge, module loading) is best-effort refinement; the base
+		// theme must never be gated on it, or a slow/failed dynamic import leaves
+		// <html> with a stale data-mode and unreadable light-on-light cards.
+		const resolved = resolveThemePreference(preference);
+		currentTheme = resolved;
+		setThemeAttributes(resolved);
+
+		try {
+			localStorage.setItem('daylight-theme', preference);
+		} catch {
+			// Ignore theme persistence errors.
+		}
 
 		if (preference === 'gtk') {
 			try {
@@ -339,13 +354,13 @@
 				const { applyGtkTheme, initGtkThemeListener } = await import('$lib/services/gtk-theme');
 				const data = await invoke<{ colors: Record<string, string>; prefer_dark: boolean; theme_path: string | null }>('get_gtk_colors');
 				applyGtkTheme(data);
-				currentTheme = data.prefer_dark ? 'flexoki-dark' : 'flexoki-light';
+				currentTheme = data.prefer_dark ? DEFAULT_DARK_THEME : DEFAULT_LIGHT_THEME;
 				await initGtkThemeListener();
 			} catch {
 				// GTK not available, fall back to system
-				const resolved = resolveSystemTheme();
-				currentTheme = resolved;
-				setThemeAttributes(resolved);
+				const fallback = resolveSystemTheme();
+				currentTheme = fallback;
+				setThemeAttributes(fallback);
 			}
 		} else {
 			// Clear any GTK overrides when switching away
@@ -357,15 +372,9 @@
 				// Module not loaded yet
 			}
 
-			const resolved = preference === 'system' ? resolveSystemTheme() : preference;
-			currentTheme = resolved;
+			// Re-affirm: clearGtkTheme() strips inline variable overrides, so make
+			// sure the attribute pair still matches the preference afterwards.
 			setThemeAttributes(resolved);
-		}
-
-		try {
-			localStorage.setItem('daylight-theme', preference);
-		} catch {
-			// Ignore theme persistence errors.
 		}
 	}
 
@@ -1114,9 +1123,11 @@
 		const delayMs = Math.max(0, next.getTime() - now.getTime());
 
 		midnightTimer = setTimeout(() => {
+			const today = getTodayDate();
 			if (isActive('/today-bases', $page.url.pathname)) {
-				setSelectedDate(getTodayDate());
+				setSelectedDate(today);
 			}
+			void refreshRecurringInstances(today);
 			scheduleNextMidnight();
 		}, delayMs);
 	}

@@ -6,6 +6,8 @@
  * color scales for surface and primary colors from the GTK anchor points.
  */
 
+import { applyThemeAttributes, DEFAULT_DARK_THEME, DEFAULT_LIGHT_THEME } from '$lib/theme';
+
 type RGB = [number, number, number];
 
 interface GtkThemeColors {
@@ -484,6 +486,8 @@ export function applyGtkTheme(data: GtkThemeColors): void {
 	if (Object.keys(colors).length === 0) {
 		console.warn('[gtk-theme] No GTK colors available, falling back to default theme');
 		clearGtkTheme();
+		// Don't leave the attribute pair pointing at a half-applied GTK state.
+		applyThemeAttributes(preferDark ? DEFAULT_DARK_THEME : DEFAULT_LIGHT_THEME);
 		return;
 	}
 
@@ -502,8 +506,11 @@ export function applyGtkTheme(data: GtkThemeColors): void {
 	const isDark = inferredDark ?? preferDark;
 
 	// 1. Set data-theme for dark/light CSS branch selection in components
-	const baseTheme = isDark ? 'flexoki-dark' : 'flexoki-light';
-	root.setAttribute('data-theme', baseTheme);
+	const baseTheme = isDark ? DEFAULT_DARK_THEME : DEFAULT_LIGHT_THEME;
+	// data-mode must move with data-theme. GTK infers dark/light from the actual
+	// window background, which can disagree with whatever mode was set before, so
+	// write both rather than leaving a stale data-mode behind.
+	applyThemeAttributes(baseTheme, isDark ? 'dark' : 'light');
 	root.setAttribute('data-gtk', 'true');
 
 	const overrides: Record<string, string> = {};
